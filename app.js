@@ -78,8 +78,99 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("authClose").onclick  = closeAuth;
   modal.addEventListener("click", (e) => { if (e.target === modal) closeAuth(); });
 
-  // "무료 레벨테스트 / 수강신청" 버튼을 누르면 로그인 안 했을 때 가입창 열기
-  document.querySelectorAll('a[href="#cta"], a[href="#book"]').forEach(a => {
-    // (예약은 4단계에서 연결합니다. 지금은 그대로 둬도 됩니다.)
-  });
+  initBooking();   // 4단계: 강사·예약 연결
 });
+
+/* =========================================================
+   4단계 — 강사·예약 연결 (Supabase teachers / class_slots / bookings)
+   ========================================================= */
+const COLORS = ["c1", "c2", "c3", "c4"];
+let selTeacher = null;     // {id, name}
+let selSlot = null;        // {id, start_at}
+
+function fmtSlot(iso) {
+  const d = new Date(iso);
+  const wd = ["일", "월", "화", "수", "목", "금", "토"][d.getDay()];
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getMonth() + 1}/${d.getDate()}(${wd}) ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+async function initBooking() {
+  const cardsBox = document.querySelector(".tcards");
+  const tPills   = document.querySelector('.pills[data-group="t"]');
+  if (!cardsBox || !tPills) return;   // 예약 섹션이 없으면 건너뜀
+
+  // 요일 선택 칸은 사용하지 않으므로 숨김 (예약 가능 시간 목록으로 대체)
+  const dPills = document.querySelector('.pills[data-group="d"]');
+  if (dPills) { dPills.style.display = "none"; if (dPills.previousElementSibling) dPills.previousElementSibling.style.display = "none"; }
+  const hPills = document.querySelector('.pills[data-group="h"]');
+  if (hPills && hPills.previousElementSibling) hPills.previousElementSibling.textContent = "예약 가능 시간 (20분 집중수업)";
+
+  // DB에서 강사 불러오기
+  const { data: teachers, error } = await sb
+    .from("teachers").select("id, display_name, intro, specialties")
+    .eq("is_active", true).order("display_name");
+  if (error) { console.error(error); return; }
+  if (!teachers || !teachers.length) { cardsBox.innerHTML = "<p>등록된 강사가 없습니다.</p>"; return; }
+
+  // 강사 카드 그리기
+  cardsBox.innerHTML = teachers.map((t, i) => `
+    <div class="tcard">
+      <div class="av ${COLORS[i % 4]}"><span>${(t.display_name || "T").replace("Tr. ", "").charAt(0)}</span><span class="free">예약가능</span></div>
+      <div class="meta"><b>${t.display_name || ""}</b><div class="role">${t.specialties || ""}</div><div class="rt">${t.intro || ""}</div></div>
+    </div>`).join("");
+
+  // 강사 선택 칩 그리기
+  tPills.innerHTML = teachers.map((t, i) =>
+    `<span class="pill-opt${i === 0 ? " sel" : ""}" data-id="${t.id}">${(t.display_name || "").replace("Tr. ", "")}</span>`
+  ).join("");
+  tPills.querySelectorAll(".pill-opt").forEach(p => {
+    p.onclick = () => { tPills.querySelectorAll(".pill-opt").forEach(x => x.classList.remove("sel")); p.classList.add("sel"); pickTeacher(p.dataset.id, p.textContent); };
+  });
+
+  // 예약 버튼 연결
+  const bookBtn = document.querySelector(".bk-panel a.btn-primary");
+  if (bookBtn) bookBtn.onclick = (e) => { e.preventDefault(); doBooking(); };
+
+  // 첫 강사 자동 선택
+  pickTeacher(teachers[0].id, teachers[0].display_name);
+}
+
+async function pickTeacher(id, name) {
+  selTeacher = { id, name }; selSlot = null;
+  const hPills = document.querySelector('.pills[data-group="h"]');
+  if (!hPills) return;
+  hPills.innerHTML = "<span style='font-size:.85rem;color:#6b7785'>불러오는 중…</span>";
+
+  const { data: slots, error } = await sb
+    .from("class_slots").select("id, start_at")
+    .eq("teacher_id", id).eq("status", "open")
+    .gt("start_at", new Date().toISOString())
+    .order("start_at").limit(12);
+  if (error) { console.error(error); return; }
+
+  if (!slots || !slots.length) { hPills.innerHTML = "<span style='font-size:.85rem;color:#6b7785'>예약 가능한 시간이 없습니다.</span>"; return; }
+  hPills.innerHTML = slots.map(s => `<span class="pill-opt" data-id="${s.id}" data-start="${s.start_at}">${fmtSlot(s.start_at)}</span>`).join("");
+  hPills.querySelectorAll(".pill-opt").forEach(p => {
+    p.onclick = () => { hPills.querySelectorAll(".pill-opt").forEach(x => x.classList.remove("sel")); p.classList.add("sel"); selSlot = { id: p.dataset.id, start_at: p.dataset.start }; };
+  });
+}
+
+async function doBooking() {
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) { openAuth("login"); return; }            // 로그인 필요
+  if (!selTeacher) { alert("강사를 선택하세요."); return; }
+  if (!selSlot)    { alert("예약 가능한 시간을 선택하세요."); return; }
+
+  const { error } = await sb.from("bookings").insert({
+    student_id: user.id,
+    teacher_id: selTeacher.id,
+    slot_id: Number(selSlot.id),
+    start_at: selSlot.start_at,
+    status: "reserved",
+    payment_status: "unpaid",   // 결제는 나중에 연결 (지금은 미결제)
+    price: 0
+  });
+  if (error) { alert("예약 실패: " + error.message); console.error(error); return; }
+  alert(`예약 완료!\n${selTeacher.name} · ${fmtSlot(selSlot.start_at)}\n(결제·줌 연결은 다음 단계에서 추가됩니다)`);
+}
