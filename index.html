@@ -271,6 +271,7 @@
       <a href="#price">수강료</a>
       <a href="#reviews">후기</a>
       <a href="#faq">FAQ</a>
+      <a href="#myclass" id="myclassLink" style="display:none">내 강의실</a>
       <a href="#" id="authBtn">로그인</a>
       <a href="#cta" class="btn btn-primary">수강신청</a>
     </nav>
@@ -395,6 +396,32 @@
         <p class="bk-note">로그인 후 결제 없이 먼저 체험수업도 가능해요</p>
       </div>
     </div>
+  </div>
+</section>
+
+<!-- 내 강의실 (로그인 시에만 표시) -->
+<section class="pad" id="myclass" style="display:none;background:#fff">
+  <style>
+    #myclass .mc-card{display:flex;align-items:center;gap:18px;background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:18px 22px;margin-bottom:14px}
+    #myclass .mc-when{font-family:var(--serif);font-weight:900;font-size:1.5rem;color:var(--ink);line-height:1;min-width:118px}
+    #myclass .mc-when small{display:block;font-family:var(--sans);font-weight:600;font-size:.8rem;color:var(--muted);margin-top:6px}
+    #myclass .mc-info{flex:1}
+    #myclass .mc-info b{font-size:1.05rem}
+    #myclass .mc-info .mc-sub{color:var(--muted);font-size:.88rem}
+    #myclass .mc-badge{font-size:.74rem;font-weight:800;padding:.28em .7em;border-radius:999px}
+    #myclass .b-reserved{background:#e7f1f0;color:var(--teal)}
+    #myclass .b-unpaid{background:#fdeee7;color:var(--coral-deep)}
+    #myclass .mc-zoom{background:var(--coral);color:#fff;border:none;border-radius:999px;padding:.6em 1.2em;font-weight:700;font-size:.9rem;cursor:pointer;opacity:.5}
+    #myclass .mc-empty{text-align:center;color:var(--muted);padding:40px 0}
+    @media(max-width:600px){#myclass .mc-card{flex-wrap:wrap}#myclass .mc-when{min-width:auto}}
+  </style>
+  <div class="wrap">
+    <div class="head">
+      <span class="eyebrow">My Classroom</span>
+      <h2>내 <em>강의실</em></h2>
+      <p>예약한 수업을 한눈에 확인하세요. 수업 시간이 되면 이곳에서 바로 입장합니다.</p>
+    </div>
+    <div id="myBookings"></div>
   </div>
 </section>
 
