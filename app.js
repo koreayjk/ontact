@@ -56,6 +56,14 @@ async function logout() { await sb.auth.signOut(); }
 async function refreshAuthUI() {
   const { data: { user } } = await sb.auth.getUser();
   const btn = document.getElementById("authBtn");
+
+  // 내 강의실 섹션/메뉴 표시 토글
+  const sec = document.getElementById("myclass");
+  const link = document.getElementById("myclassLink");
+  if (sec)  sec.style.display  = user ? "block" : "none";
+  if (link) link.style.display = user ? "" : "none";
+  if (user) loadMyBookings();
+
   if (!btn) return;
   if (user) {
     const name = user.user_metadata?.full_name || user.email.split("@")[0];
@@ -173,4 +181,47 @@ async function doBooking() {
   });
   if (error) { alert("예약 실패: " + error.message); console.error(error); return; }
   alert(`예약 완료!\n${selTeacher.name} · ${fmtSlot(selSlot.start_at)}\n(결제·줌 연결은 다음 단계에서 추가됩니다)`);
+  loadMyBookings();   // 내 강의실 새로고침
+}
+
+/* ---------- 내 강의실: 내 예약 목록 ---------- */
+async function loadMyBookings() {
+  const box = document.getElementById("myBookings");
+  if (!box) return;
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) return;
+
+  const { data, error } = await sb
+    .from("bookings")
+    .select("id, start_at, status, payment_status, teachers(display_name)")
+    .eq("student_id", user.id)
+    .order("start_at");
+  if (error) { console.error(error); return; }
+
+  if (!data || !data.length) {
+    box.innerHTML = '<div class="mc-empty">아직 예약한 수업이 없습니다. 위 \'강사·예약\'에서 첫 수업을 예약해 보세요.</div>';
+    return;
+  }
+
+  const stLabel = { reserved: "예약됨", completed: "수업완료", cancelled: "취소됨", no_show: "노쇼" };
+  const payLabel = { unpaid: "미결제", paid: "결제완료", free: "무료" };
+
+  box.innerHTML = data.map(b => {
+    const d = new Date(b.start_at);
+    const wd = ["일", "월", "화", "수", "목", "금", "토"][d.getDay()];
+    const p = (n) => String(n).padStart(2, "0");
+    const tname = b.teachers ? b.teachers.display_name : "강사";
+    return `
+      <div class="mc-card">
+        <div class="mc-when">${d.getMonth() + 1}/${d.getDate()}<small>${wd} ${p(d.getHours())}:${p(d.getMinutes())}</small></div>
+        <div class="mc-info">
+          <b>${tname} 와의 1:1 수업</b>
+          <div class="mc-sub">
+            <span class="mc-badge b-reserved">${stLabel[b.status] || b.status}</span>
+            <span class="mc-badge b-unpaid">${payLabel[b.payment_status] || b.payment_status}</span>
+          </div>
+        </div>
+        <button class="mc-zoom" title="다음 단계에서 줌 자동 연결" disabled>줌 입장 (준비중)</button>
+      </div>`;
+  }).join("");
 }
