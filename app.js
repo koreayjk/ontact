@@ -12,8 +12,8 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 /* ---------- 모달 열기/닫기 ---------- */
 const modal = document.getElementById("authModal");
-function openAuth(tab) { showTab(tab || "login"); modal.classList.add("show"); }
-function closeAuth()  { modal.classList.remove("show"); msg(""); }
+function openAuth(tab) { showTab(tab || "login"); modal.classList.add("show"); modal.style.display = "flex"; }
+function closeAuth()  { modal.classList.remove("show"); modal.style.display = "none"; msg(""); }
 
 function showTab(tab) {
   document.getElementById("tab-login").classList.toggle("on", tab === "login");
