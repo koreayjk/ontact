@@ -174,42 +174,30 @@ async function doBooking() {
   const oldTxt = bookBtn ? bookBtn.textContent : "";
   if (bookBtn) { bookBtn.textContent = "예약 중…"; bookBtn.style.pointerEvents = "none"; }
 
-  // 1) 줌 미팅 자동 생성 (Edge Function 호출)
-  let zoom = {};
-  try {
-    const { data, error } = await sb.functions.invoke("create-zoom-meeting", {
-      body: {
-        topic: `${selTeacher.name} 와의 1:1 영어수업`,
-        start_time: selSlot.start_at,
-        duration: 20
-      }
-    });
-    if (error) throw error;
-    if (data && data.join_url) {
-      zoom = { zoom_meeting_id: String(data.meeting_id), zoom_join_url: data.join_url, zoom_start_url: data.start_url };
+  // 함수가 [중복확인 → 줌 생성 → 예약 저장 → 슬롯 잠금]을 한 번에 처리
+  const { data, error } = await sb.functions.invoke("create-zoom-meeting", {
+    body: {
+      student_id: user.id,
+      teacher_id: selTeacher.id,
+      slot_id: Number(selSlot.id),
+      start_at: selSlot.start_at,
+      topic: `${selTeacher.name} 와의 1:1 영어수업`
     }
-  } catch (e) {
-    console.error("줌 생성 오류:", e);
-    // 줌 생성에 실패해도 예약 자체는 진행 (링크는 나중에 보충 가능)
-  }
-
-  // 2) 예약 저장 (줌 링크 포함)
-  const { error } = await sb.from("bookings").insert({
-    student_id: user.id,
-    teacher_id: selTeacher.id,
-    slot_id: Number(selSlot.id),
-    start_at: selSlot.start_at,
-    status: "reserved",
-    payment_status: "unpaid",   // 결제는 나중에 연결 (지금은 미결제)
-    price: 0,
-    ...zoom
   });
 
   if (bookBtn) { bookBtn.textContent = oldTxt; bookBtn.style.pointerEvents = ""; }
-  if (error) { alert("예약 실패: " + error.message); console.error(error); return; }
 
-  alert(`예약 완료!\n${selTeacher.name} · ${fmtSlot(selSlot.start_at)}\n${zoom.zoom_join_url ? "줌 수업방이 만들어졌어요. '내 강의실'에서 입장하세요." : "(줌 링크는 잠시 후 표시됩니다)"}`);
-  loadMyBookings();   // 내 강의실 새로고침
+  if ((error) || !data || data.error || !data.ok) {
+    alert("예약 실패: " + (data?.error || error?.message || "알 수 없는 오류"));
+    console.error(error || data);
+    pickTeacher(selTeacher.id, selTeacher.name);   // 시간 목록 새로고침
+    return;
+  }
+
+  alert(`예약 완료!\n${selTeacher.name} · ${fmtSlot(selSlot.start_at)}\n줌 수업방이 만들어졌어요. '내 강의실'에서 입장하세요.`);
+  selSlot = null;
+  pickTeacher(selTeacher.id, selTeacher.name);   // 예약된 시간은 목록에서 사라짐
+  loadMyBookings();
 }
 
 /* ---------- 내 강의실: 내 예약 목록 ---------- */
