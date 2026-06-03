@@ -170,6 +170,30 @@ async function doBooking() {
   if (!selTeacher) { alert("강사를 선택하세요."); return; }
   if (!selSlot)    { alert("예약 가능한 시간을 선택하세요."); return; }
 
+  const bookBtn = document.querySelector(".bk-panel a.btn-primary");
+  const oldTxt = bookBtn ? bookBtn.textContent : "";
+  if (bookBtn) { bookBtn.textContent = "예약 중…"; bookBtn.style.pointerEvents = "none"; }
+
+  // 1) 줌 미팅 자동 생성 (Edge Function 호출)
+  let zoom = {};
+  try {
+    const { data, error } = await sb.functions.invoke("create-zoom-meeting", {
+      body: {
+        topic: `${selTeacher.name} 와의 1:1 영어수업`,
+        start_time: selSlot.start_at,
+        duration: 20
+      }
+    });
+    if (error) throw error;
+    if (data && data.join_url) {
+      zoom = { zoom_meeting_id: String(data.meeting_id), zoom_join_url: data.join_url, zoom_start_url: data.start_url };
+    }
+  } catch (e) {
+    console.error("줌 생성 오류:", e);
+    // 줌 생성에 실패해도 예약 자체는 진행 (링크는 나중에 보충 가능)
+  }
+
+  // 2) 예약 저장 (줌 링크 포함)
   const { error } = await sb.from("bookings").insert({
     student_id: user.id,
     teacher_id: selTeacher.id,
@@ -177,10 +201,14 @@ async function doBooking() {
     start_at: selSlot.start_at,
     status: "reserved",
     payment_status: "unpaid",   // 결제는 나중에 연결 (지금은 미결제)
-    price: 0
+    price: 0,
+    ...zoom
   });
+
+  if (bookBtn) { bookBtn.textContent = oldTxt; bookBtn.style.pointerEvents = ""; }
   if (error) { alert("예약 실패: " + error.message); console.error(error); return; }
-  alert(`예약 완료!\n${selTeacher.name} · ${fmtSlot(selSlot.start_at)}\n(결제·줌 연결은 다음 단계에서 추가됩니다)`);
+
+  alert(`예약 완료!\n${selTeacher.name} · ${fmtSlot(selSlot.start_at)}\n${zoom.zoom_join_url ? "줌 수업방이 만들어졌어요. '내 강의실'에서 입장하세요." : "(줌 링크는 잠시 후 표시됩니다)"}`);
   loadMyBookings();   // 내 강의실 새로고침
 }
 
@@ -193,7 +221,7 @@ async function loadMyBookings() {
 
   const { data, error } = await sb
     .from("bookings")
-    .select("id, start_at, status, payment_status, teachers(display_name)")
+    .select("id, start_at, status, payment_status, zoom_join_url, teachers(display_name)")
     .eq("student_id", user.id)
     .order("start_at");
   if (error) { console.error(error); return; }
@@ -221,7 +249,9 @@ async function loadMyBookings() {
             <span class="mc-badge b-unpaid">${payLabel[b.payment_status] || b.payment_status}</span>
           </div>
         </div>
-        <button class="mc-zoom" title="다음 단계에서 줌 자동 연결" disabled>줌 입장 (준비중)</button>
+        ${b.zoom_join_url
+          ? `<a class="mc-zoom" href="${b.zoom_join_url}" target="_blank" rel="noopener" style="opacity:1;text-decoration:none;display:inline-flex;align-items:center">줌 입장</a>`
+          : `<button class="mc-zoom" title="줌 링크 준비중" disabled>줌 입장 (준비중)</button>`}
       </div>`;
   }).join("");
 }
