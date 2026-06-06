@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>학생 · ONTACT</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+  :root{--ink:#12273d;--paper:#f6f4ef;--line:#e3ddd0;--coral:#ef6a48;--muted:#6b7785}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:Pretendard,sans-serif;background:var(--paper);color:var(--ink);min-height:100vh}
+  header{background:var(--ink);color:#fff;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+  header b{font-size:1.1rem}
+  header .who{font-size:.85rem;opacity:.85}
+  header a{color:#fff;font-size:.85rem;opacity:.85;text-decoration:none;margin-left:14px}
+  .wrap{max-width:1100px;margin:0 auto;padding:30px 20px}
+  .hero{background:#fff;border:1px solid var(--line);border-radius:16px;padding:36px 28px;margin-bottom:24px}
+  .hero h1{font-size:1.6rem;margin-bottom:6px}
+  .hero p{color:var(--muted);font-size:.95rem}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+  .box{background:#fff;border:1px solid var(--line);border-radius:14px;padding:22px}
+  .box h3{font-size:1rem;margin-bottom:6px;color:var(--coral)}
+  .box p{font-size:.88rem;color:var(--muted)}
+  .soon{display:inline-block;font-size:.7rem;background:#fef6ef;color:#9a5b3b;padding:.2em .6em;border-radius:999px;font-weight:700;margin-left:8px}
+</style>
+</head>
+<body>
+<header>
+  <b>🎓 학생</b>
+  <div><span class="who" id="who"></span><a href="#" id="logout">로그아웃</a></div>
+</header>
+
+<div class="wrap">
+  <div class="hero">
+    <h1>학생 페이지에 오신 것을 환영합니다</h1>
+    <p>이 페이지는 현재 골격 상태입니다. 곧 단계별로 기능이 채워집니다.</p>
+  </div>
+
+  <div class="grid">
+    <div class="box"><h3>🧑‍🏫 강사 선택 & 수강신청 <span class="soon">곧</span></h3><p>교사·기간·시간대를 골라 신청합니다.</p></div>
+    <div class="box"><h3>📅 내 수업 (My Class) <span class="soon">곧</span></h3><p>오늘·이번 주 수업과 줌 입장.</p></div>
+    <div class="box"><h3>📝 결석계 <span class="soon">곧</span></h3><p>당일 수업 옆에서 결석계를 제출합니다.</p></div>
+    <div class="box"><h3>📊 출석률 & 평가 <span class="soon">곧</span></h3><p>나의 출석률과 교사 피드백을 봅니다.</p></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL="https://nhydhyolgrhsykdcqfzb.supabase.co";
+const SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5oeWRoeW9sZ3Joc3lrZGNxZnpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MTk1OTAsImV4cCI6MjA5NTk5NTU5MH0.s3qPFFN-4zMLAt-dtkOwzakCj-pkglKgbhyUR9uu4xs";
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+const ROLE_PAGE={student:"student.html",teacher:"teacher.html",manager:"manager.html",admin:"admin.html"};
+const REQUIRED_ROLE="student";
+
+async function gate(){
+  const{data:{user}}=await sb.auth.getUser();
+  if(!user){ location.href="login.html"; return; }
+  const{data:profile}=await sb.from("profiles").select("role,full_name,email,timezone").eq("id",user.id).single();
+  if(!profile){ location.href="login.html"; return; }
+  if(profile.role!==REQUIRED_ROLE){
+    // 다른 역할이면 본인 페이지로 보내기
+    location.href=ROLE_PAGE[profile.role]||"login.html"; return;
+  }
+  document.getElementById("who").textContent=(profile.full_name||profile.email)+" · "+(profile.timezone||"");
+}
+document.getElementById("logout").onclick=async(e)=>{ e.preventDefault(); await sb.auth.signOut(); location.href="login.html"; };
+gate();
+</script>
+</body>
+</html>
