@@ -35,6 +35,7 @@
   .b-late{background:#fdf2e0;color:var(--gold)}.b-on_time{background:#e6efe6;color:#2e7d32}
   .b-yes{background:#e6efe6;color:#2e7d32}.b-no{background:#fdeee7;color:#d4512c}
   .muted{color:var(--muted);font-size:.85rem}.zoom-link{color:var(--coral);text-decoration:none;font-size:.82rem}
+  .empty{text-align:center;color:var(--muted);padding:20px;font-size:.88rem}
   .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
   .form-row.full{grid-template-columns:1fr}.form-row.three{grid-template-columns:1fr 1fr 1fr}
   label{font-size:.78rem;font-weight:700;color:var(--muted);display:block;margin-bottom:4px}
@@ -68,6 +69,9 @@
     <button class="on" data-tab="bookings">예약 현황</button>
     <button data-tab="teachers">강사 관리</button>
     <button data-tab="members">회원 목록</button>
+    <button data-tab="payments">💰 결제 내역</button>
+    <button data-tab="monthly">📅 월간 일정</button>
+    <button data-tab="group">👥 단체수업</button>
   </div>
 
   <div class="panel on" id="p-bookings">
@@ -143,6 +147,83 @@
       <tr><th>이름</th><th>이메일</th><th>역할</th><th>가입일</th></tr>
     </thead><tbody></tbody></table></div>
   </div>
+
+  <!-- 결제 내역 -->
+  <div class="panel" id="p-payments">
+    <h2>💰 결제 내역</h2>
+    <div class="sub">전체 결제 기록입니다. 환불 처리는 추후 추가됩니다.</div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
+      <input id="pay-search" type="text" placeholder="🔍 학생 이름·이메일" style="padding:.5em .8em;border:1.5px solid var(--line);border-radius:8px;font-family:inherit;font-size:.85rem">
+      <select id="pay-status" style="padding:.5em .8em;border:1.5px solid var(--line);border-radius:8px">
+        <option value="">전체 상태</option>
+        <option value="paid">결제완료</option>
+        <option value="pending">대기</option>
+        <option value="failed">실패</option>
+        <option value="refunded">환불</option>
+      </select>
+      <input id="pay-from" type="date" style="padding:.5em .8em;border:1.5px solid var(--line);border-radius:8px">
+      <input id="pay-to" type="date" style="padding:.5em .8em;border:1.5px solid var(--line);border-radius:8px">
+      <button class="btn" id="pay-apply" style="padding:.55em 1.2em">적용</button>
+    </div>
+    <div class="stats" style="margin-bottom:16px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+      <div class="stat"><div class="n" id="pay-total">–</div><div class="l">총 결제건수</div></div>
+      <div class="stat"><div class="n" id="pay-sum">–</div><div class="l">총 결제금액</div></div>
+      <div class="stat"><div class="n" id="pay-month">–</div><div class="l">이번 달 결제</div></div>
+    </div>
+    <div style="overflow-x:auto"><table id="t-payments"><thead>
+      <tr><th>결제일시</th><th>학생</th><th>금액</th><th>방법</th><th>상태</th><th>거래ID</th></tr>
+    </thead><tbody></tbody></table></div>
+  </div>
+
+  <!-- 월간 일정 -->
+  <div class="panel" id="p-monthly">
+    <h2>📅 월간 일정 안내</h2>
+    <div class="sub">월별 운영 현황을 한눈에. 단체 또는 학생에게 보낼 안내문 생성용.</div>
+    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
+      <label style="margin:0">대상 월:</label>
+      <input id="mo-month" type="month" style="padding:.5em .8em;border:1.5px solid var(--line);border-radius:8px">
+      <button class="btn" id="mo-apply" style="padding:.55em 1.2em">조회</button>
+    </div>
+    <div class="stats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px">
+      <div class="stat"><div class="n" id="mo-classes">–</div><div class="l">총 수업</div></div>
+      <div class="stat"><div class="n" id="mo-students">–</div><div class="l">수강 학생</div></div>
+      <div class="stat"><div class="n" id="mo-teachers">–</div><div class="l">활동 강사</div></div>
+      <div class="stat"><div class="n" id="mo-revenue">–</div><div class="l">결제 합계</div></div>
+    </div>
+    <div class="card">
+      <h2 style="font-size:1rem;margin-bottom:6px">📝 안내문 미리보기</h2>
+      <div class="sub">아래 텍스트를 복사해서 단체 또는 학생들에게 보낼 수 있습니다.</div>
+      <textarea id="mo-notice" rows="10" style="width:100%;font-family:inherit;font-size:.9rem;padding:.8em;border:1.5px solid var(--line);border-radius:10px" readonly></textarea>
+      <button class="btn" id="mo-copy" style="margin-top:10px">📋 복사하기</button>
+      <span id="mo-copy-msg" style="margin-left:10px;font-size:.85rem;color:var(--teal)"></span>
+    </div>
+  </div>
+
+  <!-- 단체수업 -->
+  <div class="panel" id="p-group">
+    <h2>👥 단체수업 등록</h2>
+    <div class="sub">단체수업을 세팅하면 줌 미팅이 자동 생성됩니다. 생성된 링크를 단체장에게 전달하세요.</div>
+
+    <div class="card">
+      <h2 style="font-size:1rem;margin-bottom:6px">➕ 새 단체수업 만들기</h2>
+      <div class="form-row">
+        <div><label>단체명</label><input id="gc-org" placeholder="예: 라오스, 필잇"></div>
+        <div><label>강사</label><select id="gc-teacher"></select></div>
+      </div>
+      <div class="form-row three">
+        <div><label>일시 (KST)</label><input id="gc-when" type="datetime-local"></div>
+        <div><label>시간(분)</label><input id="gc-dur" type="number" value="40" min="20" max="120"></div>
+        <div><label>최대 학생 수</label><input id="gc-max" type="number" value="4" min="1" max="20"></div>
+      </div>
+      <button class="btn" id="gc-create">🎥 줌 미팅 생성 + 등록</button>
+      <div class="msg" id="gc-msg"></div>
+    </div>
+
+    <div class="card">
+      <h2 style="font-size:1rem;margin-bottom:6px">📋 등록된 단체수업</h2>
+      <div id="gc-list"><div class="empty">불러오는 중…</div></div>
+    </div>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -168,7 +249,11 @@ async function checkAdmin(){
 function showGate(){$("gate").style.display="block";$("app").style.display="none";}
 $("g-btn").onclick=async()=>{const{error}=await sb.auth.signInWithPassword({email:$("g-email").value.trim(),password:$("g-pw").value});if(error){$("g-msg").textContent="로그인 실패: "+error.message;$("g-msg").style.color="#d4512c";return;}checkAdmin();};
 $("logout").onclick=async(e)=>{e.preventDefault();await sb.auth.signOut();location.reload();};
-document.querySelectorAll(".tabs button").forEach(b=>{b.onclick=()=>{document.querySelectorAll(".tabs button").forEach(x=>x.classList.remove("on"));document.querySelectorAll(".panel").forEach(x=>x.classList.remove("on"));b.classList.add("on");$("p-"+b.dataset.tab).classList.add("on");};});
+document.querySelectorAll(".tabs button").forEach(b=>{b.onclick=()=>{document.querySelectorAll(".tabs button").forEach(x=>x.classList.remove("on"));document.querySelectorAll(".panel").forEach(x=>x.classList.remove("on"));b.classList.add("on");$("p-"+b.dataset.tab).classList.add("on");
+  if(b.dataset.tab==="payments") loadPayments();
+  if(b.dataset.tab==="monthly")  loadMonthly();
+  if(b.dataset.tab==="group")    loadGroupClasses();
+};});
 
 async function loadAll(){await loadMembers();await loadTeachers();await loadBookings();}
 
@@ -202,6 +287,7 @@ async function loadTeachers(){
   const opts=TEACHERS.map(t=>`<option value="${t.id}">${t.display_name}</option>`).join("");
   $("hr-teacher").innerHTML=opts;$("z-teacher").innerHTML=opts;
   if($("ph-teacher")) $("ph-teacher").innerHTML=opts;
+  if($("gc-teacher")) $("gc-teacher").innerHTML=opts;
 }
 
 async function loadMembers(){
@@ -264,6 +350,200 @@ if($("ph-teacher")) $("ph-teacher").onchange = async ()=>{
   if(!tid) return;
   const { data } = await sb.from("profiles").select("phone").eq("id", tid).single();
   $("ph-number").value = data?.phone || "";
+};
+
+/* ============ 결제 내역 ============ */
+async function loadPayments(){
+  const search=($("pay-search").value||"").trim().toLowerCase();
+  const status=$("pay-status").value;
+  const from=$("pay-from").value, to=$("pay-to").value;
+  let q = sb.from("payments")
+    .select("id,amount,method,status,pg_tid,paid_at,created_at,student_id,enrollment_id,profiles(full_name,email)")
+    .order("created_at",{ascending:false}).limit(500);
+  if(status) q = q.eq("status",status);
+  if(from)   q = q.gte("created_at", new Date(from).toISOString());
+  if(to)     q = q.lte("created_at", new Date(new Date(to).getTime()+86400000).toISOString());
+  const{data}=await q;
+  let rows = data||[];
+  if(search){
+    rows = rows.filter(p=>{
+      const nm = p.profiles?(p.profiles.full_name||p.profiles.email||""):"";
+      return nm.toLowerCase().includes(search);
+    });
+  }
+  // 통계
+  const paid = rows.filter(p=>p.status==="paid");
+  const sum = paid.reduce((a,p)=>a+(p.amount||0),0);
+  const now=new Date();
+  const monthStart=new Date(now.getFullYear(),now.getMonth(),1).toISOString();
+  const monthSum = paid.filter(p=>(p.paid_at||p.created_at)>=monthStart).reduce((a,p)=>a+(p.amount||0),0);
+  $("pay-total").textContent = rows.length;
+  $("pay-sum").textContent = "₩"+sum.toLocaleString();
+  $("pay-month").textContent = "₩"+monthSum.toLocaleString();
+
+  const tbody = $("t-payments").querySelector("tbody");
+  if(rows.length===0){ tbody.innerHTML = `<tr><td colspan="6" class="muted">결제 기록이 없습니다.</td></tr>`; return; }
+  const stLabel = {pending:"대기",paid:"결제완료",failed:"실패",refunded:"환불"};
+  const stClass = {pending:"b-unpaid",paid:"b-paid",failed:"b-no_show",refunded:"b-cancelled"};
+  tbody.innerHTML = rows.map(p=>{
+    const stu = p.profiles?(p.profiles.full_name||p.profiles.email):"–";
+    const when = p.paid_at || p.created_at;
+    return `<tr>
+      <td>${new Date(when).toLocaleString("ko-KR",{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})}</td>
+      <td>${stu}</td>
+      <td><b>₩${(p.amount||0).toLocaleString()}</b></td>
+      <td class="muted">${p.method||"–"}</td>
+      <td><span class="badge ${stClass[p.status]||""}">${stLabel[p.status]||p.status}</span></td>
+      <td class="muted" style="font-size:.78rem">${p.pg_tid||"–"}</td>
+    </tr>`;
+  }).join("");
+}
+$("pay-apply").onclick = loadPayments;
+$("pay-search").oninput = ()=>{ loadPayments(); };
+
+/* ============ 월간 일정 ============ */
+async function loadMonthly(){
+  // 기본: 다음 달
+  if(!$("mo-month").value){
+    const d=new Date(); d.setMonth(d.getMonth()+1);
+    $("mo-month").value = d.toISOString().slice(0,7);
+  }
+  const m = $("mo-month").value; // YYYY-MM
+  const [yy,mm] = m.split("-").map(Number);
+  const start = new Date(yy, mm-1, 1);
+  const end   = new Date(yy, mm, 1);
+
+  const{data:bks}=await sb.from("bookings")
+    .select("id,start_at,is_cancelled,teacher_id,student_id,teachers(display_name)")
+    .gte("start_at",start.toISOString()).lt("start_at",end.toISOString());
+  const all=(bks||[]).filter(b=>!b.is_cancelled);
+  const teachers = new Set(all.map(b=>b.teacher_id));
+  const students = new Set(all.map(b=>b.student_id));
+  $("mo-classes").textContent = all.length;
+  $("mo-teachers").textContent = teachers.size;
+  $("mo-students").textContent = students.size;
+
+  // 결제 합계 (해당 월)
+  const{data:pays}=await sb.from("payments").select("amount,paid_at,created_at,status")
+    .eq("status","paid").gte("created_at",start.toISOString()).lt("created_at",end.toISOString());
+  const rev = (pays||[]).reduce((a,p)=>a+(p.amount||0),0);
+  $("mo-revenue").textContent = "₩"+rev.toLocaleString();
+
+  // 강사별 수업 수 정리
+  const teacherCounts = {};
+  all.forEach(b=>{
+    const nm = b.teachers?b.teachers.display_name:"–";
+    teacherCounts[nm] = (teacherCounts[nm]||0)+1;
+  });
+  const teacherLines = Object.entries(teacherCounts).sort((a,b)=>b[1]-a[1]).map(([n,c])=>`  · ${n}: ${c}회`).join("\n");
+
+  // 안내문 자동 생성
+  const monthLabel = `${yy}년 ${mm}월`;
+  const notice = `📢 [온택 영어 — ${monthLabel} 운영 안내]
+
+안녕하세요, 온택 영어입니다.
+${monthLabel} 수업 일정을 안내드립니다.
+
+▣ 운영 현황
+- 총 수업 횟수: ${all.length}회
+- 수강 학생: ${students.size}명
+- 활동 강사: ${teachers.size}명
+
+▣ 강사별 수업 (${monthLabel})
+${teacherLines || "  · (정보 없음)"}
+
+▣ 안내사항
+- 수업 시간: 월·화·목·금 20분씩 (수요일은 보강일)
+- 결석은 가급적 수업 시작 전까지 마이페이지에서 결석계 제출 부탁드립니다.
+- 출석률·평가는 마이페이지에서 확인하실 수 있습니다.
+
+문의: 담당 매니저 또는 총관리자에게 연락 주세요.
+
+감사합니다.
+온택 영어 드림`;
+  $("mo-notice").value = notice;
+}
+$("mo-apply").onclick = loadMonthly;
+$("mo-copy").onclick = async ()=>{
+  $("mo-notice").select();
+  try{
+    await navigator.clipboard.writeText($("mo-notice").value);
+    $("mo-copy-msg").textContent = "✅ 복사됐습니다";
+    setTimeout(()=>{ $("mo-copy-msg").textContent=""; }, 2000);
+  }catch(e){
+    document.execCommand("copy");
+    $("mo-copy-msg").textContent = "✅ 복사됐습니다";
+  }
+};
+
+/* ============ 단체수업 ============ */
+async function loadGroupClasses(){
+  const{data}=await sb.from("group_classes")
+    .select("id,org_name,start_at,duration_min,max_students,zoom_join_url,zoom_start_url,teacher_id,teachers(display_name)")
+    .order("start_at",{ascending:false}).limit(50);
+  const box = $("gc-list");
+  if(!data || data.length===0){ box.innerHTML = `<div class="empty">등록된 단체수업이 없습니다.</div>`; return; }
+  box.innerHTML = data.map(g=>{
+    const now = Date.now();
+    const isPast = new Date(g.start_at).getTime() < now;
+    return `<div class="lt-slot ${isPast?'booked':''}" style="display:flex;justify-content:space-between;align-items:center;background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:8px;gap:10px;flex-wrap:wrap">
+      <div>
+        <div style="font-weight:700;font-size:.95rem">👥 ${g.org_name} · ${g.teachers?g.teachers.display_name:""}</div>
+        <div style="font-size:.82rem;color:var(--muted);margin-top:2px">${new Date(g.start_at).toLocaleString("ko-KR",{month:'long',day:'numeric',weekday:'short',hour:'2-digit',minute:'2-digit',hour12:false})} · ${g.duration_min}분 · 최대 ${g.max_students}명</div>
+        ${g.zoom_join_url?`<div style="font-size:.78rem;margin-top:6px;word-break:break-all;color:var(--muted)">🎥 ${g.zoom_join_url}</div>`:'<div style="font-size:.78rem;color:#c0392b;margin-top:6px">⚠ 줌 미생성</div>'}
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        ${g.zoom_join_url?`<button class="btn-sm" data-copy="${g.zoom_join_url}" style="background:var(--coral);color:#fff;border:none;padding:.5em 1em;border-radius:999px;font-weight:700;cursor:pointer;font-family:inherit;font-size:.82rem">📋 링크 복사</button>`:""}
+        ${g.zoom_start_url?`<a href="${g.zoom_start_url}" target="_blank" class="btn-sm" style="background:var(--ink);color:#fff;text-decoration:none;padding:.5em 1em;border-radius:999px;font-weight:700;font-size:.82rem">호스트</a>`:""}
+        <button class="btn-sm" data-del="${g.id}" style="background:#fff;color:#c0392b;border:1.5px solid #c0392b;padding:.45em .9em;border-radius:999px;font-weight:700;cursor:pointer;font-family:inherit;font-size:.82rem">삭제</button>
+      </div>
+    </div>`;
+  }).join("");
+  // 복사 버튼
+  box.querySelectorAll("[data-copy]").forEach(b=>{
+    b.onclick = async ()=>{
+      try{
+        await navigator.clipboard.writeText(b.dataset.copy);
+        const orig = b.textContent;
+        b.textContent = "✅ 복사됨";
+        setTimeout(()=>{ b.textContent = orig; }, 1500);
+      }catch(e){ alert("복사 실패: 수동으로 복사하세요."); }
+    };
+  });
+  box.querySelectorAll("[data-del]").forEach(b=>{
+    b.onclick = async ()=>{
+      if(!confirm("이 단체수업을 삭제하시겠습니까?")) return;
+      await sb.from("group_classes").delete().eq("id", b.dataset.del);
+      loadGroupClasses();
+    };
+  });
+}
+
+$("gc-create").onclick = async ()=>{
+  const org=$("gc-org").value.trim(), tid=$("gc-teacher").value;
+  const when=$("gc-when").value, dur=Number($("gc-dur").value)||40, max=Number($("gc-max").value)||4;
+  const msg=$("gc-msg");
+  if(!org||!tid||!when){ msg.textContent="단체명·강사·일시를 모두 입력하세요."; msg.style.color="#d4512c"; return; }
+  $("gc-create").disabled = true; $("gc-create").textContent="처리 중…";
+  try{
+    const{data:{session}}=await sb.auth.getSession();
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/create-group-class`,{
+      method:"POST",
+      headers:{ "Content-Type":"application/json", "Authorization":`Bearer ${session.access_token}`, "apikey":SUPABASE_ANON_KEY },
+      body: JSON.stringify({ org_name: org, teacher_id: tid, start_at: new Date(when).toISOString(), duration_min: dur, max_students: max }),
+    });
+    const r = await res.json();
+    if(!res.ok || !r.ok){
+      msg.textContent = "생성 실패: " + (r.error||"오류");
+      msg.style.color = "#d4512c";
+    } else {
+      msg.textContent = "✅ 단체수업이 등록됐습니다. 아래 목록에서 링크를 복사하세요.";
+      msg.style.color = "var(--teal)";
+      $("gc-org").value = ""; $("gc-when").value = "";
+      loadGroupClasses();
+    }
+  }catch(e){ msg.textContent = "오류: "+e.message; msg.style.color="#d4512c"; }
+  $("gc-create").disabled = false; $("gc-create").textContent="🎥 줌 미팅 생성 + 등록";
 };
 
 checkAdmin();
