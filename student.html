@@ -121,6 +121,74 @@
   .btn-eval{background:var(--coral);color:#fff;border:none;padding:.55em 1.2em;border-radius:999px;font-weight:700;font-size:.85rem;cursor:pointer;font-family:inherit}
   .btn-eval:disabled{background:var(--muted);cursor:not-allowed;opacity:.6}
 
+  /* === 학생 My Class: hero/stats/grid === */
+  .hero{background:linear-gradient(135deg,#1a3552 0%,#12273d 100%);color:#fff;border-radius:20px;padding:24px 28px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap}
+  .hero .label{font-size:.75rem;opacity:.7;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;font-weight:700}
+  .hero .when{font-size:2rem;font-weight:800;line-height:1.1}
+  .hero .countdown{font-size:.95rem;opacity:.85;margin-top:6px}
+  .hero .stu{font-size:1.05rem;font-weight:600;margin-top:8px}
+  .hero .actions{display:flex;gap:8px;flex-wrap:wrap}
+  .hero .btn-host{background:var(--coral);color:#fff;border:none;padding:.95em 1.6em;border-radius:999px;font-weight:800;text-decoration:none;font-size:.95rem;cursor:pointer;font-family:inherit;white-space:nowrap}
+  .hero .btn-host.disabled{background:rgba(255,255,255,.15);color:rgba(255,255,255,.5);cursor:not-allowed;pointer-events:none}
+  .hero.empty{background:#fff;color:var(--muted);border:1px solid var(--line);justify-content:center;padding:32px;font-size:.95rem}
+
+  .stat-mini{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+  .stat-mini .stat-box{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;text-align:left}
+  .stat-mini .stat-box .n{font-size:1.5rem;font-weight:800;color:var(--coral);line-height:1}
+  .stat-mini .stat-box .l{font-size:.72rem;color:var(--muted);margin-top:4px;font-weight:600}
+
+  .prog-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-bottom:14px}
+  .prog-card .ph{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;font-size:.9rem;flex-wrap:wrap}
+  .prog-card .pt{font-weight:700}
+  .prog-card .pn{font-size:.82rem;color:var(--muted)}
+  .pbar{height:10px;background:var(--line);border-radius:999px;overflow:hidden}
+  .pbar-fill{height:100%;background:linear-gradient(90deg,var(--coral),#f0935b);transition:width .4s}
+
+  .alert-mk{background:#e7f1f0;border:1px solid #bcd9d4;color:#1d5853;border-radius:12px;padding:12px 16px;margin-bottom:8px;font-size:.88rem;display:flex;align-items:center;gap:10px}
+  .alert-cancelled{background:#fdeee7;border:1px solid #f3c9b8;color:#9c3618;border-radius:12px;padding:12px 16px;margin-bottom:8px;font-size:.88rem;display:flex;align-items:center;gap:10px}
+
+  .week-head{display:flex;align-items:center;justify-content:space-between;margin:18px 4px 10px;gap:10px;flex-wrap:wrap}
+  .week-title{font-size:1rem;font-weight:800}
+  .week-range{font-size:.82rem;color:var(--muted)}
+
+  .grid-wrap{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px;overflow-x:auto}
+  .grid{display:grid;grid-template-columns:60px repeat(4,minmax(110px,1fr));gap:6px;min-width:560px}
+  .grid .col-h{font-size:.78rem;font-weight:700;color:var(--muted);text-align:center;padding:8px 4px;border-bottom:2px solid var(--line)}
+  .grid .col-h .d{font-size:.7rem;display:block;opacity:.7;margin-top:2px}
+  .grid .col-h.today{color:var(--coral)}
+  .grid .row-h{font-size:.75rem;color:var(--muted);font-weight:600;text-align:right;padding:6px 8px 6px 0;border-right:1px solid var(--line);align-self:center}
+  .scell{min-height:46px;border-radius:8px;padding:8px;font-size:.78rem;cursor:pointer;background:var(--paper);border:1px solid transparent;transition:.1s;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:2px}
+  .scell:hover{border-color:var(--coral)}
+  .scell.empty{background:#fafafa;cursor:default}
+  .scell.empty:hover{border-color:transparent}
+  .scell.attended{background:#e6efe6;color:#2e7d32;font-weight:700;border-color:#c5dec5}
+  .scell.upcoming{background:#fef6ef;color:#9a5b3b;font-weight:700;border-color:#fbe6d2}
+  .scell.now{background:var(--coral);color:#fff;border-color:var(--coral);font-weight:800;animation:pulse 1.5s infinite}
+  .scell.cancelled{background:#fdeee7;color:#9a5b3b;text-decoration:line-through;border-color:#f3d9c7}
+  .scell.pending{background:#fdf2e0;color:#7a5300;border-color:#ecd9aa}
+  .scell.makeup{background:#e7f1f0;color:var(--teal);border-color:#bcd9d4}
+  .scell .ic{font-size:1rem;line-height:1}
+  .scell .tm{font-size:.74rem;opacity:.85}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(239,106,72,.4)}50%{box-shadow:0 0 0 6px rgba(239,106,72,0)}}
+
+  details{background:#fff;border:1px solid var(--line);border-radius:16px;padding:0;margin-top:14px;overflow:hidden}
+  details summary{padding:14px 18px;font-weight:700;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;font-size:.95rem}
+  details summary::after{content:"▼";font-size:.7rem;color:var(--muted);transition:.15s}
+  details[open] summary::after{transform:rotate(180deg)}
+  details .grid-wrap{border:none;border-top:1px solid var(--line);border-radius:0}
+
+  /* 셀 상세 모달 */
+  .modal-box .meta{font-size:.85rem;color:var(--muted);margin-bottom:14px}
+  .row-btns{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+  .btn-host-modal{flex:1;background:var(--coral);color:#fff;border:none;padding:.8em;border-radius:999px;font-weight:800;text-decoration:none;text-align:center;font-family:inherit}
+  .btn-host-modal.disabled{background:var(--muted);pointer-events:none;opacity:.6}
+  .btn-abs-modal{flex:1;background:#fff;color:var(--coral);border:1.5px solid var(--coral);padding:.75em;border-radius:999px;font-weight:700;cursor:pointer;font-family:inherit}
+
+  @media(max-width:680px){
+    .stat-mini{grid-template-columns:1fr 1fr}
+    .hero .when{font-size:1.5rem}
+  }
+
   @media(max-width:760px){.tabs button{font-size:.85rem;padding:.5em 1em}.step{padding:20px}}
 </style>
 </head>
@@ -180,11 +248,35 @@
 
   <!-- 내 수업 -->
   <div class="panel" id="p-myclass">
-    <div class="step">
-      <h2>📅 내 수업</h2>
-      <p class="sub">시간은 회원님의 시간대(<b id="my-tz">–</b>)로 표시됩니다. 결석은 수업 시작 전까지만 신청 가능합니다.</p>
-      <div id="my-classes"><div class="empty">불러오는 중…</div></div>
+    <div id="hero" class="hero empty">불러오는 중…</div>
+
+    <div class="stat-mini">
+      <div class="stat-box"><div class="n" id="s-next">–</div><div class="l">다음 수업까지</div></div>
+      <div class="stat-box"><div class="n" id="s-week-left">–</div><div class="l">이번 주 남은</div></div>
+      <div class="stat-box"><div class="n" id="s-progress">–</div><div class="l">진행률</div></div>
+      <div class="stat-box"><div class="n" id="s-att">–</div><div class="l">출석률</div></div>
     </div>
+
+    <div id="prog-card-wrap"></div>
+
+    <div id="alerts-wrap"></div>
+
+    <div class="week-head">
+      <div><span class="week-title">이번 주</span> <span class="week-range" id="w0-range"></span></div>
+    </div>
+    <div class="grid-wrap"><div class="grid" id="grid-0"></div></div>
+
+    <details>
+      <summary>다음 주 <span class="week-range" id="w1-range" style="font-weight:500;margin-left:8px"></span></summary>
+      <div class="grid-wrap"><div class="grid" id="grid-1"></div></div>
+    </details>
+
+    <details>
+      <summary>다다음 주 <span class="week-range" id="w2-range" style="font-weight:500;margin-left:8px"></span></summary>
+      <div class="grid-wrap"><div class="grid" id="grid-2"></div></div>
+    </details>
+
+    <p style="margin-top:14px;text-align:center;font-size:.78rem;color:var(--muted)">시간은 회원님의 시간대로 표시됩니다 · <b id="my-tz">–</b></p>
   </div>
 
   <!-- 출석률·평가 -->
@@ -242,6 +334,16 @@
       <button class="btn" id="sfb-submit">제출하기</button>
     </div>
     <div class="msg" id="sfb-msg"></div>
+  </div>
+</div>
+
+<!-- 셀 상세 모달 -->
+<div id="cell-modal" class="modal">
+  <div class="modal-box">
+    <h3 id="c-title">–</h3>
+    <div class="meta" id="c-meta">–</div>
+    <div id="c-tags" style="margin-bottom:8px"></div>
+    <div class="row-btns" id="c-actions"></div>
   </div>
 </div>
 
@@ -494,109 +596,276 @@ $("payBtn").onclick=async()=>{
   }
 };
 
-/* ── 내 수업 로딩 ── */
-const KO_WD = ["일","월","화","수","목","금","토"];
-function fmtLocal(iso, tz){
-  const d = new Date(iso);
-  // 표시: 시간대 tz 기준
-  const opt = { timeZone: tz||'Asia/Seoul', hour:'2-digit', minute:'2-digit', hour12:false };
-  const t = new Intl.DateTimeFormat('ko-KR', opt).format(d);
-  const dateOpt = { timeZone: tz||'Asia/Seoul', month:'numeric', day:'numeric', weekday:'short' };
-  const dStr = new Intl.DateTimeFormat('ko-KR', dateOpt).format(d);
-  return { date: dStr, time: t, dayKey: dStr };
+/* ── 내 수업 (히어로 + 통계 + 진행률 + 주간 그리드) ── */
+const TZ = () => PROFILE.timezone || "Asia/Seoul";
+let MY_BOOKINGS=[], MY_ABS={}, MY_ENROLLS=[];
+
+function fmtTime(iso){ return new Intl.DateTimeFormat('ko-KR',{timeZone:TZ(),hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(iso)); }
+function localDayKey(iso){
+  const parts = new Intl.DateTimeFormat('en-CA',{timeZone:TZ(),year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date(iso));
+  return parts.find(p=>p.type==='year').value+"-"+parts.find(p=>p.type==='month').value+"-"+parts.find(p=>p.type==='day').value;
 }
-function localDayKey(iso, tz){
-  // 날짜 그룹 키 (YYYY-MM-DD in tz)
-  const d = new Date(iso);
-  const parts = new Intl.DateTimeFormat('en-CA',{timeZone:tz||'Asia/Seoul', year:'numeric', month:'2-digit', day:'2-digit'}).formatToParts(d);
-  const y=parts.find(p=>p.type==='year').value, m=parts.find(p=>p.type==='month').value, da=parts.find(p=>p.type==='day').value;
-  return `${y}-${m}-${da}`;
+function dayHeader(iso){ return new Intl.DateTimeFormat('ko-KR',{timeZone:TZ(),month:'long',day:'numeric',weekday:'long'}).format(new Date(iso)); }
+function shortDate(d){ return new Intl.DateTimeFormat('ko-KR',{timeZone:TZ(),month:'short',day:'numeric'}).format(d); }
+function dayLabel(d){ return new Intl.DateTimeFormat('ko-KR',{timeZone:TZ(),weekday:'short'}).format(d); }
+function mondayOf(d){
+  const k = localDayKey(d.toISOString());
+  const parts = new Intl.DateTimeFormat('en-US',{timeZone:TZ(),weekday:'short'}).formatToParts(new Date(k+"T12:00:00Z"));
+  const wkMap={Sun:0,Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6};
+  const dow = wkMap[parts.find(p=>p.type==='weekday').value];
+  const base = new Date(k+"T00:00:00Z");
+  const diff = dow === 0 ? 6 : dow - 1;
+  base.setUTCDate(base.getUTCDate() - diff);
+  return base;
 }
 
 async function loadMyClasses(){
   $("my-tz").textContent = PROFILE.timezone || "Asia/Seoul";
-  const list = $("my-classes");
-  list.innerHTML = `<div class="empty">불러오는 중…</div>`;
 
-  // 미래 + 오늘 수업만 (지난 건 출석률 탭에서)
-  const now = new Date();
-  const fromISO = new Date(now.getTime() - 24*60*60*1000).toISOString(); // 어제부터 (방금 시작한 수업 포함)
-  const { data:bookings, error } = await sb.from("bookings")
-    .select("id,start_at,is_cancelled,zoom_join_url,absence_id,teachers(display_name)")
+  // 모든 booking (출석률·진행률 계산용)
+  const { data:all } = await sb.from("bookings")
+    .select("id,start_at,is_cancelled,zoom_join_url,absence_id,enrollment_id,teacher_id,teachers(display_name)")
     .eq("student_id", USER.id)
-    .gte("start_at", fromISO)
-    .order("start_at",{ascending:true})
-    .limit(50);
-  if(error){ list.innerHTML = `<div class="empty">오류: ${error.message}</div>`; return; }
-  if(!bookings || bookings.length===0){ list.innerHTML = `<div class="empty">예정된 수업이 없습니다.</div>`; return; }
+    .order("start_at",{ascending:true});
+  MY_BOOKINGS = all || [];
 
-  // 결석계 상태 함께 가져오기
-  const absIds = bookings.filter(b=>b.absence_id).map(b=>b.absence_id);
-  let absMap = {};
-  if(absIds.length){
-    const { data:absList } = await sb.from("absences").select("id,booking_id,status").in("id", absIds);
-    (absList||[]).forEach(a=>{ absMap[a.booking_id]=a.status; });
-  }
-  // booking_id 기준으로 absences 한 번 더 (booking 에 absence_id 없을 수도 있어서 보강)
+  // 결석계
   const { data:absAll } = await sb.from("absences").select("booking_id,status").eq("student_id", USER.id);
-  (absAll||[]).forEach(a=>{ if(!absMap[a.booking_id]) absMap[a.booking_id]=a.status; });
+  MY_ABS = {}; (absAll||[]).forEach(a=>{ MY_ABS[a.booking_id]=a.status; });
 
-  // 날짜별로 묶기
-  const tz = PROFILE.timezone || "Asia/Seoul";
-  const groups = {};
-  bookings.forEach(b=>{
-    const k = localDayKey(b.start_at, tz);
-    (groups[k]||(groups[k]=[])).push(b);
-  });
+  // enrollments (진행 카드용)
+  const { data:enrs } = await sb.from("enrollments")
+    .select("id,months,status,teacher_id,teachers(display_name)")
+    .eq("student_id",USER.id).in("status",["active","completed"]);
+  MY_ENROLLS = enrs || [];
 
-  let html = "";
-  Object.keys(groups).sort().forEach(k=>{
-    const sample = new Date(groups[k][0].start_at);
-    const headerFmt = new Intl.DateTimeFormat('ko-KR',{timeZone:tz, month:'long', day:'numeric', weekday:'long'}).format(sample);
-    html += `<div class="day-header">${headerFmt}</div>`;
-    groups[k].forEach(b=>{
-      const f = fmtLocal(b.start_at, tz);
-      const tch = b.teachers ? b.teachers.display_name : "강사";
-      const startMs = new Date(b.start_at).getTime();
-      const isPast = startMs < Date.now() - 25*60*1000; // 시작 25분 후엔 과거
-      const isFuture = startMs > Date.now();
-      const absStatus = absMap[b.id];
-      let tag = "", zoomBtn = "", absBtn = "";
+  renderHero();
+  renderStudentStats();
+  renderProgressCards();
+  renderAlerts();
+  renderWeek(0); renderWeek(1); renderWeek(2);
+}
 
-      if(b.is_cancelled || absStatus==="approved"){
-        tag = `<span class="tag tag-cancelled">취소됨</span>`;
-        zoomBtn = `<button class="btn-zoom disabled">줌 입장</button>`;
-      } else if(absStatus==="pending"){
-        tag = `<span class="tag tag-pending">결석계 대기</span>`;
-        zoomBtn = b.zoom_join_url ? `<a class="btn-zoom" href="${b.zoom_join_url}" target="_blank">줌 입장</a>` : `<button class="btn-zoom disabled">준비 중</button>`;
-      } else if(isPast){
-        tag = `<span class="tag tag-done">종료</span>`;
-        zoomBtn = `<button class="btn-zoom disabled">종료됨</button>`;
-      } else {
-        // 진행 가능
-        zoomBtn = b.zoom_join_url
-          ? `<a class="btn-zoom" href="${b.zoom_join_url}" target="_blank">줌 입장</a>`
-          : `<button class="btn-zoom disabled">준비 중</button>`;
-        absBtn = isFuture ? `<button class="btn-abs" data-bid="${b.id}" data-tid="${b.teachers ? '': ''}">결석계</button>` : '';
-      }
-      // 결석계 버튼에 teacher_id 필요 — 별도로 가져오기 위해 booking 에서 fetch 한 시점에 teacher_id 가 없음. 데이터 보강 필요.
-      html += `<div class="cls ${isPast?'past':''} ${b.is_cancelled||absStatus==='approved'?'cancelled':''}">
-        <div>
-          <div class="when">${f.time}${tag}</div>
-          <div class="who">${tch}</div>
-        </div>
-        <div class="cls-actions">${zoomBtn}${absBtn}</div>
-      </div>`;
-    });
-  });
+function updateMyCountdown(){
+  const next = nextUpcoming();
+  const cd = document.querySelector("#hero .countdown");
+  if(!next || !cd) return;
+  const mins = Math.round((new Date(next.start_at).getTime() - Date.now())/60000);
+  cd.textContent = mins <= 0 ? "지금 시작!" : `${mins}분 후 시작`;
+}
+setInterval(updateMyCountdown, 30000);
 
-  list.innerHTML = html;
-
-  // 결석계 버튼 핸들러
-  document.querySelectorAll(".btn-abs").forEach(btn=>{
-    btn.onclick = ()=> openAbsence(btn.dataset.bid);
+function nextUpcoming(){
+  return MY_BOOKINGS.find(b=>{
+    if(b.is_cancelled || MY_ABS[b.id]==="approved") return false;
+    return new Date(b.start_at).getTime() > Date.now() - 5*60*1000;
   });
 }
+
+function renderHero(){
+  const hero = $("hero");
+  const next = nextUpcoming();
+  if(!next){
+    hero.className = "hero empty";
+    hero.innerHTML = `예정된 수업이 없습니다.`;
+    return;
+  }
+  const tch = next.teachers ? next.teachers.display_name : "강사";
+  const mins = Math.round((new Date(next.start_at).getTime() - Date.now())/60000);
+  const cdText = mins <= 0 ? "지금 시작!" : `${mins}분 후 시작`;
+  const zoomBtn = next.zoom_join_url
+    ? `<a class="btn-host" href="${next.zoom_join_url}" target="_blank">줌 입장</a>`
+    : `<button class="btn-host disabled">줌 준비 중</button>`;
+  hero.className = "hero";
+  hero.innerHTML = `
+    <div>
+      <div class="label">다음 수업</div>
+      <div class="when">${fmtTime(next.start_at)} <span style="font-size:.95rem;opacity:.7;font-weight:500;margin-left:6px">${dayHeader(next.start_at)}</span></div>
+      <div class="countdown">${cdText}</div>
+      <div class="stu">🧑‍🏫 ${tch}</div>
+    </div>
+    <div class="actions">${zoomBtn}</div>`;
+}
+
+function renderStudentStats(){
+  const next = nextUpcoming();
+  if(next){
+    const mins = Math.round((new Date(next.start_at).getTime() - Date.now())/60000);
+    if(mins < 60) $("s-next").textContent = `${Math.max(0,mins)}분`;
+    else if(mins < 60*24) $("s-next").textContent = `${Math.round(mins/60)}시간`;
+    else $("s-next").textContent = `${Math.round(mins/(60*24))}일`;
+  } else $("s-next").textContent = "–";
+
+  const now=Date.now();
+  const monday = mondayOf(new Date());
+  const sunEnd = new Date(monday.getTime()+7*86400000);
+  const weekLeft = MY_BOOKINGS.filter(b=>{
+    if(b.is_cancelled || MY_ABS[b.id]==="approved") return false;
+    const t = new Date(b.start_at).getTime();
+    return t >= now-25*60000 && t < sunEnd.getTime();
+  }).length;
+  $("s-week-left").textContent = weekLeft;
+
+  // 진행률 (활성 enrollment 기준)
+  const total = MY_BOOKINGS.length;
+  const past = MY_BOOKINGS.filter(b=> new Date(b.start_at).getTime() < now).length;
+  $("s-progress").textContent = total ? `${Math.round(past/total*100)}%` : "–";
+
+  // 출석률
+  const counted = MY_BOOKINGS.filter(b=> new Date(b.start_at).getTime() < now);
+  const attended = counted.filter(b=> !b.is_cancelled && MY_ABS[b.id]!=="approved").length;
+  $("s-att").textContent = counted.length ? `${Math.round(attended/counted.length*100)}%` : "–";
+}
+
+function renderProgressCards(){
+  // enrollment 별로 진행 카드 (시간대 여러 개 신청한 경우 카드 여러 개)
+  if(MY_ENROLLS.length===0){ $("prog-card-wrap").innerHTML=""; return; }
+  let html = "";
+  MY_ENROLLS.forEach(enr=>{
+    const totalSessions = enr.months * 4 * 4; // 4주 × 월화목금
+    const enrBks = MY_BOOKINGS.filter(b=> b.enrollment_id === enr.id);
+    const past = enrBks.filter(b=> new Date(b.start_at).getTime() < Date.now()).length;
+    const pct = totalSessions ? Math.round(past/totalSessions*100) : 0;
+    const tch = enr.teachers ? enr.teachers.display_name : "강사";
+    html += `<div class="prog-card">
+      <div class="ph">
+        <div><span class="pt">📚 ${tch}</span><span class="pn"> · ${enr.months}개월</span></div>
+        <div class="pn"><b>${past}</b> / ${totalSessions}회 (${pct}%)</div>
+      </div>
+      <div class="pbar"><div class="pbar-fill" style="width:${pct}%"></div></div>
+    </div>`;
+  });
+  $("prog-card-wrap").innerHTML = html;
+}
+
+function renderAlerts(){
+  const wrap = $("alerts-wrap");
+  const now = Date.now();
+  const items = [];
+
+  // 7일 이내 보강된 수업
+  const recentMakeups = MY_BOOKINGS.filter(b=>{
+    if(!b.makeup_of) return false;
+    const t = new Date(b.start_at).getTime();
+    return t >= now - 86400000 && t <= now + 14*86400000;
+  });
+  recentMakeups.forEach(b=>{
+    items.push(`<div class="alert-mk">🔁 보강 수업이 잡혔습니다: ${fmtTime(b.start_at)} · ${dayHeader(b.start_at)}</div>`);
+  });
+
+  // 최근 승인된 결석계 (7일 이내)
+  const recentCancelled = MY_BOOKINGS.filter(b=>{
+    if(MY_ABS[b.id]!=="approved") return false;
+    const t = new Date(b.start_at).getTime();
+    return t >= now - 7*86400000 && t <= now + 14*86400000;
+  });
+  recentCancelled.forEach(b=>{
+    items.push(`<div class="alert-cancelled">📝 결석계 승인됨: ${fmtTime(b.start_at)} · ${dayHeader(b.start_at)} 수업이 취소됐습니다.</div>`);
+  });
+
+  wrap.innerHTML = items.join("");
+}
+
+function renderWeek(weekOffset){
+  const baseMon = mondayOf(new Date());
+  const monday = new Date(baseMon.getTime() + weekOffset*7*86400000);
+  const sun = new Date(monday.getTime() + 7*86400000);
+  const rangeEl = $(`w${weekOffset}-range`);
+  if(rangeEl) rangeEl.textContent = `${shortDate(monday)} – ${shortDate(new Date(sun.getTime()-1))}`;
+
+  const weekBks = MY_BOOKINGS.filter(b=>{
+    const t = new Date(b.start_at).getTime();
+    return t >= monday.getTime() && t < sun.getTime();
+  });
+
+  const days = [0,1,3,4].map(off=> new Date(monday.getTime() + off*86400000));
+  const todayK = localDayKey(new Date().toISOString());
+
+  // 시간 슬롯들
+  const timeSet = new Set();
+  weekBks.forEach(b=> timeSet.add(fmtTime(b.start_at)));
+  let times = [...timeSet].sort();
+
+  const grid = $(`grid-${weekOffset}`);
+  if(weekBks.length===0){
+    grid.innerHTML = `<div style="grid-column:1 / -1;text-align:center;color:var(--muted);padding:24px;font-size:.88rem">이번 주 수업이 없습니다.</div>`;
+    return;
+  }
+  if(times.length===0) times = ["—"];
+
+  let html = `<div></div>`;
+  days.forEach(d=>{
+    const k = localDayKey(d.toISOString());
+    const isToday = k === todayK;
+    html += `<div class="col-h ${isToday?'today':''}">${dayLabel(d)}<span class="d">${shortDate(d)}</span></div>`;
+  });
+
+  times.forEach(time=>{
+    html += `<div class="row-h">${time}</div>`;
+    days.forEach(d=>{
+      const dKey = localDayKey(d.toISOString());
+      const cellBks = weekBks.filter(b=> localDayKey(b.start_at)===dKey && fmtTime(b.start_at)===time);
+      if(cellBks.length===0){
+        html += `<div class="scell empty"></div>`;
+      } else {
+        const b = cellBks[0];
+        const startMs = new Date(b.start_at).getTime();
+        const isPast = startMs < Date.now() - 25*60*1000;
+        const isNow = startMs >= Date.now() - 5*60*1000 && startMs <= Date.now() + 25*60*1000;
+        const absStatus = MY_ABS[b.id];
+        let cls = "", icon = "";
+        if(b.is_cancelled || absStatus==="approved"){ cls = "cancelled"; icon = "❌"; }
+        else if(absStatus==="pending"){ cls = "pending"; icon = "⏳"; }
+        else if(isNow){ cls = "now"; icon = "🔴"; }
+        else if(isPast){ cls = "attended"; icon = "✅"; }
+        else { cls = "upcoming"; icon = "📅"; }
+        if(b.makeup_of && !b.is_cancelled){ cls += " makeup"; icon = "🔁"; }
+        html += `<div class="scell ${cls}" data-bid="${b.id}">
+          <span class="ic">${icon}</span>
+        </div>`;
+      }
+    });
+  });
+  grid.innerHTML = html;
+  grid.querySelectorAll(".scell[data-bid]").forEach(el=>{
+    el.onclick = ()=> openStudentCell(Number(el.dataset.bid));
+  });
+}
+
+function openStudentCell(bid){
+  const b = MY_BOOKINGS.find(x=>x.id===bid);
+  if(!b) return;
+  const tch = b.teachers ? b.teachers.display_name : "강사";
+  $("c-title").textContent = `🧑‍🏫 ${tch}`;
+  $("c-meta").textContent = `${fmtTime(b.start_at)} · ${dayHeader(b.start_at)}`;
+
+  const startMs = new Date(b.start_at).getTime();
+  const isPast = startMs < Date.now() - 25*60*1000;
+  const isFuture = startMs > Date.now();
+  const absStatus = MY_ABS[b.id];
+
+  let tags = "";
+  if(b.is_cancelled || absStatus==="approved") tags += `<span class="tag tag-cancelled">취소됨</span>`;
+  if(absStatus==="pending")                    tags += `<span class="tag tag-pending">결석계 대기</span>`;
+  if(b.makeup_of)                              tags += ` <span class="tag" style="background:#e7f1f0;color:var(--teal)">보강수업</span>`;
+  if(isPast && !b.is_cancelled && absStatus!=="approved") tags += ` <span class="tag tag-done">종료</span>`;
+  $("c-tags").innerHTML = tags;
+
+  let actions = "";
+  if(!b.is_cancelled && absStatus!=="approved" && !isPast){
+    actions += b.zoom_join_url
+      ? `<a class="btn-host-modal" href="${b.zoom_join_url}" target="_blank">줌 입장</a>`
+      : `<a class="btn-host-modal disabled">줌 준비 중</a>`;
+    if(isFuture && absStatus!=="pending"){
+      actions += `<button class="btn-abs-modal" onclick="openAbsence(${b.id}); document.getElementById('cell-modal').classList.remove('on');">결석계 제출</button>`;
+    }
+  } else {
+    actions += `<button class="btn-host-modal disabled">${b.is_cancelled||absStatus==='approved'?'취소됨':'종료'}</button>`;
+  }
+  $("c-actions").innerHTML = actions;
+  $("cell-modal").classList.add("on");
+}
+$("cell-modal").onclick = (e)=>{ if(e.target.id==="cell-modal") $("cell-modal").classList.remove("on"); };
 
 /* ── 결석계 모달 ── */
 let absBookingId = null;
