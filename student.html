@@ -342,11 +342,50 @@ function refreshSummary(){
   $("payBtn").disabled = !(sel.teacher && sel.startDate && sel.times.size>0);
 }
 
-/* 결제 버튼 — 2-A 에서는 알림만, 실제 enrollment/booking 생성은 2-B */
-$("payBtn").onclick=()=>{
+/* 결제 버튼 — 실제 enrollment + bookings + 첫주 줌 생성 */
+$("payBtn").onclick=async()=>{
   const m=$("msg");
-  m.style.color="var(--teal)";
-  m.textContent="✅ 입력이 완료됐습니다. (다음 단계 2-B에서 실제 수업 생성·줌 미팅·결제 처리가 연결됩니다)";
+  if(!(sel.teacher && sel.startDate && sel.times.size>0)){ return; }
+  $("payBtn").disabled=true;
+  $("payBtn").textContent="처리 중… (첫 주 줌 미팅 생성)";
+  m.style.color="var(--muted)"; m.textContent="";
+
+  try{
+    const{data:{session}}=await sb.auth.getSession();
+    const res=await fetch(`${SUPABASE_URL}/functions/v1/create-enrollment`,{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "Authorization":`Bearer ${session.access_token}`,
+        "apikey":SUPABASE_ANON_KEY,
+      },
+      body:JSON.stringify({
+        teacher_id: sel.teacher.id,
+        months: sel.months,
+        start_date: sel.startDate,
+        times: [...sel.times],
+      }),
+    });
+    const result=await res.json();
+    if(!res.ok || !result.ok){
+      m.style.color="#d4512c";
+      m.textContent="❌ "+(result.error||"신청 실패");
+      $("payBtn").disabled=false;
+      $("payBtn").textContent="결제하기 (테스트)";
+      return;
+    }
+    m.style.color="var(--teal)";
+    m.innerHTML=`✅ 수강신청이 완료됐습니다!<br>총 ${result.enrollments}개 시간대 · 결제금액 ₩${result.total_price.toLocaleString()}<br>"내 수업" 탭에서 첫 주 수업 줌 링크를 확인하세요.`;
+    $("payBtn").textContent="신청 완료";
+    // 선택 초기화
+    sel={teacher:null, months:1, startDate:null, times:new Set()};
+    setTimeout(()=>{ document.querySelector('[data-tab="myclass"]').click(); }, 2500);
+  }catch(err){
+    m.style.color="#d4512c";
+    m.textContent="❌ 오류: "+err.message;
+    $("payBtn").disabled=false;
+    $("payBtn").textContent="결제하기 (테스트)";
+  }
 };
 
 gate();
