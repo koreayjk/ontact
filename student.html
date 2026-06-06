@@ -114,6 +114,13 @@
   .btn-ghost{flex:1;padding:.7em;border:1px solid var(--line);background:#fff;border-radius:999px;font-weight:700;cursor:pointer;font-family:inherit}
   .modal .btn{flex:1;margin-top:0;padding:.7em 1em}
 
+  /* 학생→강사 평가 카드 */
+  .sfb-card{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:14px 16px;border:1px solid var(--line);border-radius:12px;margin-bottom:8px;background:#fff;flex-wrap:wrap}
+  .sfb-card.sfb-locked{opacity:.6;background:var(--paper)}
+  .sfb-card .sub{margin:2px 0 0;font-size:.8rem}
+  .btn-eval{background:var(--coral);color:#fff;border:none;padding:.55em 1.2em;border-radius:999px;font-weight:700;font-size:.85rem;cursor:pointer;font-family:inherit}
+  .btn-eval:disabled{background:var(--muted);cursor:not-allowed;opacity:.6}
+
   @media(max-width:760px){.tabs button{font-size:.85rem;padding:.5em 1em}.step{padding:20px}}
 </style>
 </head>
@@ -190,6 +197,11 @@
       <h2 style="font-size:1rem">강사가 남긴 평가</h2>
       <div id="fb-list"><div class="empty">아직 평가가 없습니다.</div></div>
     </div>
+    <div class="step">
+      <h2 style="font-size:1rem">내가 강사 평가하기 <span style="font-size:.78rem;font-weight:500;color:var(--muted)">(4주차 단위)</span></h2>
+      <p class="sub">한 달(4주) 수업을 마치면 강사를 평가할 수 있습니다.</p>
+      <div id="sfb-wrap"></div>
+    </div>
   </div>
 </div>
 
@@ -206,6 +218,30 @@
       <button class="btn" id="abs-submit">제출하기</button>
     </div>
     <div class="msg" id="abs-msg"></div>
+  </div>
+</div>
+
+<!-- 학생→강사 평가 모달 -->
+<div id="sfb-modal" class="modal">
+  <div class="modal-box">
+    <h3 style="font-size:1.05rem;margin-bottom:4px">강사 평가</h3>
+    <p class="sub" id="sfb-target">–</p>
+    <label>별점</label>
+    <select id="sfb-rating">
+      <option value="5">⭐⭐⭐⭐⭐ 매우 만족</option>
+      <option value="4">⭐⭐⭐⭐ 만족</option>
+      <option value="3">⭐⭐⭐ 보통</option>
+      <option value="2">⭐⭐ 불만족</option>
+      <option value="1">⭐ 매우 불만족</option>
+    </select>
+    <label>코멘트 (선택)</label>
+    <textarea id="sfb-comment" rows="4" placeholder="강사 수업에 대한 의견을 적어주세요."></textarea>
+    <p class="note">한 번 제출하면 수정할 수 없습니다.</p>
+    <div class="modal-btns">
+      <button class="btn-ghost" id="sfb-cancel">취소</button>
+      <button class="btn" id="sfb-submit">제출하기</button>
+    </div>
+    <div class="msg" id="sfb-msg"></div>
   </div>
 </div>
 
@@ -600,45 +636,170 @@ async function loadReport(){
   box.innerHTML = `<div class="empty">불러오는 중…</div>`;
 
   const { data:bookings } = await sb.from("bookings")
-    .select("id,start_at,is_cancelled,teacher_status")
+    .select("id,start_at,is_cancelled,teacher_status,student_status,enrollment_id")
     .eq("student_id", USER.id);
-  const total = (bookings||[]).length;
-  const past  = (bookings||[]).filter(b=> new Date(b.start_at).getTime() < Date.now());
-  const cancelled = past.filter(b=>b.is_cancelled).length;
-  const attended  = past.filter(b=>!b.is_cancelled).length; // 실제 출결은 Webhook 연결 후 정밀해짐
-  const upcoming  = (bookings||[]).length - past.length;
-  const rate = past.length ? Math.round(attended / past.length * 100) : 0;
+
+  const all = bookings || [];
+  const now = Date.now();
+  const past = all.filter(b => new Date(b.start_at).getTime() < now);
+  const upcoming = all.length - past.length;
+
+  const cancelled    = past.filter(b => b.is_cancelled).length;
+  const teacherLate  = past.filter(b => !b.is_cancelled && b.teacher_status === "late").length;
+  const studentLate  = past.filter(b => !b.is_cancelled && b.student_status === "late").length;
+  const onTime       = past.filter(b => !b.is_cancelled && b.teacher_status === "on_time" && b.student_status !== "late").length;
+  const unrated      = past.filter(b => !b.is_cancelled && !b.teacher_status && !b.student_status).length;
+  const attended     = onTime + unrated;
+
+  const counted = past.length;
+  const rate = counted ? Math.round((attended + teacherLate + studentLate) / counted * 100) : 0;
 
   box.innerHTML = `
-    <div class="stat-box"><div class="n">${total}</div><div class="l">총 회차</div></div>
+    <div class="stat-box"><div class="n">${all.length}</div><div class="l">총 회차</div></div>
     <div class="stat-box"><div class="n">${attended}</div><div class="l">출석</div></div>
-    <div class="stat-box"><div class="n">${cancelled}</div><div class="l">결석/취소</div></div>
+    <div class="stat-box"><div class="n">${teacherLate}</div><div class="l">교사 지각</div></div>
+    <div class="stat-box"><div class="n">${studentLate}</div><div class="l">학생 지각</div></div>
+    <div class="stat-box"><div class="n">${cancelled}</div><div class="l">결석·취소</div></div>
     <div class="stat-box"><div class="n">${upcoming}</div><div class="l">예정</div></div>
   `;
-  // 진행률 바
-  box.insertAdjacentHTML('afterend', `<div class="bar"><div class="bar-fill" style="width:${rate}%"></div></div><p class="sub" style="margin-top:8px">출석률 <b>${rate}%</b> · (자동 출결은 줌 연동 후 정밀해집니다)</p>`);
-  // 이전에 추가된 bar 가 있으면 중복 방지
-  const bars = $("p-report").querySelectorAll(".bar"); if(bars.length>1) bars[0].remove();
-  const subs = $("p-report").querySelectorAll(".sub"); // 첫 step 의 sub 제외, 마지막만 유지하지 않고 그대로 둠
-  // 그냥 더 간단히: 다시 호출 시 중복 제거
-  // (간단한 구현이라 OK)
 
-  // 강사 평가
+  const reportPanel = $("p-report");
+  reportPanel.querySelectorAll(".bar, .rate-note").forEach(el=>el.remove());
+  box.insertAdjacentHTML('afterend',
+    `<div class="bar"><div class="bar-fill" style="width:${rate}%"></div></div>
+     <p class="sub rate-note" style="margin-top:8px">출석률 <b>${rate}%</b> · 지각은 줌 입장 시각으로 자동 집계됩니다 (Webhook 연결 후)</p>`);
+
+  // 강사가 남긴 평가
   const { data:fbs } = await sb.from("feedback")
-    .select("rating,comment,created_at,teachers(display_name)")
+    .select("rating,comment,created_at,week_of,teachers(display_name)")
     .eq("student_id", USER.id)
     .order("created_at",{ascending:false});
   const fbBox = $("fb-list");
-  if(!fbs || fbs.length===0){ fbBox.innerHTML = `<div class="empty">아직 평가가 없습니다.</div>`; return; }
-  fbBox.innerHTML = fbs.map(f=>`
-    <div class="fb">
-      <div class="fb-head">
-        <span>${f.teachers?f.teachers.display_name:'강사'}</span>
-        <span class="fb-star">${"★".repeat(f.rating||0)}${"☆".repeat(5-(f.rating||0))}</span>
-      </div>
-      <div class="fb-cmt">${f.comment||"(코멘트 없음)"}</div>
-    </div>`).join("");
+  if(!fbs || fbs.length===0){ fbBox.innerHTML = `<div class="empty">아직 평가가 없습니다.</div>`; }
+  else{
+    fbBox.innerHTML = fbs.map(f=>`
+      <div class="fb">
+        <div class="fb-head">
+          <span>${f.teachers?f.teachers.display_name:'강사'}${f.week_of?` · ${f.week_of} 주차`:''}</span>
+          <span class="fb-star">${"★".repeat(f.rating||0)}${"☆".repeat(5-(f.rating||0))}</span>
+        </div>
+        <div class="fb-cmt">${f.comment||"(코멘트 없음)"}</div>
+      </div>`).join("");
+  }
+
+  // 학생→강사 평가 (4주차 단위)
+  await renderStudentFeedback(all);
 }
+
+/* ── 학생 → 강사 평가 (4주차 단위) ── */
+async function renderStudentFeedback(allBookings){
+  const wrap = $("sfb-wrap");
+  wrap.innerHTML = "";
+
+  // 학생의 enrollment 들 (강사 정보 포함)
+  const { data:enrollments } = await sb.from("enrollments")
+    .select("id,teacher_id,months,start_date,status,teachers(display_name)")
+    .eq("student_id", USER.id)
+    .in("status",["active","completed"]);
+  if(!enrollments || enrollments.length===0) return;
+
+  // 이미 제출한 학생→강사 평가
+  const { data:done } = await sb.from("student_feedback")
+    .select("enrollment_id,week_block,rating,comment,created_at,teachers(display_name)")
+    .eq("student_id", USER.id);
+  const doneMap = new Set((done||[]).map(d=>`${d.enrollment_id}|${d.week_block}`));
+
+  const now = Date.now();
+  let cards = "";
+
+  // enrollment 마다, 가능한 모든 4주 블록을 따져 카드 생성
+  for(const enr of enrollments){
+    const totalBlocks = enr.months; // 1개월 = 4주 = 1블록
+    for(let blk=1; blk<=totalBlocks; blk++){
+      // 이 블록의 마지막 회차(블록의 4주차 금요일) 시각 찾기
+      const blockBookings = allBookings.filter(b=> b.enrollment_id===enr.id);
+      // 시간순 정렬해서 (blk*16 - 1) 번째 (0-indexed) 가 마지막 회차
+      blockBookings.sort((a,b)=> new Date(a.start_at)-new Date(b.start_at));
+      const idx = blk*16 - 1; // 0-base
+      const lastBk = blockBookings[idx];
+      if(!lastBk) continue; // 회차가 부족하면 skip
+      const lastStart = new Date(lastBk.start_at).getTime();
+      const blockEndMs = lastStart + 20*60*1000; // 20분 수업 종료
+
+      const key = `${enr.id}|${blk}`;
+      const already = doneMap.has(key);
+
+      if(already){
+        const d = (done||[]).find(x=>x.enrollment_id===enr.id && x.week_block===blk);
+        cards += `<div class="fb">
+          <div class="fb-head">
+            <span>✅ ${enr.teachers?enr.teachers.display_name:'강사'} · ${blk}번째 4주차 평가 완료</span>
+            <span class="fb-star">${"★".repeat(d.rating||0)}${"☆".repeat(5-(d.rating||0))}</span>
+          </div>
+          <div class="fb-cmt">${d.comment||"(코멘트 없음)"}</div>
+        </div>`;
+      } else if(now >= blockEndMs){
+        // 평가 가능 (마지막 회차 종료 후)
+        cards += `<div class="sfb-card">
+          <div>
+            <b>${enr.teachers?enr.teachers.display_name:'강사'} · ${blk}번째 4주차 평가</b>
+            <div class="sub">한 달 수업을 마치셨네요. 강사를 평가해 주세요.</div>
+          </div>
+          <button class="btn-eval" data-enr="${enr.id}" data-blk="${blk}" data-tid="${enr.teacher_id}" data-tname="${enr.teachers?enr.teachers.display_name:'강사'}">평가하기</button>
+        </div>`;
+      } else {
+        // 아직 시기 안 됨
+        const remainDays = Math.ceil((blockEndMs - now)/(86400000));
+        cards += `<div class="sfb-card sfb-locked">
+          <div>
+            <b>${enr.teachers?enr.teachers.display_name:'강사'} · ${blk}번째 4주차 평가</b>
+            <div class="sub">${remainDays}일 후 평가할 수 있습니다.</div>
+          </div>
+          <button class="btn-eval" disabled>대기 중</button>
+        </div>`;
+      }
+    }
+  }
+
+  wrap.innerHTML = cards || `<div class="empty">진행 중인 수강이 없습니다.</div>`;
+  document.querySelectorAll(".btn-eval:not([disabled])").forEach(btn=>{
+    btn.onclick = ()=> openStudentFeedback(btn.dataset);
+  });
+}
+
+/* 학생→강사 평가 모달 */
+let sfbCtx = null;
+function openStudentFeedback(ds){
+  sfbCtx = { enr: Number(ds.enr), blk: Number(ds.blk), tid: ds.tid, tname: ds.tname };
+  $("sfb-target").textContent = `${ds.tname} · ${ds.blk}번째 4주차 평가`;
+  $("sfb-rating").value = "5";
+  $("sfb-comment").value = "";
+  $("sfb-msg").textContent = "";
+  $("sfb-modal").classList.add("on");
+}
+$("sfb-cancel").onclick = ()=> $("sfb-modal").classList.remove("on");
+$("sfb-submit").onclick = async ()=>{
+  if(!sfbCtx) return;
+  const rating = Number($("sfb-rating").value);
+  const comment = $("sfb-comment").value.trim();
+  $("sfb-submit").disabled = true;
+  const { error } = await sb.from("student_feedback").insert({
+    enrollment_id: sfbCtx.enr,
+    student_id: USER.id,
+    teacher_id: sfbCtx.tid,
+    week_block: sfbCtx.blk,
+    rating, comment: comment || null,
+  });
+  if(error){
+    $("sfb-msg").textContent = "제출 실패: " + error.message;
+    $("sfb-msg").style.color = "#d4512c";
+    $("sfb-submit").disabled = false;
+    return;
+  }
+  $("sfb-msg").textContent = "✅ 평가가 제출됐습니다.";
+  $("sfb-msg").style.color = "var(--teal)";
+  setTimeout(()=>{ $("sfb-modal").classList.remove("on"); $("sfb-submit").disabled = false; loadReport(); }, 1200);
+};
 
 gate();
 </script>
