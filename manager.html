@@ -1,46 +1,254 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>매니저 · ONTACT</title>
+<title>Manager · ONTACT</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 <style>
-  :root{--ink:#12273d;--paper:#f6f4ef;--line:#e3ddd0;--coral:#ef6a48;--muted:#6b7785}
+  :root{--ink:#12273d;--paper:#f6f4ef;--line:#e3ddd0;--coral:#ef6a48;--teal:#2c7a73;--muted:#6b7785;--gold:#c98a1f}
   *{margin:0;padding:0;box-sizing:border-box}
-  body{font-family:Pretendard,sans-serif;background:var(--paper);color:var(--ink);min-height:100vh}
-  header{background:var(--ink);color:#fff;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
-  header b{font-size:1.1rem}
-  header .who{font-size:.85rem;opacity:.85}
+  body{font-family:Pretendard,sans-serif;background:var(--paper);color:var(--ink);min-height:100vh;line-height:1.5}
+  header{background:var(--ink);color:#fff;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;gap:10px;flex-wrap:wrap}
+  header b{font-size:1.1rem}.who{font-size:.85rem;opacity:.85}
   header a{color:#fff;font-size:.85rem;opacity:.85;text-decoration:none;margin-left:14px}
-  .wrap{max-width:1100px;margin:0 auto;padding:30px 20px}
-  .hero{background:#fff;border:1px solid var(--line);border-radius:16px;padding:36px 28px;margin-bottom:24px}
-  .hero h1{font-size:1.6rem;margin-bottom:6px}
-  .hero p{color:var(--muted);font-size:.95rem}
-  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
-  .box{background:#fff;border:1px solid var(--line);border-radius:14px;padding:22px}
-  .box h3{font-size:1rem;margin-bottom:6px;color:var(--coral)}
-  .box p{font-size:.88rem;color:var(--muted)}
-  .soon{display:inline-block;font-size:.7rem;background:#fef6ef;color:#9a5b3b;padding:.2em .6em;border-radius:999px;font-weight:700;margin-left:8px}
+  .lang-tog{display:inline-flex;background:rgba(255,255,255,.12);border-radius:999px;padding:3px;margin-left:10px}
+  .lang-tog button{background:transparent;color:#fff;border:none;padding:.3em .7em;border-radius:999px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit}
+  .lang-tog button.on{background:#fff;color:var(--ink)}
+  .wrap{max-width:1200px;margin:0 auto;padding:24px 20px}
+  .tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+  .tabs button{padding:.55em 1.1em;border:1px solid var(--line);background:#fff;border-radius:999px;font-weight:600;cursor:pointer;color:var(--muted);font-family:inherit;font-size:.9rem}
+  .tabs button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .panel{display:none}.panel.on{display:block}
+
+  /* 통계 줄 */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
+  .stat{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+  .stat .n{font-size:1.6rem;font-weight:800;color:var(--coral);line-height:1}
+  .stat .l{font-size:.75rem;color:var(--muted);margin-top:4px;font-weight:600}
+
+  /* 강사 카드 + 그리드 */
+  .teacher-section{margin-top:18px}
+  .teacher-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:14px}
+  .teacher-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px}
+  .teacher-name{font-weight:800;font-size:1rem;display:flex;align-items:center;gap:8px}
+  .avatar{width:36px;height:36px;border-radius:50%;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.95rem}
+  .tz-info{font-size:.75rem;color:var(--muted)}
+  .teacher-stat{display:flex;gap:14px;font-size:.78rem;color:var(--muted);flex-wrap:wrap}
+  .teacher-stat b{color:var(--ink)}
+
+  .grid-wrap{overflow-x:auto}
+  .grid{display:grid;grid-template-columns:60px repeat(4,minmax(110px,1fr));gap:6px;min-width:560px}
+  .grid .col-h{font-size:.78rem;font-weight:700;color:var(--muted);text-align:center;padding:8px 4px;border-bottom:2px solid var(--line)}
+  .grid .col-h .d{font-size:.7rem;display:block;opacity:.7;margin-top:2px}
+  .grid .col-h.today{color:var(--coral)}
+  .grid .row-h{font-size:.75rem;color:var(--muted);font-weight:600;text-align:right;padding:6px 8px 6px 0;border-right:1px solid var(--line);align-self:center}
+  .cell{min-height:34px;border-radius:8px;padding:6px 8px;font-size:.78rem;cursor:pointer;background:var(--paper);border:1px solid transparent;transition:.1s}
+  .cell:hover{border-color:var(--coral)}
+  .cell.empty{background:#fafafa;cursor:default}
+  .cell.empty:hover{border-color:transparent}
+  .cell.has{background:#fef6ef;color:var(--ink);font-weight:600;border-color:#fbe6d2}
+  .cell.has.past{opacity:.5}
+  .cell.has.cancelled{background:#fdeee7;text-decoration:line-through;color:#9a6b15}
+  .cell.has.makeup{background:#e7f1f0;border-color:#bcd9d4;color:var(--teal)}
+  .cell.has.now{background:var(--coral);color:#fff;border-color:var(--coral);font-weight:800}
+  .cell .nm{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cell .ic{font-size:.85em;margin-right:2px}
+
+  .week-nav{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px}
+  .week-nav-btns{display:flex;gap:6px}
+  .week-nav-btns button{background:#fff;border:1px solid var(--line);padding:.45em .9em;border-radius:999px;cursor:pointer;font-family:inherit;font-size:.82rem;font-weight:600}
+  .week-nav-btns button:hover{border-color:var(--coral)}
+  .week-label{font-weight:800;font-size:1.05rem}
+
+  /* 출결 표 */
+  .att-filter{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+  .att-filter select,.att-filter input{padding:.5em .8em;border:1.5px solid var(--line);border-radius:8px;font-family:inherit;font-size:.85rem}
+  table.att{width:100%;background:#fff;border-collapse:collapse;border-radius:12px;overflow:hidden;border:1px solid var(--line)}
+  table.att th,table.att td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);font-size:.85rem}
+  table.att th{background:var(--paper);font-weight:700;font-size:.78rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+  table.att tr:last-child td{border-bottom:none}
+  .badge{display:inline-block;font-size:.7rem;font-weight:700;padding:.2em .6em;border-radius:999px}
+  .b-on_time{background:#e6efe6;color:#2e7d32}
+  .b-late{background:#fdf2e0;color:#c98a1f}
+  .b-no_show{background:#fdeee7;color:#c0392b}
+  .b-cancelled{background:#f0ede9;color:var(--muted)}
+  .b-pending{background:#eef0f2;color:var(--muted)}
+
+  /* 폼 / 모달 */
+  .step{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:14px}
+  .step h2{font-size:1.05rem;margin-bottom:4px}
+  .step .sub{font-size:.85rem;color:var(--muted);margin-bottom:14px}
+  label{display:block;font-size:.78rem;font-weight:700;color:var(--muted);margin:10px 0 4px}
+  input,select,textarea{width:100%;padding:.65em .85em;border:1.5px solid var(--line);border-radius:9px;font-family:inherit;font-size:.9rem}
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .btn{padding:.7em 1.4em;border:none;border-radius:999px;background:var(--coral);color:#fff;font-weight:800;cursor:pointer;font-family:inherit;font-size:.9rem}
+  .btn-sm{padding:.4em .9em;font-size:.78rem}
+  .btn-ghost{padding:.7em;border:1px solid var(--line);background:#fff;border-radius:999px;font-weight:700;cursor:pointer;font-family:inherit}
+  .msg{font-size:.85rem;margin-top:8px;min-height:1.2em}
+
+  /* 레벨테스트 슬롯 카드 */
+  .lt-slot{display:flex;justify-content:space-between;align-items:center;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin-bottom:8px;gap:10px;flex-wrap:wrap}
+  .lt-slot.booked{background:var(--paper);opacity:.85}
+  .lt-slot .when{font-weight:700;font-size:.95rem}
+  .lt-slot .meta{font-size:.78rem;color:var(--muted);margin-top:2px}
+
+  .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;align-items:center;justify-content:center;padding:20px}
+  .modal.on{display:flex}
+  .modal-box{background:#fff;border-radius:18px;padding:24px;max-width:480px;width:100%}
+  .modal-box h3{font-size:1.05rem;margin-bottom:6px}
+  .modal-box .meta{font-size:.85rem;color:var(--muted);margin-bottom:14px}
+  .modal-btns{display:flex;gap:8px;margin-top:14px}
+  .modal-btns .btn,.modal-btns .btn-ghost{flex:1}
+
+  /* 수강생 명부 */
+  table.roster{width:100%;background:#fff;border-collapse:collapse;border-radius:12px;overflow:hidden;border:1px solid var(--line)}
+  table.roster th,table.roster td{padding:11px 12px;text-align:left;border-bottom:1px solid var(--line);font-size:.85rem;vertical-align:middle}
+  table.roster th{background:var(--paper);font-weight:700;font-size:.78rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+  table.roster tr:last-child td{border-bottom:none}
+  .rate-bar{display:inline-block;width:60px;height:6px;background:var(--line);border-radius:999px;overflow:hidden;margin-right:6px;vertical-align:middle}
+  .rate-bar-fill{height:100%;background:var(--coral)}
+  .star{color:#f2a930}
+  .empty{text-align:center;color:var(--muted);padding:24px;font-size:.88rem}
+
+  @media(max-width:680px){
+    .stats{grid-template-columns:1fr 1fr}
+    .form-row{grid-template-columns:1fr}
+  }
 </style>
 </head>
 <body>
 <header>
-  <b>🧭 매니저</b>
-  <div><span class="who" id="who"></span><a href="#" id="logout">로그아웃</a></div>
+  <b>🧭 <span data-t="title">Manager Dashboard</span></b>
+  <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+    <span class="who" id="who"></span>
+    <div class="lang-tog"><button id="lang-en" class="on">EN</button><button id="lang-kr">KR</button></div>
+    <a href="#" id="logout" data-t="logout">Logout</a>
+  </div>
 </header>
 
 <div class="wrap">
-  <div class="hero">
-    <h1>매니저 페이지에 오신 것을 환영합니다</h1>
-    <p>이 페이지는 현재 골격 상태입니다. 곧 단계별로 기능이 채워집니다.</p>
+  <div class="tabs">
+    <button class="on" data-tab="schedule" data-t="tab_schedule">📅 All Schedules</button>
+    <button data-tab="attendance" data-t="tab_att">✅ Attendance</button>
+    <button data-tab="leveltest" data-t="tab_lt">🧪 Level Test</button>
+    <button data-tab="roster" data-t="tab_roster">📒 Roster</button>
   </div>
 
-  <div class="grid">
-    <div class="box"><h3>👥 모든 교사 수업 현황 <span class="soon">곧</span></h3><p>교사별 수업을 현지 시간으로 봅니다.</p></div>
-    <div class="box"><h3>✅ 자동 출결 <span class="soon">곧</span></h3><p>교사·학생의 입장 시각으로 출석/지각/결석.</p></div>
-    <div class="box"><h3>🧪 레벨테스트 일정 <span class="soon">곧</span></h3><p>가능한 시간을 열고 학생 예약을 받습니다.</p></div>
-    <div class="box"><h3>📒 수강생 명부 <span class="soon">곧</span></h3><p>수강 개월·출석률·교사 평가를 관리합니다.</p></div>
+  <!-- 전체 일정 -->
+  <div class="panel on" id="p-schedule">
+    <div class="stats">
+      <div class="stat"><div class="n" id="s-teachers">–</div><div class="l" data-t="s_teachers">Active teachers</div></div>
+      <div class="stat"><div class="n" id="s-students">–</div><div class="l" data-t="s_students">Students</div></div>
+      <div class="stat"><div class="n" id="s-week-classes">–</div><div class="l" data-t="s_week_classes">Classes this week</div></div>
+      <div class="stat"><div class="n" id="s-today-classes">–</div><div class="l" data-t="s_today_classes">Today's classes</div></div>
+    </div>
+
+    <div class="week-nav">
+      <div><span class="week-label" id="w-label" data-t="this_week">This week</span> <span style="font-size:.85rem;color:var(--muted)" id="w-range"></span></div>
+      <div class="week-nav-btns">
+        <button id="w-prev">←</button>
+        <button id="w-today" data-t="today">Today</button>
+        <button id="w-next">→</button>
+      </div>
+    </div>
+    <p class="sub" style="font-size:.78rem;color:var(--muted);margin:-6px 4px 14px"><span data-t="tz_note_a">Times in your timezone</span>: <b id="my-tz">–</b>. <span data-t="tz_note_b">Each teacher's time shown to teacher's timezone next to name.</span></p>
+
+    <div id="teachers-list"><div class="empty" data-t="loading">Loading…</div></div>
+  </div>
+
+  <!-- 출결 -->
+  <div class="panel" id="p-attendance">
+    <div class="step">
+      <h2 data-t="att_h">Attendance Records</h2>
+      <p class="sub" data-t="att_sub">Automatic attendance based on Zoom join times (active after Webhook setup).</p>
+      <div class="att-filter">
+        <select id="att-teacher"><option value="" data-t="all_teachers">All teachers</option></select>
+        <select id="att-status">
+          <option value="" data-t="all_status">All status</option>
+          <option value="on_time" data-t="on_time">On time</option>
+          <option value="late" data-t="late">Late</option>
+          <option value="no_show" data-t="no_show">No show</option>
+          <option value="cancelled" data-t="cancelled">Cancelled</option>
+        </select>
+        <input id="att-date-from" type="date">
+        <input id="att-date-to" type="date">
+        <button class="btn btn-sm" id="att-apply" data-t="apply">Apply</button>
+      </div>
+      <div style="overflow-x:auto"><table class="att" id="att-table">
+        <thead><tr>
+          <th data-t="th_when">When</th><th data-t="th_teacher">Teacher</th><th data-t="th_student">Student</th>
+          <th data-t="th_teacher_st">Teacher</th><th data-t="th_student_st">Student</th><th data-t="th_status">Status</th>
+        </tr></thead><tbody></tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <!-- 레벨테스트 -->
+  <div class="panel" id="p-leveltest">
+    <div class="step">
+      <h2 data-t="lt_h">Open Level Test Slot</h2>
+      <p class="sub" data-t="lt_sub">Students can book any open slot. Zoom meeting is auto-created.</p>
+      <div class="form-row">
+        <div><label data-t="lt_when">Date & time (your timezone)</label><input id="lt-when" type="datetime-local"></div>
+        <div><label data-t="lt_dur">Duration (min)</label><input id="lt-dur" type="number" value="20" min="10" max="60"></div>
+      </div>
+      <button class="btn" id="lt-add" data-t="lt_add">Open Slot</button>
+      <div class="msg" id="lt-msg"></div>
+    </div>
+
+    <div class="step">
+      <h2 data-t="lt_slots_h">Slots & Bookings</h2>
+      <div id="lt-list"><div class="empty" data-t="loading">Loading…</div></div>
+    </div>
+  </div>
+
+  <!-- 수강생 명부 -->
+  <div class="panel" id="p-roster">
+    <div class="step">
+      <h2 data-t="roster_h">Student Roster</h2>
+      <p class="sub" data-t="roster_sub">Enrollment months, attendance rate, latest reviews, level test result.</p>
+      <div style="overflow-x:auto"><table class="roster" id="roster-table">
+        <thead><tr>
+          <th data-t="th_student">Student</th><th data-t="th_teachers">Teachers</th><th data-t="th_months">Months</th>
+          <th data-t="th_progress">Progress</th><th data-t="th_attendance">Attendance</th><th data-t="th_level">Level</th><th data-t="th_rating">Rating</th>
+        </tr></thead><tbody></tbody>
+      </table></div>
+    </div>
+  </div>
+</div>
+
+<!-- 셀 상세 모달 -->
+<div id="cell-modal" class="modal">
+  <div class="modal-box">
+    <h3 id="c-title">–</h3>
+    <div class="meta" id="c-meta">–</div>
+    <div id="c-body"></div>
+    <div class="modal-btns">
+      <button class="btn-ghost" id="c-close" data-t="close">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- 레벨 결과 입력 모달 -->
+<div id="lv-modal" class="modal">
+  <div class="modal-box">
+    <h3 data-t="lv_mod_h">Set Level Result</h3>
+    <div class="meta" id="lv-target">–</div>
+    <label data-t="lv_result_l">CEFR Level</label>
+    <select id="lv-result">
+      <option value="A1">A1 - Beginner</option>
+      <option value="A2">A2 - Elementary</option>
+      <option value="B1">B1 - Intermediate</option>
+      <option value="B2">B2 - Upper-intermediate</option>
+      <option value="C1">C1 - Advanced</option>
+      <option value="C2">C2 - Proficient</option>
+    </select>
+    <div class="modal-btns">
+      <button class="btn-ghost" id="lv-cancel" data-t="cancel">Cancel</button>
+      <button class="btn" id="lv-submit" data-t="submit">Save</button>
+    </div>
+    <div class="msg" id="lv-msg"></div>
   </div>
 </div>
 
@@ -49,21 +257,464 @@
 const SUPABASE_URL="https://nhydhyolgrhsykdcqfzb.supabase.co";
 const SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5oeWRoeW9sZ3Joc3lrZGNxZnpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MTk1OTAsImV4cCI6MjA5NTk5NTU5MH0.s3qPFFN-4zMLAt-dtkOwzakCj-pkglKgbhyUR9uu4xs";
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-const ROLE_PAGE={student:"student.html",teacher:"teacher.html",manager:"manager.html",admin:"admin.html"};
-const REQUIRED_ROLE="manager";
+const $=(id)=>document.getElementById(id);
+
+const I18N = {
+  en:{
+    title:"Manager Dashboard", logout:"Logout",
+    tab_schedule:"📅 All Schedules", tab_att:"✅ Attendance", tab_lt:"🧪 Level Test", tab_roster:"📒 Roster",
+    s_teachers:"Active teachers", s_students:"Students", s_week_classes:"Classes this week", s_today_classes:"Today's classes",
+    this_week:"This week", today:"Today",
+    tz_note_a:"Times in your timezone", tz_note_b:"Each teacher's local time shown next to name.",
+    loading:"Loading…", no_classes:"No classes.", no_teachers:"No active teachers.",
+    att_h:"Attendance Records", att_sub:"Automatic attendance based on Zoom join times (active after Webhook setup).",
+    all_teachers:"All teachers", all_status:"All status",
+    on_time:"On time", late:"Late", no_show:"No show", cancelled:"Cancelled", apply:"Apply", pending:"Pending",
+    th_when:"When", th_teacher:"Teacher", th_student:"Student", th_teacher_st:"Teacher", th_student_st:"Student", th_status:"Status",
+    th_teachers:"Teachers", th_months:"Months", th_progress:"Progress", th_attendance:"Attendance", th_level:"Level", th_rating:"Rating",
+    no_att:"No records.",
+    lt_h:"Open Level Test Slot", lt_sub:"Students can book any open slot. Zoom meeting is auto-created.",
+    lt_when:"Date & time (your timezone)", lt_dur:"Duration (min)", lt_add:"Open Slot",
+    lt_slots_h:"Slots & Bookings", lt_open:"Open", lt_booked:"Booked", lt_closed:"Closed",
+    student:"Student", waiting:"Waiting for booking",
+    set_level:"Set Level", view_zoom:"Zoom", close:"Close", cancel:"Cancel", submit:"Save",
+    lv_mod_h:"Set Level Result", lv_result_l:"CEFR Level",
+    success_lt:"✅ Slot opened.", err_lt:"Please pick date & time.",
+    success_lv:"✅ Level saved.",
+    roster_h:"Student Roster", roster_sub:"Enrollment months, attendance rate, latest reviews, level test result.",
+    no_students:"No students enrolled.",
+    not_set:"Not set",
+  },
+  kr:{
+    title:"매니저 대시보드", logout:"로그아웃",
+    tab_schedule:"📅 전체 일정", tab_att:"✅ 출결", tab_lt:"🧪 레벨테스트", tab_roster:"📒 수강생 명부",
+    s_teachers:"활동 강사", s_students:"학생", s_week_classes:"이번 주 수업", s_today_classes:"오늘 수업",
+    this_week:"이번 주", today:"오늘로",
+    tz_note_a:"시간은 매니저 본인 시간대로 표시", tz_note_b:"각 강사의 현지 시간은 이름 옆에 함께 표시.",
+    loading:"불러오는 중…", no_classes:"수업이 없습니다.", no_teachers:"활동 강사가 없습니다.",
+    att_h:"출결 기록", att_sub:"줌 입장 시각 기반 자동 출결입니다 (Webhook 연결 후 작동).",
+    all_teachers:"전체 강사", all_status:"전체 상태",
+    on_time:"정시", late:"지각", no_show:"노쇼", cancelled:"취소", apply:"적용", pending:"미집계",
+    th_when:"일시", th_teacher:"강사", th_student:"학생", th_teacher_st:"강사", th_student_st:"학생", th_status:"상태",
+    th_teachers:"강사", th_months:"개월", th_progress:"진행률", th_attendance:"출석률", th_level:"레벨", th_rating:"평점",
+    no_att:"기록이 없습니다.",
+    lt_h:"레벨테스트 슬롯 열기", lt_sub:"학생이 자유롭게 예약할 수 있습니다. 줌 미팅은 자동 생성됩니다.",
+    lt_when:"일시 (본인 시간대)", lt_dur:"소요시간(분)", lt_add:"슬롯 열기",
+    lt_slots_h:"슬롯 · 예약", lt_open:"열림", lt_booked:"예약됨", lt_closed:"닫힘",
+    student:"학생", waiting:"예약 대기",
+    set_level:"레벨 입력", view_zoom:"줌", close:"닫기", cancel:"취소", submit:"저장",
+    lv_mod_h:"레벨 결과 입력", lv_result_l:"CEFR 레벨",
+    success_lt:"✅ 슬롯이 열렸습니다.", err_lt:"일시를 입력하세요.",
+    success_lv:"✅ 레벨이 저장됐습니다.",
+    roster_h:"수강생 명부", roster_sub:"수강 개월, 출석률, 최근 평가, 레벨테스트 결과.",
+    no_students:"수강생이 없습니다.",
+    not_set:"미입력",
+  }
+};
+let LANG = localStorage.getItem("ontact_lang") || "en";
+function t(k){ return (I18N[LANG] && I18N[LANG][k]) || (I18N.en[k] || k); }
+function applyLang(){
+  document.documentElement.lang = LANG;
+  document.querySelectorAll("[data-t]").forEach(el=>{ el.textContent = t(el.getAttribute("data-t")); });
+  $("lang-en").classList.toggle("on", LANG==="en");
+  $("lang-kr").classList.toggle("on", LANG==="kr");
+  if(USER) reRender();
+}
+$("lang-en").onclick = ()=>{ LANG="en"; localStorage.setItem("ontact_lang","en"); applyLang(); };
+$("lang-kr").onclick = ()=>{ LANG="kr"; localStorage.setItem("ontact_lang","kr"); applyLang(); };
+
+let USER=null, PROFILE=null;
+let WEEK_OFFSET = 0;     // 0=이번 주
+let TEACHERS_CACHE=[];   // {id, display_name, timezone}
+let BOOKINGS_CACHE=[];   // 표시 중인 주의 모든 강사 수업
+let TEACHER_TZ={};       // teacher_id -> timezone
 
 async function gate(){
   const{data:{user}}=await sb.auth.getUser();
   if(!user){ location.href="login.html"; return; }
+  USER=user;
   const{data:profile}=await sb.from("profiles").select("role,full_name,email,timezone").eq("id",user.id).single();
   if(!profile){ location.href="login.html"; return; }
-  if(profile.role!==REQUIRED_ROLE){
-    // 다른 역할이면 본인 페이지로 보내기
-    location.href=ROLE_PAGE[profile.role]||"login.html"; return;
+  if(profile.role!=="manager" && profile.role!=="admin"){
+    const map={student:"student.html",teacher:"teacher.html"};
+    location.href=map[profile.role]||"login.html"; return;
   }
-  document.getElementById("who").textContent=(profile.full_name||profile.email)+" · "+(profile.timezone||"");
+  PROFILE=profile;
+  $("who").textContent=(profile.full_name||profile.email)+" · "+(profile.timezone||"");
+  $("my-tz").textContent = profile.timezone || "Asia/Seoul";
+  applyLang();
+  init();
 }
-document.getElementById("logout").onclick=async(e)=>{ e.preventDefault(); await sb.auth.signOut(); location.href="login.html"; };
+$("logout").onclick=async(e)=>{ e.preventDefault(); await sb.auth.signOut(); location.href="login.html"; };
+
+document.querySelectorAll(".tabs button").forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll(".tabs button").forEach(x=>x.classList.remove("on"));
+    document.querySelectorAll(".panel").forEach(x=>x.classList.remove("on"));
+    b.classList.add("on"); $("p-"+b.dataset.tab).classList.add("on");
+    if(b.dataset.tab==="schedule")   loadSchedule();
+    if(b.dataset.tab==="attendance") loadAttendance();
+    if(b.dataset.tab==="leveltest")  loadLeveltest();
+    if(b.dataset.tab==="roster")     loadRoster();
+  };
+});
+
+async function init(){
+  await loadTeachersCache();
+  loadSchedule();
+}
+
+function reRender(){
+  const tab = document.querySelector(".tabs button.on")?.dataset.tab;
+  if(tab==="schedule")   renderSchedule();
+  if(tab==="attendance") loadAttendance();
+  if(tab==="leveltest")  loadLeveltest();
+  if(tab==="roster")     loadRoster();
+}
+
+async function loadTeachersCache(){
+  const{data:teachers}=await sb.from("teachers").select("id,display_name,is_active").eq("is_active",true).order("display_name");
+  TEACHERS_CACHE = teachers || [];
+  // 강사 프로필 timezone 가져오기
+  const ids = TEACHERS_CACHE.map(t=>t.id);
+  if(ids.length){
+    const{data:profs}=await sb.from("profiles").select("id,timezone").in("id",ids);
+    TEACHER_TZ = {};
+    (profs||[]).forEach(p=>TEACHER_TZ[p.id]=p.timezone||"Asia/Seoul");
+  }
+  // 출결 필터 셀렉트 채우기
+  const sel=$("att-teacher");
+  sel.innerHTML = `<option value="">${t("all_teachers")}</option>` + TEACHERS_CACHE.map(x=>`<option value="${x.id}">${x.display_name}</option>`).join("");
+}
+
+/* ────── 포맷 (매니저 본인 시간대 기준) ────── */
+const MY_TZ = () => PROFILE.timezone || "Asia/Seoul";
+const localeOf = () => LANG==="kr" ? "ko-KR" : "en-US";
+function fmtTimeIn(iso, tz){ return new Intl.DateTimeFormat(localeOf(),{timeZone:tz,hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(iso)); }
+function fmtTime(iso){ return fmtTimeIn(iso, MY_TZ()); }
+function dayKeyIn(iso, tz){
+  const parts = new Intl.DateTimeFormat('en-CA',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date(iso));
+  return parts.find(p=>p.type==='year').value+"-"+parts.find(p=>p.type==='month').value+"-"+parts.find(p=>p.type==='day').value;
+}
+function dayKey(iso){ return dayKeyIn(iso, MY_TZ()); }
+function dayHeader(iso){ return new Intl.DateTimeFormat(localeOf(),{timeZone:MY_TZ(),month:'long',day:'numeric',weekday:'long'}).format(new Date(iso)); }
+function shortDate(d){ return new Intl.DateTimeFormat(localeOf(),{timeZone:MY_TZ(),month:'short',day:'numeric'}).format(d); }
+function dayLabel(d){ return new Intl.DateTimeFormat(localeOf(),{timeZone:MY_TZ(),weekday:'short'}).format(d); }
+function mondayOf(d){
+  const k = dayKey(d.toISOString());
+  const parts = new Intl.DateTimeFormat('en-US',{timeZone:MY_TZ(),weekday:'short'}).formatToParts(new Date(k+"T12:00:00Z"));
+  const wkMap={Sun:0,Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6};
+  const dow = wkMap[parts.find(p=>p.type==='weekday').value];
+  const base = new Date(k+"T00:00:00Z");
+  const diff = dow === 0 ? 6 : dow - 1;
+  base.setUTCDate(base.getUTCDate() - diff);
+  return base;
+}
+
+/* ────── 일정 ────── */
+async function loadSchedule(){
+  const monday = new Date(mondayOf(new Date()).getTime() + WEEK_OFFSET*7*86400000);
+  const sun = new Date(monday.getTime() + 7*86400000);
+  const{data}=await sb.from("bookings")
+    .select("id,start_at,is_cancelled,makeup_of,zoom_join_url,teacher_id,student_id,teachers(display_name),profiles(full_name,email)")
+    .gte("start_at", monday.toISOString())
+    .lt ("start_at", sun.toISOString())
+    .order("start_at",{ascending:true});
+  BOOKINGS_CACHE = data || [];
+  renderSchedule();
+}
+
+function renderSchedule(){
+  const monday = new Date(mondayOf(new Date()).getTime() + WEEK_OFFSET*7*86400000);
+  const sun = new Date(monday.getTime() + 7*86400000);
+  $("w-range").textContent = `${shortDate(monday)} – ${shortDate(new Date(sun.getTime()-1))}`;
+  $("w-label").textContent = WEEK_OFFSET===0 ? t("this_week") : (WEEK_OFFSET>0 ? `+${WEEK_OFFSET}` : `${WEEK_OFFSET}`);
+
+  // 통계
+  const todayK = dayKey(new Date().toISOString());
+  const todayClasses = BOOKINGS_CACHE.filter(b=> dayKey(b.start_at)===todayK && !b.is_cancelled).length;
+  const weekClasses = BOOKINGS_CACHE.filter(b=>!b.is_cancelled).length;
+  $("s-teachers").textContent = TEACHERS_CACHE.length;
+  const studentSet = new Set(BOOKINGS_CACHE.filter(b=>!b.is_cancelled).map(b=>b.student_id));
+  $("s-students").textContent = studentSet.size;
+  $("s-week-classes").textContent = weekClasses;
+  $("s-today-classes").textContent = todayClasses;
+
+  // 강사별
+  const wrap = $("teachers-list");
+  if(TEACHERS_CACHE.length===0){ wrap.innerHTML=`<div class="empty">${t("no_teachers")}</div>`; return; }
+  let html = "";
+  TEACHERS_CACHE.forEach(tc=>{
+    const tBks = BOOKINGS_CACHE.filter(b=> b.teacher_id===tc.id);
+    const cnt = tBks.filter(b=>!b.is_cancelled).length;
+    const tz = TEACHER_TZ[tc.id] || "Asia/Seoul";
+    const tzHint = tz !== MY_TZ() ? ` · ${tz}` : "";
+    const initial = tc.display_name.replace(/^Tr\.?\s*/,"").slice(0,1).toUpperCase();
+
+    // 그리드 만들기
+    const days = [0,1,3,4].map(off=> new Date(monday.getTime() + off*86400000));
+    const todayKey = dayKey(new Date().toISOString());
+    const timeSet = new Set();
+    tBks.forEach(b=> timeSet.add(fmtTime(b.start_at)));
+    let times = [...timeSet].sort();
+    if(times.length===0) times = ["—"];
+
+    let gridHtml = `<div></div>`;
+    days.forEach(d=>{
+      const isToday = dayKey(d.toISOString())===todayKey;
+      gridHtml += `<div class="col-h ${isToday?'today':''}">${dayLabel(d)}<span class="d">${shortDate(d)}</span></div>`;
+    });
+    times.forEach(time=>{
+      gridHtml += `<div class="row-h">${time}</div>`;
+      days.forEach(d=>{
+        const dKey = dayKey(d.toISOString());
+        const cellBks = tBks.filter(b=> dayKey(b.start_at)===dKey && fmtTime(b.start_at)===time);
+        if(cellBks.length===0){ gridHtml += `<div class="cell empty"></div>`; }
+        else {
+          const b = cellBks[0];
+          const stu = b.profiles ? (b.profiles.full_name||b.profiles.email) : t("student");
+          const startMs = new Date(b.start_at).getTime();
+          const isPast = startMs < Date.now() - 25*60*1000;
+          const isNow = startMs >= Date.now() - 5*60*1000 && startMs <= Date.now() + 25*60*1000;
+          let cls = "has";
+          if(b.is_cancelled) cls += " cancelled";
+          else if(isNow) cls += " now";
+          else if(isPast) cls += " past";
+          if(b.makeup_of) cls += " makeup";
+          gridHtml += `<div class="cell ${cls}" data-bid="${b.id}"><span class="nm">${stu}</span></div>`;
+        }
+      });
+    });
+
+    // 강사 현지시간 라벨
+    const teacherLocalTime = new Intl.DateTimeFormat(localeOf(),{timeZone:tz,hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date());
+
+    html += `<div class="teacher-card">
+      <div class="teacher-head">
+        <div class="teacher-name"><div class="avatar">${initial}</div><div>${tc.display_name}<div class="tz-info">${tz}${tzHint?` · now ${teacherLocalTime}`:""}</div></div></div>
+        <div class="teacher-stat"><span><b>${cnt}</b> ${LANG==="kr"?"회":"classes"}</span><span><b>${Math.round(cnt*20/60*10)/10}</b> ${LANG==="kr"?"시간":"hr"}</span></div>
+      </div>
+      <div class="grid-wrap"><div class="grid">${gridHtml}</div></div>
+    </div>`;
+  });
+  wrap.innerHTML = html;
+
+  document.querySelectorAll(".cell[data-bid]").forEach(el=>{
+    el.onclick = ()=> openCell(Number(el.dataset.bid));
+  });
+}
+
+function openCell(bid){
+  const b = BOOKINGS_CACHE.find(x=>x.id===bid);
+  if(!b) return;
+  const stu = b.profiles ? (b.profiles.full_name||b.profiles.email) : t("student");
+  const tch = b.teachers ? b.teachers.display_name : "–";
+  const tz = TEACHER_TZ[b.teacher_id] || "Asia/Seoul";
+  $("c-title").textContent = `${tch} · ${stu}`;
+  $("c-meta").innerHTML = `${fmtTime(b.start_at)} ${LANG==="kr"?"(내 시간)":"(your time)"}` +
+    (tz !== MY_TZ() ? ` · ${fmtTimeIn(b.start_at, tz)} (${tz})` : "") +
+    `<br>${dayHeader(b.start_at)}`;
+  let body = "";
+  if(b.is_cancelled) body += `<span class="badge b-cancelled">${t("cancelled")}</span>`;
+  if(b.makeup_of) body += ` <span class="badge" style="background:#e7f1f0;color:var(--teal)">Makeup</span>`;
+  if(b.zoom_join_url) body += `<div style="margin-top:14px"><a href="${b.zoom_join_url}" target="_blank" style="color:var(--coral);text-decoration:none;font-weight:700">🎥 ${t("view_zoom")}</a></div>`;
+  $("c-body").innerHTML = body;
+  $("cell-modal").classList.add("on");
+}
+$("c-close").onclick = ()=> $("cell-modal").classList.remove("on");
+$("cell-modal").onclick = (e)=>{ if(e.target.id==="cell-modal") $("cell-modal").classList.remove("on"); };
+
+$("w-prev").onclick = ()=>{ WEEK_OFFSET--; loadSchedule(); };
+$("w-next").onclick = ()=>{ WEEK_OFFSET++; loadSchedule(); };
+$("w-today").onclick = ()=>{ WEEK_OFFSET=0; loadSchedule(); };
+
+/* ────── 출결 ────── */
+async function loadAttendance(){
+  const tch = $("att-teacher").value;
+  const st = $("att-status").value;
+  const from = $("att-date-from").value;
+  const to = $("att-date-to").value;
+  let q = sb.from("bookings")
+    .select("id,start_at,is_cancelled,teacher_status,student_status,teacher_late_min,student_late_min,teacher_id,student_id,teachers(display_name),profiles(full_name,email)")
+    .order("start_at",{ascending:false}).limit(200);
+  if(tch) q = q.eq("teacher_id", tch);
+  if(from) q = q.gte("start_at", new Date(from).toISOString());
+  if(to)   q = q.lte("start_at", new Date(new Date(to).getTime()+86400000).toISOString());
+  const{data}=await q;
+  let rows = data||[];
+  if(st){
+    rows = rows.filter(b=>{
+      if(st==="cancelled") return b.is_cancelled;
+      return b.teacher_status===st || b.student_status===st;
+    });
+  }
+  const tbody = $("att-table").querySelector("tbody");
+  if(rows.length===0){ tbody.innerHTML = `<tr><td colspan="6" class="empty">${t("no_att")}</td></tr>`; return; }
+  tbody.innerHTML = rows.map(b=>{
+    const stu = b.profiles ? (b.profiles.full_name||b.profiles.email) : "–";
+    const tch = b.teachers ? b.teachers.display_name : "–";
+    const tz = TEACHER_TZ[b.teacher_id] || MY_TZ();
+    const myTime = fmtTime(b.start_at);
+    const tchTime = tz !== MY_TZ() ? ` <span class="meta" style="color:var(--muted);font-size:.78rem">/ ${fmtTimeIn(b.start_at,tz)}</span>` : "";
+    const tBadge = b.is_cancelled
+      ? `<span class="badge b-cancelled">${t("cancelled")}</span>`
+      : (b.teacher_status
+          ? `<span class="badge b-${b.teacher_status}">${t(b.teacher_status)}${b.teacher_late_min?` ${b.teacher_late_min}m`:""}</span>`
+          : `<span class="badge b-pending">${t("pending")}</span>`);
+    const sBadge = b.is_cancelled
+      ? `<span class="badge b-cancelled">—</span>`
+      : (b.student_status
+          ? `<span class="badge b-${b.student_status}">${t(b.student_status)}${b.student_late_min?` ${b.student_late_min}m`:""}</span>`
+          : `<span class="badge b-pending">${t("pending")}</span>`);
+    const overall = b.is_cancelled ? `<span class="badge b-cancelled">${t("cancelled")}</span>`
+      : (b.teacher_status==="late"||b.student_status==="late") ? `<span class="badge b-late">${t("late")}</span>`
+      : (b.teacher_status==="no_show"||b.student_status==="no_show") ? `<span class="badge b-no_show">${t("no_show")}</span>`
+      : (b.teacher_status==="on_time"||b.student_status==="on_time") ? `<span class="badge b-on_time">${t("on_time")}</span>`
+      : `<span class="badge b-pending">${t("pending")}</span>`;
+    return `<tr>
+      <td>${myTime}${tchTime}<br><span class="meta" style="font-size:.75rem;color:var(--muted)">${dayHeader(b.start_at)}</span></td>
+      <td>${tch}</td><td>${stu}</td>
+      <td>${tBadge}</td><td>${sBadge}</td><td>${overall}</td>
+    </tr>`;
+  }).join("");
+}
+$("att-apply").onclick = loadAttendance;
+
+/* ────── 레벨테스트 ────── */
+async function loadLeveltest(){
+  const{data:slots}=await sb.from("leveltest_slots")
+    .select("id,start_at,duration_min,status,manager_id")
+    .order("start_at",{ascending:true}).limit(80);
+  const{data:bookings}=await sb.from("leveltest_bookings")
+    .select("id,slot_id,start_at,zoom_join_url,level_result,student_id,profiles(full_name,email)");
+  const bkBySlot = {}; (bookings||[]).forEach(b=>bkBySlot[b.slot_id]=b);
+
+  const box = $("lt-list");
+  if(!slots || slots.length===0){ box.innerHTML = `<div class="empty">${t("waiting")}</div>`; return; }
+
+  box.innerHTML = slots.map(s=>{
+    const bk = bkBySlot[s.id];
+    const isBooked = !!bk;
+    const stuName = bk ? (bk.profiles ? (bk.profiles.full_name||bk.profiles.email) : t("student")) : null;
+    return `<div class="lt-slot ${isBooked?'booked':''}">
+      <div>
+        <div class="when">${fmtTime(s.start_at)} · ${dayHeader(s.start_at)}</div>
+        <div class="meta">${s.duration_min} min · ${isBooked ? `👤 ${stuName}` : `<span class="badge b-on_time">${t("lt_open")}</span>`}${bk && bk.level_result ? ` · <b>Lv. ${bk.level_result}</b>` : ""}</div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        ${bk && bk.zoom_join_url ? `<a href="${bk.zoom_join_url}" target="_blank" class="btn btn-sm" style="text-decoration:none;background:var(--ink)">🎥 ${t("view_zoom")}</a>` : ""}
+        ${bk ? `<button class="btn btn-sm" data-bk="${bk.id}" data-sid="${bk.student_id}" data-stu="${stuName.replace(/"/g,'')}">${t("set_level")}</button>` : ""}
+      </div>
+    </div>`;
+  }).join("");
+
+  box.querySelectorAll("button[data-bk]").forEach(btn=>{
+    btn.onclick = ()=> openLevel(btn.dataset);
+  });
+}
+
+$("lt-add").onclick = async ()=>{
+  const when = $("lt-when").value;
+  const dur = Number($("lt-dur").value) || 20;
+  const msg = $("lt-msg");
+  if(!when){ msg.textContent = t("err_lt"); msg.style.color = "#d4512c"; return; }
+  const{error}=await sb.from("leveltest_slots").insert({
+    manager_id: USER.id,
+    start_at: new Date(when).toISOString(),
+    duration_min: dur,
+    status: "open",
+  });
+  if(error){ msg.textContent = error.message; msg.style.color = "#d4512c"; return; }
+  msg.textContent = t("success_lt"); msg.style.color = "var(--teal)";
+  $("lt-when").value = "";
+  loadLeveltest();
+};
+
+let lvCtx = null;
+function openLevel(ds){
+  lvCtx = { bk: Number(ds.bk), sid: ds.sid, stu: ds.stu };
+  $("lv-target").textContent = ds.stu;
+  $("lv-result").value = "B1";
+  $("lv-msg").textContent = "";
+  $("lv-modal").classList.add("on");
+}
+$("lv-cancel").onclick = ()=> $("lv-modal").classList.remove("on");
+$("lv-submit").onclick = async ()=>{
+  if(!lvCtx) return;
+  $("lv-submit").disabled = true;
+  const result = $("lv-result").value;
+  // leveltest_bookings 결과 + 학생 프로필도 업데이트
+  const{error:e1}=await sb.from("leveltest_bookings").update({ level_result: result }).eq("id", lvCtx.bk);
+  if(e1){ $("lv-msg").textContent = e1.message; $("lv-msg").style.color = "#d4512c"; $("lv-submit").disabled = false; return; }
+  await sb.from("profiles").update({ level_test_done: true, level_result: result }).eq("id", lvCtx.sid);
+  $("lv-msg").textContent = t("success_lv"); $("lv-msg").style.color = "var(--teal)";
+  setTimeout(()=>{ $("lv-modal").classList.remove("on"); $("lv-submit").disabled = false; loadLeveltest(); }, 1100);
+};
+
+/* ────── 수강생 명부 ────── */
+async function loadRoster(){
+  const{data:enrollments}=await sb.from("enrollments")
+    .select("id,months,student_id,teacher_id,status,profiles(full_name,email,level_test_done,level_result),teachers(display_name)")
+    .in("status",["active","completed"]);
+  // 학생 단위로 그룹핑
+  const byStudent = {};
+  (enrollments||[]).forEach(e=>{
+    if(!byStudent[e.student_id]) byStudent[e.student_id]={
+      student_id: e.student_id,
+      name: e.profiles?(e.profiles.full_name||e.profiles.email):"–",
+      email: e.profiles?.email||"",
+      level_done: e.profiles?.level_test_done,
+      level: e.profiles?.level_result,
+      teachers: new Set(),
+      months: 0,
+      enrollments: [],
+    };
+    byStudent[e.student_id].teachers.add(e.teachers?e.teachers.display_name:"");
+    byStudent[e.student_id].months += e.months;
+    byStudent[e.student_id].enrollments.push(e.id);
+  });
+  const students = Object.values(byStudent);
+  const tbody = $("roster-table").querySelector("tbody");
+  if(students.length===0){ tbody.innerHTML = `<tr><td colspan="7" class="empty">${t("no_students")}</td></tr>`; return; }
+
+  // bookings, feedback 한 번에
+  const sids = students.map(s=>s.student_id);
+  const{data:bks}=await sb.from("bookings")
+    .select("id,start_at,is_cancelled,teacher_status,student_status,student_id")
+    .in("student_id", sids);
+  const bkBy = {}; (bks||[]).forEach(b=>{ (bkBy[b.student_id]||(bkBy[b.student_id]=[])).push(b); });
+
+  const{data:fbs}=await sb.from("student_feedback")
+    .select("student_id,rating").in("student_id", sids);
+  const ratBy = {}; (fbs||[]).forEach(f=>{
+    if(!ratBy[f.student_id]) ratBy[f.student_id]={sum:0,n:0};
+    ratBy[f.student_id].sum += f.rating; ratBy[f.student_id].n += 1;
+  });
+
+  tbody.innerHTML = students.map(s=>{
+    const sbks = bkBy[s.student_id] || [];
+    const total = sbks.length;
+    const past = sbks.filter(b=> new Date(b.start_at).getTime() < Date.now());
+    const cancelled = past.filter(b=>b.is_cancelled).length;
+    const attended = past.length - cancelled;
+    const progress = total ? Math.round(past.length/total*100) : 0;
+    const att = past.length ? Math.round(attended/past.length*100) : 0;
+    const teachersList = [...s.teachers].filter(x=>x).join(", ");
+    const r = ratBy[s.student_id];
+    const ratingHtml = r ? `<span class="star">★</span> ${(r.sum/r.n).toFixed(1)} <span class="meta" style="color:var(--muted);font-size:.78rem">(${r.n})</span>` : `<span class="meta" style="color:var(--muted);font-size:.78rem">–</span>`;
+    const levelHtml = s.level_done && s.level ? `<b>${s.level}</b>` : `<span class="meta" style="color:var(--muted);font-size:.78rem">${t("not_set")}</span>`;
+    return `<tr>
+      <td><b>${s.name}</b><br><span class="meta" style="font-size:.75rem;color:var(--muted)">${s.email}</span></td>
+      <td>${teachersList}</td>
+      <td><b>${s.months}</b></td>
+      <td><span class="rate-bar"><span class="rate-bar-fill" style="width:${progress}%"></span></span> ${progress}%</td>
+      <td>${att}%</td>
+      <td>${levelHtml}</td>
+      <td>${ratingHtml}</td>
+    </tr>`;
+  }).join("");
+}
+
 gate();
 </script>
 </body>
