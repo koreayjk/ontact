@@ -10,8 +10,7 @@
   *{margin:0;padding:0;box-sizing:border-box}
   body{font-family:Pretendard,sans-serif;background:var(--paper);color:var(--ink);line-height:1.5}
   header{background:var(--ink);color:#fff;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
-  header b{font-size:1.15rem}
-  header .who{font-size:.85rem;opacity:.8}
+  header b{font-size:1.15rem}.who{font-size:.85rem;opacity:.8}
   header a{color:#fff;font-size:.85rem;opacity:.8;text-decoration:none;margin-left:14px}
   .wrap{max-width:1200px;margin:0 auto;padding:24px}
   .gate{max-width:420px;margin:80px auto;background:#fff;border:1px solid var(--line);border-radius:16px;padding:36px;text-align:center}
@@ -22,39 +21,33 @@
   .tabs button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
   .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
   .stat{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px}
-  .stat .n{font-size:1.9rem;font-weight:800;color:var(--coral)}
-  .stat .l{font-size:.82rem;color:var(--muted);margin-top:2px}
+  .stat .n{font-size:1.9rem;font-weight:800;color:var(--coral)}.stat .l{font-size:.82rem;color:var(--muted);margin-top:2px}
   .panel{background:#fff;border:1px solid var(--line);border-radius:16px;padding:22px;margin-bottom:20px;display:none}
-  .panel.on{display:block}
-  .panel h2{font-size:1.15rem;margin-bottom:14px}
+  .panel.on{display:block}.panel h2{font-size:1.15rem;margin-bottom:6px}
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:18px;margin-top:18px}
   table{width:100%;border-collapse:collapse;font-size:.88rem}
   th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
-  th{font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+  th{font-size:.78rem;color:var(--muted);text-transform:uppercase}
   .badge{font-size:.72rem;font-weight:700;padding:.2em .6em;border-radius:999px;white-space:nowrap}
   .b-reserved{background:#e7f1f0;color:var(--teal)}.b-completed{background:#e6efe6;color:#2e7d32}
   .b-cancelled{background:#f0ede9;color:var(--muted)}.b-no_show{background:#fde7e7;color:#c0392b}
   .b-unpaid{background:#fdeee7;color:#d4512c}.b-paid{background:#e6efe6;color:#2e7d32}.b-free{background:#eef0f2;color:var(--muted)}
   .b-late{background:#fdf2e0;color:var(--gold)}.b-on_time{background:#e6efe6;color:#2e7d32}
-  .muted{color:var(--muted);font-size:.85rem}
-  .zoom-link{color:var(--coral);text-decoration:none;font-size:.82rem}
+  .b-yes{background:#e6efe6;color:#2e7d32}.b-no{background:#fdeee7;color:#d4512c}
+  .muted{color:var(--muted);font-size:.85rem}.zoom-link{color:var(--coral);text-decoration:none;font-size:.82rem}
   .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
-  .form-row.full{grid-template-columns:1fr}
+  .form-row.full{grid-template-columns:1fr}.form-row.three{grid-template-columns:1fr 1fr 1fr}
   label{font-size:.78rem;font-weight:700;color:var(--muted);display:block;margin-bottom:4px}
-  input,select,textarea{width:100%;padding:.7em .9em;border:1.5px solid var(--line);border-radius:9px;font-family:inherit;font-size:.9rem}
+  input,select{width:100%;padding:.7em .9em;border:1.5px solid var(--line);border-radius:9px;font-family:inherit;font-size:.9rem}
   .btn{padding:.7em 1.4em;border:none;border-radius:999px;background:var(--coral);color:#fff;font-weight:700;cursor:pointer;font-size:.9rem}
-  .btn-sm{padding:.4em .9em;font-size:.8rem;background:var(--ink)}
-  .msg{font-size:.85rem;margin-top:10px}
-  .sub{font-size:.82rem;color:var(--muted);margin-bottom:14px}
-  @media(max-width:760px){.stats{grid-template-columns:1fr 1fr}.form-row{grid-template-columns:1fr}table{font-size:.8rem}th,td{padding:8px 6px}}
+  .msg{font-size:.85rem;margin-top:10px}.sub{font-size:.82rem;color:var(--muted);margin-bottom:14px}
+  .note{background:#fef6ef;border:1px solid #f3d9c7;border-radius:10px;padding:10px 14px;font-size:.82rem;color:#9a5b3b;margin-bottom:14px}
+  @media(max-width:760px){.stats{grid-template-columns:1fr 1fr}.form-row,.form-row.three{grid-template-columns:1fr}th,td{padding:8px 6px}}
 </style>
 </head>
 <body>
-<header>
-  <b>🛠 온택 관리자</b>
-  <div><span class="who" id="who"></span><a href="#" id="logout">로그아웃</a></div>
-</header>
+<header><b>🛠 온택 관리자</b><div><span class="who" id="who"></span><a href="#" id="logout">로그아웃</a></div></header>
 
-<!-- 로그인 게이트 -->
 <div id="gate" class="gate">
   <h2 style="margin-bottom:6px">관리자 로그인</h2>
   <p class="muted" style="margin-bottom:14px">관리자 계정으로만 접근할 수 있습니다.</p>
@@ -64,7 +57,6 @@
   <div class="msg" id="g-msg"></div>
 </div>
 
-<!-- 대시보드 본체 -->
 <div id="app" class="wrap" style="display:none">
   <div class="stats">
     <div class="stat"><div class="n" id="s-book">–</div><div class="l">전체 예약</div></div>
@@ -72,15 +64,12 @@
     <div class="stat"><div class="n" id="s-teacher">–</div><div class="l">강사</div></div>
     <div class="stat"><div class="n" id="s-student">–</div><div class="l">학생(회원)</div></div>
   </div>
-
   <div class="tabs">
     <button class="on" data-tab="bookings">예약 현황</button>
     <button data-tab="teachers">강사 관리</button>
-    <button data-tab="slots">시간 등록</button>
     <button data-tab="members">회원 목록</button>
   </div>
 
-  <!-- 예약 현황 -->
   <div class="panel on" id="p-bookings">
     <h2>전체 예약 현황</h2>
     <div class="sub">출결은 줌 연동(Webhook) 후 자동 기록됩니다.</div>
@@ -89,40 +78,51 @@
     </thead><tbody></tbody></table></div>
   </div>
 
-  <!-- 강사 관리 -->
   <div class="panel" id="p-teachers">
-    <h2>강사 관리 · 줌 키 입력</h2>
-    <div class="sub">강사별 줌 키를 입력하면 그 강사 계정으로 수업이 생성됩니다. (키 없으면 공용 계정으로 대체)</div>
+    <h2>강사 관리</h2>
+    <div class="sub">수업은 매주 <b>월·화·목·금 20분</b> 고정. 강사는 가능한 <b>시간 범위</b>만 정하면 됩니다.</div>
     <div style="overflow-x:auto"><table id="t-teachers"><thead>
-      <tr><th>강사</th><th>전문분야</th><th>줌 키</th><th></th></tr>
+      <tr><th>강사</th><th>전문분야</th><th>가능시간</th><th>줌키</th><th>활성</th></tr>
     </thead><tbody></tbody></table></div>
 
-    <div style="margin-top:22px;padding-top:20px;border-top:1px solid var(--line)">
-      <h2 style="font-size:1rem">줌 키 입력 / 수정</h2>
-      <div class="form-row full"><div><label>강사 선택</label><select id="z-teacher"></select></div></div>
+    <div class="card">
+      <h2 style="font-size:1rem;margin-bottom:4px">➕ 강사 추가</h2>
+      <p class="note">먼저 그 사람이 사이트에서 <b>회원가입</b>을 해야 합니다. 그 회원을 골라 강사로 지정하세요.</p>
       <div class="form-row">
-        <div><label>Account ID</label><input id="z-account"></div>
-        <div><label>Client ID</label><input id="z-client"></div>
+        <div><label>회원 선택 (학생 중)</label><select id="add-member"></select></div>
+        <div><label>표시 이름</label><input id="add-name" placeholder="예: Tr. Grace"></div>
       </div>
+      <div class="form-row">
+        <div><label>전문분야</label><input id="add-spec" placeholder="회화 · 비즈니스"></div>
+        <div><label>소개(선택)</label><input id="add-intro" placeholder="밝고 친근한 회화 전문"></div>
+      </div>
+      <button class="btn" id="add-btn">강사로 추가</button>
+      <div class="msg" id="add-msg"></div>
+    </div>
+
+    <div class="card">
+      <h2 style="font-size:1rem;margin-bottom:4px">🕒 가능 시간 범위</h2>
+      <p class="sub">학생은 이 범위 안에서 20분 단위 시간을 고릅니다. (월·화·목·금 동일)</p>
+      <div class="form-row three">
+        <div><label>강사</label><select id="hr-teacher"></select></div>
+        <div><label>시작</label><input id="hr-start" type="time" value="19:00"></div>
+        <div><label>종료</label><input id="hr-end" type="time" value="21:00"></div>
+      </div>
+      <button class="btn" id="hr-save">시간 범위 저장</button>
+      <div class="msg" id="hr-msg"></div>
+    </div>
+
+    <div class="card">
+      <h2 style="font-size:1rem;margin-bottom:4px">🎥 줌 키 입력</h2>
+      <p class="sub">강사 줌 키를 넣으면 그 계정으로 수업 생성. (미입력 시 공용 계정)</p>
+      <div class="form-row full"><div><label>강사</label><select id="z-teacher"></select></div></div>
+      <div class="form-row"><div><label>Account ID</label><input id="z-account"></div><div><label>Client ID</label><input id="z-client"></div></div>
       <div class="form-row full"><div><label>Client Secret</label><input id="z-secret"></div></div>
       <button class="btn" id="z-save">줌 키 저장</button>
       <div class="msg" id="z-msg"></div>
     </div>
   </div>
 
-  <!-- 시간 등록 -->
-  <div class="panel" id="p-slots">
-    <h2>예약 가능 시간 등록</h2>
-    <div class="sub">강사의 수업 가능 시간을 추가합니다.</div>
-    <div class="form-row">
-      <div><label>강사</label><select id="sl-teacher"></select></div>
-      <div><label>날짜·시간</label><input id="sl-when" type="datetime-local"></div>
-    </div>
-    <button class="btn" id="sl-add">시간 추가</button>
-    <div class="msg" id="sl-msg"></div>
-  </div>
-
-  <!-- 회원 목록 -->
   <div class="panel" id="p-members">
     <h2>회원 목록</h2>
     <div style="overflow-x:auto"><table id="t-members"><thead>
@@ -133,123 +133,103 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-const SUPABASE_URL = "https://nhydhyolgrhsykdcqfzb.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5oeWRoeW9sZ3Joc3lrZGNxZnpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MTk1OTAsImV4cCI6MjA5NTk5NTU5MH0.s3qPFFN-4zMLAt-dtkOwzakCj-pkglKgbhyUR9uu4xs";
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-const $ = (id) => document.getElementById(id);
-const stLabel = {reserved:"예약됨",completed:"수업완료",cancelled:"취소됨",no_show:"노쇼"};
-const payLabel = {unpaid:"미결제",paid:"결제완료",free:"무료"};
-const tStatusLabel = {on_time:"정시",late:"지각",no_show:"노쇼"};
-
+const SUPABASE_URL="https://nhydhyolgrhsykdcqfzb.supabase.co";
+const SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5oeWRoeW9sZ3Joc3lrZGNxZnpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MTk1OTAsImV4cCI6MjA5NTk5NTU5MH0.s3qPFFN-4zMLAt-dtkOwzakCj-pkglKgbhyUR9uu4xs";
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+const $=(id)=>document.getElementById(id);
+const stLabel={reserved:"예약됨",completed:"수업완료",cancelled:"취소됨",no_show:"노쇼"};
+const payLabel={unpaid:"미결제",paid:"결제완료",free:"무료"};
+const tStatusLabel={on_time:"정시",late:"지각",no_show:"노쇼"};
 function fmt(iso){const d=new Date(iso);const p=n=>String(n).padStart(2,"0");const wd=["일","월","화","수","목","금","토"][d.getDay()];return `${d.getMonth()+1}/${d.getDate()}(${wd}) ${p(d.getHours())}:${p(d.getMinutes())}`;}
+let MEMBERS=[],TEACHERS=[];
 
-/* ---------- 로그인 / 관리자 확인 ---------- */
 async function checkAdmin(){
-  const { data:{ user } } = await sb.auth.getUser();
-  if(!user){ showGate(); return; }
-  const { data:profile } = await sb.from("profiles").select("role, full_name, email").eq("id", user.id).single();
-  if(!profile || profile.role !== "admin"){
-    $("g-msg").textContent = "관리자 권한이 없는 계정입니다.";
-    $("g-msg").style.color = "#d4512c";
-    await sb.auth.signOut(); showGate(); return;
-  }
-  $("who").textContent = (profile.full_name || profile.email) + " (관리자)";
-  $("gate").style.display="none"; $("app").style.display="block";
-  loadAll();
+  const {data:{user}}=await sb.auth.getUser();
+  if(!user){showGate();return;}
+  const {data:profile}=await sb.from("profiles").select("role,full_name,email").eq("id",user.id).single();
+  if(!profile||profile.role!=="admin"){$("g-msg").textContent="관리자 권한이 없는 계정입니다.";$("g-msg").style.color="#d4512c";await sb.auth.signOut();showGate();return;}
+  $("who").textContent=(profile.full_name||profile.email)+" (관리자)";
+  $("gate").style.display="none";$("app").style.display="block";loadAll();
 }
-function showGate(){ $("gate").style.display="block"; $("app").style.display="none"; }
+function showGate(){$("gate").style.display="block";$("app").style.display="none";}
+$("g-btn").onclick=async()=>{const{error}=await sb.auth.signInWithPassword({email:$("g-email").value.trim(),password:$("g-pw").value});if(error){$("g-msg").textContent="로그인 실패: "+error.message;$("g-msg").style.color="#d4512c";return;}checkAdmin();};
+$("logout").onclick=async(e)=>{e.preventDefault();await sb.auth.signOut();location.reload();};
+document.querySelectorAll(".tabs button").forEach(b=>{b.onclick=()=>{document.querySelectorAll(".tabs button").forEach(x=>x.classList.remove("on"));document.querySelectorAll(".panel").forEach(x=>x.classList.remove("on"));b.classList.add("on");$("p-"+b.dataset.tab).classList.add("on");};});
 
-$("g-btn").onclick = async () => {
-  const { error } = await sb.auth.signInWithPassword({ email:$("g-email").value.trim(), password:$("g-pw").value });
-  if(error){ $("g-msg").textContent="로그인 실패: "+error.message; $("g-msg").style.color="#d4512c"; return; }
-  checkAdmin();
-};
-$("logout").onclick = async (e)=>{ e.preventDefault(); await sb.auth.signOut(); location.reload(); };
-
-/* ---------- 탭 ---------- */
-document.querySelectorAll(".tabs button").forEach(b=>{
-  b.onclick=()=>{
-    document.querySelectorAll(".tabs button").forEach(x=>x.classList.remove("on"));
-    document.querySelectorAll(".panel").forEach(x=>x.classList.remove("on"));
-    b.classList.add("on"); $("p-"+b.dataset.tab).classList.add("on");
-  };
-});
-
-/* ---------- 데이터 로드 ---------- */
-async function loadAll(){ loadBookings(); loadTeachers(); loadMembers(); }
+async function loadAll(){await loadMembers();await loadTeachers();await loadBookings();}
 
 async function loadBookings(){
-  const { data } = await sb.from("bookings")
-    .select("start_at,status,payment_status,teacher_status,teacher_late_min,zoom_join_url,teachers(display_name),profiles(full_name,email)")
-    .order("start_at",{ascending:false});
+  const{data}=await sb.from("bookings").select("start_at,status,payment_status,teacher_status,teacher_late_min,zoom_join_url,teachers(display_name),profiles(full_name,email)").order("start_at",{ascending:false});
   const rows=(data||[]).map(b=>{
     const stu=b.profiles?(b.profiles.full_name||b.profiles.email):"–";
     const tch=b.teachers?b.teachers.display_name:"–";
     const tst=b.teacher_status?`<span class="badge b-${b.teacher_status}">${tStatusLabel[b.teacher_status]}${b.teacher_late_min?` ${b.teacher_late_min}분`:""}</span>`:'<span class="muted">–</span>';
     const zoom=b.zoom_join_url?`<a class="zoom-link" href="${b.zoom_join_url}" target="_blank">입장</a>`:'<span class="muted">–</span>';
-    return `<tr><td>${fmt(b.start_at)}</td><td>${stu}</td><td>${tch}</td>
-      <td><span class="badge b-${b.status}">${stLabel[b.status]||b.status}</span></td>
-      <td><span class="badge b-${b.payment_status}">${payLabel[b.payment_status]||b.payment_status}</span></td>
-      <td>${tst}</td><td>${zoom}</td></tr>`;
+    return `<tr><td>${fmt(b.start_at)}</td><td>${stu}</td><td>${tch}</td><td><span class="badge b-${b.status}">${stLabel[b.status]||b.status}</span></td><td><span class="badge b-${b.payment_status}">${payLabel[b.payment_status]||b.payment_status}</span></td><td>${tst}</td><td>${zoom}</td></tr>`;
   }).join("");
-  $("t-bookings").querySelector("tbody").innerHTML = rows || `<tr><td colspan="7" class="muted">예약이 없습니다.</td></tr>`;
+  $("t-bookings").querySelector("tbody").innerHTML=rows||`<tr><td colspan="7" class="muted">예약이 없습니다.</td></tr>`;
   $("s-book").textContent=(data||[]).length;
   const today=new Date().toDateString();
   $("s-today").textContent=(data||[]).filter(b=>new Date(b.start_at).toDateString()===today).length;
 }
 
 async function loadTeachers(){
-  const { data:teachers } = await sb.from("teachers").select("id,display_name,specialties,is_active").order("display_name");
-  const { data:zooms } = await sb.from("teacher_zoom").select("teacher_id"); // 키 있는지 여부만 (서버RLS로 값은 안옴)
-  const haveZoom = new Set((zooms||[]).map(z=>z.teacher_id));
-  $("s-teacher").textContent=(teachers||[]).length;
-  const rows=(teachers||[]).map(t=>`<tr>
-    <td><b>${t.display_name}</b></td><td class="muted">${t.specialties||""}</td>
-    <td>${haveZoom.has(t.id)?'<span class="badge b-paid">등록됨</span>':'<span class="badge b-unpaid">미등록(공용 사용)</span>'}</td>
-    <td></td></tr>`).join("");
-  $("t-teachers").querySelector("tbody").innerHTML = rows || `<tr><td colspan="4" class="muted">강사가 없습니다.</td></tr>`;
-  // 셀렉트 채우기
-  const opts=(teachers||[]).map(t=>`<option value="${t.id}">${t.display_name}</option>`).join("");
-  $("z-teacher").innerHTML=opts; $("sl-teacher").innerHTML=opts;
+  const{data:teachers}=await sb.from("teachers").select("id,display_name,specialties,is_active").order("display_name");
+  TEACHERS=teachers||[];
+  const{data:zooms}=await sb.from("teacher_zoom").select("teacher_id");
+  const{data:hours}=await sb.from("teacher_hours").select("teacher_id,start_hm,end_hm");
+  const haveZoom=new Set((zooms||[]).map(z=>z.teacher_id));
+  const hourMap={};(hours||[]).forEach(h=>hourMap[h.teacher_id]=h);
+  $("s-teacher").textContent=TEACHERS.length;
+  $("t-teachers").querySelector("tbody").innerHTML=TEACHERS.map(t=>{
+    const h=hourMap[t.id];
+    return `<tr><td><b>${t.display_name}</b></td><td class="muted">${t.specialties||""}</td><td>${h?`${h.start_hm}~${h.end_hm}`:'<span class="muted">미설정</span>'}</td><td>${haveZoom.has(t.id)?'<span class="badge b-yes">등록</span>':'<span class="badge b-no">미등록</span>'}</td><td>${t.is_active?'<span class="badge b-yes">ON</span>':'<span class="badge b-no">OFF</span>'}</td></tr>`;
+  }).join("")||`<tr><td colspan="5" class="muted">강사가 없습니다.</td></tr>`;
+  const opts=TEACHERS.map(t=>`<option value="${t.id}">${t.display_name}</option>`).join("");
+  $("hr-teacher").innerHTML=opts;$("z-teacher").innerHTML=opts;
 }
 
 async function loadMembers(){
-  const { data } = await sb.from("profiles").select("full_name,email,role,created_at").order("created_at",{ascending:false});
+  const{data}=await sb.from("profiles").select("id,full_name,email,role,created_at").order("created_at",{ascending:false});
+  MEMBERS=data||[];
   const roleLabel={student:"학생",teacher:"강사",admin:"관리자"};
-  $("s-student").textContent=(data||[]).filter(m=>m.role==="student").length;
-  $("t-members").querySelector("tbody").innerHTML=(data||[]).map(m=>`<tr>
-    <td>${m.full_name||"–"}</td><td class="muted">${m.email||""}</td>
-    <td>${roleLabel[m.role]||m.role}</td><td class="muted">${m.created_at?new Date(m.created_at).toLocaleDateString("ko-KR"):""}</td>
-  </tr>`).join("") || `<tr><td colspan="4" class="muted">회원이 없습니다.</td></tr>`;
+  $("s-student").textContent=MEMBERS.filter(m=>m.role==="student").length;
+  $("t-members").querySelector("tbody").innerHTML=MEMBERS.map(m=>`<tr><td>${m.full_name||"–"}</td><td class="muted">${m.email||""}</td><td>${roleLabel[m.role]||m.role}</td><td class="muted">${m.created_at?new Date(m.created_at).toLocaleDateString("ko-KR"):""}</td></tr>`).join("")||`<tr><td colspan="4" class="muted">회원이 없습니다.</td></tr>`;
+  $("add-member").innerHTML=MEMBERS.filter(m=>m.role==="student").map(m=>`<option value="${m.id}">${m.full_name||m.email}</option>`).join("")||`<option value="">(학생 회원 없음)</option>`;
 }
 
-/* ---------- 줌 키 저장 ---------- */
-$("z-save").onclick = async ()=>{
-  const teacher_id=$("z-teacher").value;
-  const account_id=$("z-account").value.trim(), client_id=$("z-client").value.trim(), client_secret=$("z-secret").value.trim();
-  if(!teacher_id||!account_id||!client_id||!client_secret){ zmsg("모든 칸을 입력하세요.",false); return; }
-  const { error } = await sb.from("teacher_zoom").upsert({ teacher_id, account_id, client_id, client_secret });
-  if(error){ zmsg("저장 실패: "+error.message,false); return; }
-  zmsg("저장됐습니다. 이제 이 강사 수업은 본인 계정으로 생성됩니다.",true);
-  $("z-account").value=$("z-client").value=$("z-secret").value="";
-  loadTeachers();
+$("add-btn").onclick=async()=>{
+  const id=$("add-member").value,name=$("add-name").value.trim();
+  if(!id||!name){amsg("회원과 표시 이름을 입력하세요.",false);return;}
+  const{error:e1}=await sb.from("profiles").update({role:"teacher"}).eq("id",id);
+  if(e1){amsg("역할 변경 실패: "+e1.message,false);return;}
+  const{error:e2}=await sb.from("teachers").upsert({id,display_name:name,specialties:$("add-spec").value.trim(),intro:$("add-intro").value.trim(),is_active:true});
+  if(e2){amsg("강사 등록 실패: "+e2.message,false);return;}
+  amsg("강사로 추가됐습니다.",true);$("add-name").value=$("add-spec").value=$("add-intro").value="";
+  await loadMembers();await loadTeachers();
 };
-function zmsg(t,ok){ $("z-msg").textContent=t; $("z-msg").style.color=ok?"#2c7a73":"#d4512c"; }
+function amsg(t,ok){$("add-msg").textContent=t;$("add-msg").style.color=ok?"#2c7a73":"#d4512c";}
 
-/* ---------- 시간 추가 ---------- */
-$("sl-add").onclick = async ()=>{
-  const teacher_id=$("sl-teacher").value, when=$("sl-when").value;
-  if(!teacher_id||!when){ slmsg("강사와 시간을 입력하세요.",false); return; }
-  const { error } = await sb.from("class_slots").insert({ teacher_id, start_at:new Date(when).toISOString(), duration_min:20, status:"open" });
-  if(error){ slmsg("추가 실패: "+error.message,false); return; }
-  slmsg("시간이 추가됐습니다.",true); $("sl-when").value="";
+$("hr-save").onclick=async()=>{
+  const teacher_id=$("hr-teacher").value,start_hm=$("hr-start").value,end_hm=$("hr-end").value;
+  if(!teacher_id||!start_hm||!end_hm){hmsg("강사와 시간을 입력하세요.",false);return;}
+  if(start_hm>=end_hm){hmsg("종료가 시작보다 늦어야 합니다.",false);return;}
+  const{error}=await sb.from("teacher_hours").upsert({teacher_id,start_hm,end_hm,updated_at:new Date().toISOString()});
+  if(error){hmsg("저장 실패: "+error.message,false);return;}
+  hmsg("시간 범위가 저장됐습니다.",true);loadTeachers();
 };
-function slmsg(t,ok){ $("sl-msg").textContent=t; $("sl-msg").style.color=ok?"#2c7a73":"#d4512c"; }
+function hmsg(t,ok){$("hr-msg").textContent=t;$("hr-msg").style.color=ok?"#2c7a73":"#d4512c";}
 
-/* ---------- 시작 ---------- */
+$("z-save").onclick=async()=>{
+  const teacher_id=$("z-teacher").value,account_id=$("z-account").value.trim(),client_id=$("z-client").value.trim(),client_secret=$("z-secret").value.trim();
+  if(!teacher_id||!account_id||!client_id||!client_secret){zmsg("모든 칸을 입력하세요.",false);return;}
+  const{error}=await sb.from("teacher_zoom").upsert({teacher_id,account_id,client_id,client_secret});
+  if(error){zmsg("저장 실패: "+error.message,false);return;}
+  zmsg("줌 키가 저장됐습니다.",true);$("z-account").value=$("z-client").value=$("z-secret").value="";loadTeachers();
+};
+function zmsg(t,ok){$("z-msg").textContent=t;$("z-msg").style.color=ok?"#2c7a73":"#d4512c";}
+
 checkAdmin();
-sb.auth.onAuthStateChange(()=>{});
 </script>
 </body>
 </html>
