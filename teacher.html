@@ -15,45 +15,70 @@
   .lang-tog{display:inline-flex;background:rgba(255,255,255,.12);border-radius:999px;padding:3px;margin-left:10px}
   .lang-tog button{background:transparent;color:#fff;border:none;padding:.3em .7em;border-radius:999px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit}
   .lang-tog button.on{background:#fff;color:var(--ink)}
-  .wrap{max-width:1000px;margin:0 auto;padding:30px 20px}
+  .wrap{max-width:1100px;margin:0 auto;padding:24px 20px}
 
-  .tabs{display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap}
-  .tabs button{padding:.6em 1.2em;border:1px solid var(--line);background:#fff;border-radius:999px;font-weight:600;cursor:pointer;color:var(--muted);font-family:inherit}
+  .tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+  .tabs button{padding:.55em 1.1em;border:1px solid var(--line);background:#fff;border-radius:999px;font-weight:600;cursor:pointer;color:var(--muted);font-family:inherit;font-size:.9rem}
   .tabs button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
-
   .panel{display:none}.panel.on{display:block}
-  .step{background:#fff;border:1px solid var(--line);border-radius:18px;padding:26px;margin-bottom:18px}
-  .step h2{font-size:1.05rem;margin-bottom:4px}
-  .step .sub{font-size:.85rem;color:var(--muted);margin-bottom:18px}
 
-  .cls{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 16px;border:1px solid var(--line);border-radius:12px;margin-bottom:10px;background:#fff;flex-wrap:wrap}
-  .cls.past{opacity:.55}
-  .cls.cancelled{background:#fdeee7;border-color:#f3d9c7}
-  .cls .when{font-weight:700;font-size:.95rem}
-  .cls .who{font-size:.82rem;color:var(--muted);margin-top:2px}
-  .cls .tag{display:inline-block;font-size:.7rem;font-weight:700;padding:.18em .55em;border-radius:999px;margin-left:6px}
-  .tag-cancelled{background:#fdeee7;color:#c0392b}.tag-done{background:#eef0f2;color:var(--muted)}
-  .tag-makeup{background:#e7f1f0;color:var(--teal)}
-  .cls-actions{display:flex;gap:8px;flex-wrap:wrap}
-  .btn-zoom{background:var(--coral);color:#fff;border:none;padding:.55em 1.1em;border-radius:999px;font-weight:700;text-decoration:none;font-size:.85rem;cursor:pointer;font-family:inherit}
-  .btn-zoom.disabled,.btn-zoom:disabled{background:var(--muted);cursor:not-allowed;pointer-events:none;opacity:.6}
-  .btn-mk{background:#fff;color:var(--gold);border:1.5px solid var(--gold);padding:.5em 1em;border-radius:999px;font-weight:700;font-size:.82rem;cursor:pointer;font-family:inherit}
-  .btn-eval{background:#fff;color:var(--coral);border:1.5px solid var(--coral);padding:.5em 1em;border-radius:999px;font-weight:700;font-size:.82rem;cursor:pointer;font-family:inherit}
-  .btn-eval:disabled{opacity:.4;cursor:not-allowed}
-  .day-header{font-size:.88rem;font-weight:700;color:var(--muted);margin:18px 0 8px;padding-left:4px}
+  /* === Next-class hero === */
+  .hero{background:linear-gradient(135deg,#1a3552 0%,#12273d 100%);color:#fff;border-radius:20px;padding:24px 28px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap}
+  .hero .label{font-size:.75rem;opacity:.7;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;font-weight:700}
+  .hero .when{font-size:2rem;font-weight:800;line-height:1.1}
+  .hero .countdown{font-size:.95rem;opacity:.85;margin-top:6px}
+  .hero .stu{font-size:1.05rem;font-weight:600;margin-top:8px}
+  .hero .stu .sm{font-size:.85rem;opacity:.7;margin-left:6px;font-weight:400}
+  .hero .actions{display:flex;gap:8px;flex-wrap:wrap}
+  .hero .btn-host{background:var(--coral);color:#fff;border:none;padding:.95em 1.6em;border-radius:999px;font-weight:800;text-decoration:none;font-size:.95rem;cursor:pointer;font-family:inherit;white-space:nowrap}
+  .hero .btn-host.disabled{background:rgba(255,255,255,.15);color:rgba(255,255,255,.5);cursor:not-allowed;pointer-events:none}
+  .hero.empty{background:#fff;color:var(--muted);border:1px solid var(--line);justify-content:center;padding:32px;font-size:.95rem}
 
-  .abs{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:10px}
-  .abs-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
-  .abs-when{font-weight:700}
-  .abs-reason{background:var(--paper);padding:10px 14px;border-radius:10px;font-size:.9rem;margin-bottom:10px}
-  .abs-btns{display:flex;gap:8px}
-  .btn-approve{background:#2e7d32;color:#fff;border:none;padding:.55em 1.2em;border-radius:999px;font-weight:700;cursor:pointer;font-family:inherit;font-size:.85rem}
-  .btn-reject{background:#fff;color:#c0392b;border:1.5px solid #c0392b;padding:.5em 1.1em;border-radius:999px;font-weight:700;cursor:pointer;font-family:inherit;font-size:.85rem}
+  /* === Stat row === */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
+  .stat{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+  .stat .n{font-size:1.6rem;font-weight:800;color:var(--coral);line-height:1}
+  .stat .l{font-size:.75rem;color:var(--muted);margin-top:4px;font-weight:600}
 
+  /* === Week section === */
+  .week-head{display:flex;align-items:center;justify-content:space-between;margin:18px 4px 10px;gap:10px;flex-wrap:wrap}
+  .week-title{font-size:1rem;font-weight:800}
+  .week-range{font-size:.82rem;color:var(--muted)}
+  .week-stat{font-size:.78rem;color:var(--muted)}
+  .week-stat b{color:var(--ink)}
+
+  /* === Grid === */
+  .grid-wrap{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px;overflow-x:auto}
+  .grid{display:grid;grid-template-columns:60px repeat(4,minmax(110px,1fr));gap:6px;min-width:560px}
+  .grid .col-h{font-size:.78rem;font-weight:700;color:var(--muted);text-align:center;padding:8px 4px;border-bottom:2px solid var(--line)}
+  .grid .col-h .d{font-size:.7rem;display:block;opacity:.7;margin-top:2px}
+  .grid .col-h.today{color:var(--coral)}
+  .grid .col-h.today .d{opacity:1}
+  .grid .row-h{font-size:.75rem;color:var(--muted);font-weight:600;text-align:right;padding:6px 8px 6px 0;border-right:1px solid var(--line);align-self:center}
+  .cell{min-height:34px;border-radius:8px;padding:6px 8px;font-size:.78rem;cursor:pointer;background:var(--paper);border:1px solid transparent;transition:.1s}
+  .cell:hover{border-color:var(--coral)}
+  .cell.empty{background:#fafafa;cursor:default}
+  .cell.empty:hover{border-color:transparent}
+  .cell.has{background:#fef6ef;color:var(--ink);font-weight:600;border-color:#fbe6d2}
+  .cell.has.past{opacity:.5}
+  .cell.has.cancelled{background:#fdeee7;text-decoration:line-through;color:#9a6b15}
+  .cell.has.makeup{background:#e7f1f0;border-color:#bcd9d4;color:var(--teal)}
+  .cell.has.now{background:var(--coral);color:#fff;border-color:var(--coral);font-weight:800;animation:pulse 1.5s infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(239,106,72,.4)}50%{box-shadow:0 0 0 6px rgba(239,106,72,0)}}
+  .cell .nm{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  details{background:#fff;border:1px solid var(--line);border-radius:16px;padding:0;margin-top:14px;overflow:hidden}
+  details summary{padding:14px 18px;font-weight:700;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;font-size:.95rem}
+  details summary::after{content:"▼";font-size:.7rem;color:var(--muted);transition:.15s}
+  details[open] summary::after{transform:rotate(180deg)}
+  details .grid-wrap{border:none;border-top:1px solid var(--line);border-radius:0}
+
+  /* === Cell detail modal === */
   .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;align-items:center;justify-content:center;padding:20px}
   .modal.on{display:flex}
   .modal-box{background:#fff;border-radius:18px;padding:26px;max-width:460px;width:100%}
-  .modal-box h3{font-size:1.05rem;margin-bottom:8px}
+  .modal-box h3{font-size:1.1rem;margin-bottom:4px}
+  .modal-box .meta{font-size:.85rem;color:var(--muted);margin-bottom:14px}
   label{display:block;font-size:.78rem;font-weight:700;color:var(--muted);margin:14px 0 4px}
   input,select,textarea{width:100%;padding:.7em .9em;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:.9rem;resize:vertical}
   .modal-btns{display:flex;gap:8px;margin-top:14px}
@@ -61,13 +86,39 @@
   .btn{flex:1;padding:.7em;border:none;background:var(--coral);color:#fff;border-radius:999px;font-weight:800;cursor:pointer;font-family:inherit}
   .note{background:#fef6ef;border:1px solid #f3d9c7;border-radius:10px;padding:10px 14px;font-size:.82rem;color:#9a5b3b;margin:10px 0}
   .msg{font-size:.85rem;margin-top:10px;min-height:1.2em}
+  .row-btns{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+  .btn-host-modal{flex:1;background:var(--coral);color:#fff;border:none;padding:.8em;border-radius:999px;font-weight:800;text-decoration:none;text-align:center;font-family:inherit}
+  .btn-host-modal.disabled{background:var(--muted);pointer-events:none;opacity:.6}
+  .btn-mk-modal{flex:1;background:#fff;color:var(--gold);border:1.5px solid var(--gold);padding:.75em;border-radius:999px;font-weight:700;cursor:pointer;font-family:inherit}
+  .step{background:#fff;border:1px solid var(--line);border-radius:18px;padding:22px;margin-bottom:14px}
+  .step h2{font-size:1.05rem;margin-bottom:4px}
+  .step .sub{font-size:.85rem;color:var(--muted);margin-bottom:14px}
 
-  .ev-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
+  /* === Absences / makeup / eval cards === */
+  .abs{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:8px}
+  .abs-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+  .abs-when{font-weight:700;font-size:.92rem}
+  .abs-reason{background:var(--paper);padding:10px 14px;border-radius:10px;font-size:.88rem;margin-bottom:8px}
+  .abs-btns{display:flex;gap:8px}
+  .btn-approve{background:#2e7d32;color:#fff;border:none;padding:.5em 1.1em;border-radius:999px;font-weight:700;cursor:pointer;font-family:inherit;font-size:.82rem}
+  .btn-reject{background:#fff;color:#c0392b;border:1.5px solid #c0392b;padding:.45em 1em;border-radius:999px;font-weight:700;cursor:pointer;font-family:inherit;font-size:.82rem}
+  .tag{display:inline-block;font-size:.7rem;font-weight:700;padding:.18em .55em;border-radius:999px;margin-left:6px}
+  .tag-cancelled{background:#fdeee7;color:#c0392b}.tag-done{background:#eef0f2;color:var(--muted)}
+  .tag-makeup{background:#e7f1f0;color:var(--teal)}
+
+  .ev-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
   .ev-card.done{background:var(--paper);opacity:.85}
   .ev-info b{font-size:.95rem}
   .ev-info .sub{display:block;font-size:.8rem;color:var(--muted);margin-top:2px}
-  .ev-week-banner{background:#fef6ef;border:1px solid #f3d9c7;color:#9a5b3b;border-radius:12px;padding:14px 16px;margin-bottom:14px;font-size:.9rem}
-  .empty{text-align:center;color:var(--muted);padding:30px;font-size:.9rem}
+  .ev-week-banner{background:#fef6ef;border:1px solid #f3d9c7;color:#9a5b3b;border-radius:12px;padding:12px 14px;margin-bottom:12px;font-size:.88rem}
+  .btn-eval{background:#fff;color:var(--coral);border:1.5px solid var(--coral);padding:.5em 1em;border-radius:999px;font-weight:700;font-size:.82rem;cursor:pointer;font-family:inherit}
+  .btn-eval:disabled{opacity:.4;cursor:not-allowed}
+  .empty{text-align:center;color:var(--muted);padding:24px;font-size:.88rem}
+
+  @media(max-width:680px){
+    .stats{grid-template-columns:1fr 1fr}
+    .hero .when{font-size:1.5rem}
+  }
 </style>
 </head>
 <body>
@@ -75,38 +126,59 @@
   <b>🧑‍🏫 <span data-t="title">Teacher Dashboard</span></b>
   <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
     <span class="who" id="who"></span>
-    <div class="lang-tog">
-      <button id="lang-en" class="on">EN</button>
-      <button id="lang-kr">KR</button>
-    </div>
+    <div class="lang-tog"><button id="lang-en" class="on">EN</button><button id="lang-kr">KR</button></div>
     <a href="#" id="logout" data-t="logout">Logout</a>
   </div>
 </header>
 
 <div class="wrap">
   <div class="tabs">
-    <button class="on" data-tab="classes" data-t="tab_classes">📋 My Classes</button>
-    <button data-tab="abs" data-t="tab_abs">📝 Absence Requests <span id="abs-badge" style="display:none;background:#c0392b;color:#fff;padding:0 6px;border-radius:999px;font-size:.7rem;margin-left:4px"></span></button>
-    <button data-tab="makeup" data-t="tab_makeup">🔁 Makeup Records</button>
-    <button data-tab="eval" data-t="tab_eval">⭐ Student Reviews</button>
+    <button class="on" data-tab="schedule" data-t="tab_schedule">📅 Schedule</button>
+    <button data-tab="abs" data-t="tab_abs">📝 Absences <span id="abs-badge" style="display:none;background:#c0392b;color:#fff;padding:0 6px;border-radius:999px;font-size:.7rem;margin-left:4px"></span></button>
+    <button data-tab="makeup" data-t="tab_makeup">🔁 Makeup</button>
+    <button data-tab="eval" data-t="tab_eval">⭐ Reviews</button>
   </div>
 
-  <div class="panel on" id="p-classes">
-    <div class="step">
-      <h2 data-t="cls_h">Upcoming Classes</h2>
-      <p class="sub"><span data-t="cls_sub1">Times shown in your timezone</span> (<b id="my-tz">–</b>). <span data-t="cls_sub2">Use "Schedule Makeup" to move a class you cannot teach.</span></p>
-      <div id="my-classes"><div class="empty" data-t="loading">Loading…</div></div>
+  <!-- ─── Schedule tab ─── -->
+  <div class="panel on" id="p-schedule">
+    <div id="hero" class="hero empty"><span data-t="loading">Loading…</span></div>
+
+    <div class="stats">
+      <div class="stat"><div class="n" id="s-today-left">–</div><div class="l" data-t="s_today_left">Today remaining</div></div>
+      <div class="stat"><div class="n" id="s-today-total">–</div><div class="l" data-t="s_today_total">Today total</div></div>
+      <div class="stat"><div class="n" id="s-week">–</div><div class="l" data-t="s_week">This week</div></div>
+      <div class="stat"><div class="n" id="s-students">–</div><div class="l" data-t="s_students">Students</div></div>
     </div>
+
+    <div class="week-head">
+      <div><span class="week-title" data-t="this_week">This week</span> <span class="week-range" id="w0-range"></span></div>
+      <div class="week-stat" id="w0-stat"></div>
+    </div>
+    <div class="grid-wrap"><div class="grid" id="grid-0"></div></div>
+
+    <details>
+      <summary><span data-t="next_week">Next week</span> <span class="week-range" id="w1-range" style="font-weight:500;margin-left:8px"></span></summary>
+      <div class="grid-wrap"><div class="grid" id="grid-1"></div></div>
+    </details>
+
+    <details>
+      <summary><span data-t="week2">Week after next</span> <span class="week-range" id="w2-range" style="font-weight:500;margin-left:8px"></span></summary>
+      <div class="grid-wrap"><div class="grid" id="grid-2"></div></div>
+    </details>
+
+    <p class="sub" style="margin-top:14px;text-align:center;font-size:.78rem"><span data-t="tz_note">Times shown in your timezone</span>: <b id="my-tz">–</b></p>
   </div>
 
+  <!-- ─── Absences ─── -->
   <div class="panel" id="p-abs">
     <div class="step">
       <h2 data-t="abs_h">Student Absence Requests</h2>
-      <p class="sub" data-t="abs_sub">Review and decide. Approving cancels the class and disables Zoom entry.</p>
+      <p class="sub" data-t="abs_sub">Review and decide. Approving cancels the class and disables Zoom.</p>
       <div id="abs-list"><div class="empty" data-t="loading">Loading…</div></div>
     </div>
   </div>
 
+  <!-- ─── Makeup history ─── -->
   <div class="panel" id="p-makeup">
     <div class="step">
       <h2 data-t="mk_h">Makeup History</h2>
@@ -115,6 +187,7 @@
     </div>
   </div>
 
+  <!-- ─── Reviews ─── -->
   <div class="panel" id="p-eval">
     <div class="step">
       <h2 data-t="ev_h">Weekly Student Reviews</h2>
@@ -125,13 +198,23 @@
   </div>
 </div>
 
+<!-- Cell detail modal -->
+<div id="cell-modal" class="modal">
+  <div class="modal-box">
+    <h3 id="c-title">–</h3>
+    <div class="meta" id="c-meta">–</div>
+    <div id="c-tags" style="margin-bottom:8px"></div>
+    <div class="row-btns" id="c-actions"></div>
+  </div>
+</div>
+
 <!-- Makeup modal -->
 <div id="mk-modal" class="modal">
   <div class="modal-box">
     <h3 data-t="mk_mod_h">🔁 Schedule Makeup</h3>
-    <p class="sub" id="mk-target">–</p>
-    <p class="note" data-t="mk_mod_note">This will cancel the class and create a new one at the time you choose. The student will receive the new Zoom link automatically.</p>
-    <label data-t="mk_when_l">New date & time (in your timezone)</label>
+    <p class="meta" id="mk-target">–</p>
+    <p class="note" data-t="mk_mod_note">This will cancel the class and create a new one. The student will receive the new Zoom link automatically.</p>
+    <label data-t="mk_when_l">New date & time (your timezone)</label>
     <input id="mk-when" type="datetime-local">
     <label data-t="mk_reason_l">Reason (optional)</label>
     <textarea id="mk-reason" rows="3" data-t-ph="mk_reason_ph" placeholder="e.g., personal emergency"></textarea>
@@ -147,7 +230,7 @@
 <div id="ev-modal" class="modal">
   <div class="modal-box">
     <h3 data-t="ev_mod_h">⭐ Student Review</h3>
-    <p class="sub" id="ev-target">–</p>
+    <p class="meta" id="ev-target">–</p>
     <label data-t="rating_l">Rating</label>
     <select id="ev-rating">
       <option value="5">⭐⭐⭐⭐⭐ Excellent</option>
@@ -158,7 +241,7 @@
     </select>
     <label data-t="comment_l">Comment</label>
     <textarea id="ev-comment" rows="4" data-t-ph="ev_comment_ph" placeholder="Progress this week, strengths, areas to improve…"></textarea>
-    <p class="note" data-t="ev_mod_note">You can submit one review per student per week.</p>
+    <p class="note" data-t="ev_mod_note">One review per student per week.</p>
     <div class="modal-btns">
       <button class="btn-ghost" id="ev-cancel" data-t="cancel">Cancel</button>
       <button class="btn" id="ev-submit" data-t="submit">Submit</button>
@@ -174,84 +257,78 @@ const SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 const $=(id)=>document.getElementById(id);
 
-/* ────── i18n ────── */
 const I18N = {
-  en: {
+  en:{
     title:"Teacher Dashboard", logout:"Logout",
-    tab_classes:"📋 My Classes", tab_abs:"📝 Absence Requests", tab_makeup:"🔁 Makeup Records", tab_eval:"⭐ Student Reviews",
-    cls_h:"Upcoming Classes", cls_sub1:"Times shown in your timezone", cls_sub2:"Use \"Schedule Makeup\" to move a class you cannot teach.",
-    abs_h:"Student Absence Requests", abs_sub:"Review and decide. Approving cancels the class and disables Zoom entry.",
+    tab_schedule:"📅 Schedule", tab_abs:"📝 Absences", tab_makeup:"🔁 Makeup", tab_eval:"⭐ Reviews",
+    s_today_left:"Today remaining", s_today_total:"Today total", s_week:"This week", s_students:"Students",
+    this_week:"This week", next_week:"Next week", week2:"Week after next", tz_note:"Times shown in your timezone",
+    loading:"Loading…", no_upcoming:"No upcoming classes.", next_in:"Next class in", next_now:"Class starting now!", next_label:"Next class",
+    no_class_week:"No classes this week.",
+    abs_h:"Student Absence Requests", abs_sub:"Review and decide. Approving cancels the class and disables Zoom.",
     mk_h:"Makeup History", mk_sub:"Classes rescheduled by you.",
     ev_h:"Weekly Student Reviews", ev_sub_b:"Once per week", ev_sub_after:" per student (Wednesday – next Wednesday).",
-    mk_mod_h:"🔁 Schedule Makeup", mk_mod_note:"This will cancel the class and create a new one at the time you choose. The student will receive the new Zoom link automatically.",
-    mk_when_l:"New date & time (in your timezone)", mk_reason_l:"Reason (optional)", mk_reason_ph:"e.g., personal emergency",
-    mk_submit:"Schedule Makeup", cancel:"Cancel",
+    mk_mod_h:"🔁 Schedule Makeup", mk_mod_note:"This will cancel the class and create a new one. The student will receive the new Zoom link automatically.",
+    mk_when_l:"New date & time (your timezone)", mk_reason_l:"Reason (optional)", mk_reason_ph:"e.g., personal emergency",
+    mk_submit:"Schedule Makeup", cancel:"Cancel", submit:"Submit",
     ev_mod_h:"⭐ Student Review", rating_l:"Rating", comment_l:"Comment", ev_comment_ph:"Progress this week, strengths, areas to improve…",
-    ev_mod_note:"You can submit one review per student per week.", submit:"Submit",
-    loading:"Loading…",
-    no_classes:"No upcoming classes.", no_abs:"No absence requests.", no_mk:"No makeup records.", no_students:"No assigned students.",
-    cancelled:"Cancelled", ended:"Ended", makeup_tag:"Makeup", zoom_host:"Start (Host)", zoom_join:"Join", zoom_pending:"Zoom pending",
-    btn_mk:"Schedule Makeup", btn_approve:"Approve", btn_reject:"Reject",
-    pending:"Pending", approved:"Approved (class cancelled)", rejected:"Rejected",
-    student:"Student", confirm_approve:"Approve this absence request? The class will be cancelled.",
-    confirm_reject:"Reject this absence request?",
+    ev_mod_note:"One review per student per week.",
+    student:"Student", no_abs:"No absence requests.", no_mk:"No makeup records.", no_students:"No assigned students.",
+    pending:"Pending", approved:"Approved (cancelled)", rejected:"Rejected",
+    confirm_approve:"Approve this absence? The class will be cancelled.", confirm_reject:"Reject this absence?",
+    btn_approve:"Approve", btn_reject:"Reject",
+    cancelled:"Cancelled", ended:"Ended", makeup_tag:"Makeup", zoom_host:"Start (Host)", zoom_join:"Join", zoom_pending:"Zoom pending", btn_mk:"Schedule Makeup",
+    err_when:"Please pick the new date & time.", success_mk:"✅ Makeup scheduled.", success_review:"✅ Review submitted.", err_dup:"You already reviewed this student this week.",
     review_this_week:"Available this week", review_done:"✅ Reviewed this week", btn_review:"Write Review", btn_done:"Done",
-    week_banner_a:"📅 Week reference date:", week_banner_b:"(Wednesday)", week_banner_c:"Only students you haven't reviewed this week have the button enabled.",
-    err_when:"Please pick the new date & time.", err_dup:"You already reviewed this student this week.",
-    success_mk:"✅ Makeup scheduled. Visible to the student.",
-    success_review:"✅ Review submitted.",
-    orig_label:"Original:", new_label:"Makeup:", reason_label:"Reason:", review_this:"Review for this week",
+    week_banner_a:"📅 Week reference date:", week_banner_b:"(Wed.)", week_banner_c:"Only students you haven't reviewed this week have the button enabled.",
+    review_this:"this week",
+    orig_label:"Original:", new_label:"Makeup:", reason_label:"Reason:",
+    classes:"classes", hrs:"hr", min:"min", min_until:"min until",
   },
-  kr: {
+  kr:{
     title:"강사 대시보드", logout:"로그아웃",
-    tab_classes:"📋 내 수업", tab_abs:"📝 결석계", tab_makeup:"🔁 보강 기록", tab_eval:"⭐ 학생 평가",
-    cls_h:"다가오는 수업", cls_sub1:"시간은 본인 시간대로 표시됩니다", cls_sub2:"\"보강 잡기\"로 못 하는 수업을 다른 시각으로 옮길 수 있습니다.",
-    abs_h:"학생 결석계", abs_sub:"검토 후 승인/거절하세요. 승인 시 수업이 취소되고 줌 입장이 막힙니다.",
+    tab_schedule:"📅 일정", tab_abs:"📝 결석계", tab_makeup:"🔁 보강", tab_eval:"⭐ 평가",
+    s_today_left:"오늘 남은", s_today_total:"오늘 전체", s_week:"이번 주", s_students:"담당 학생",
+    this_week:"이번 주", next_week:"다음 주", week2:"다다음 주", tz_note:"시간은 본인 시간대로 표시됩니다",
+    loading:"불러오는 중…", no_upcoming:"예정된 수업이 없습니다.", next_in:"다음 수업까지", next_now:"지금 시작!", next_label:"다음 수업",
+    no_class_week:"이번 주 수업이 없습니다.",
+    abs_h:"학생 결석계", abs_sub:"검토 후 승인/거절하세요. 승인 시 수업이 취소되고 줌이 막힙니다.",
     mk_h:"보강 기록", mk_sub:"본인이 옮긴 수업의 이력입니다.",
     ev_h:"학생 주간 평가", ev_sub_b:"주 1회", ev_sub_after:" · 학생당 (수요일~다음 수요일 전)",
     mk_mod_h:"🔁 보강 수업 잡기", mk_mod_note:"이 수업을 취소하고 새 시각의 수업을 만듭니다. 학생에게 자동으로 새 줌 링크가 전달됩니다.",
-    mk_when_l:"새 일시 (본인 시간대 기준)", mk_reason_l:"사유 (선택)", mk_reason_ph:"예: 개인 사정",
-    mk_submit:"보강 잡기", cancel:"취소",
+    mk_when_l:"새 일시 (본인 시간대)", mk_reason_l:"사유 (선택)", mk_reason_ph:"예: 개인 사정",
+    mk_submit:"보강 잡기", cancel:"취소", submit:"제출",
     ev_mod_h:"⭐ 학생 평가", rating_l:"별점", comment_l:"코멘트", ev_comment_ph:"이번 주 학생의 진척, 강점, 보완점을 적어주세요.",
-    ev_mod_note:"이번 주는 한 번만 평가할 수 있습니다.", submit:"제출",
-    loading:"불러오는 중…",
-    no_classes:"예정된 수업이 없습니다.", no_abs:"제출된 결석계가 없습니다.", no_mk:"보강 기록이 없습니다.", no_students:"담당 학생이 없습니다.",
-    cancelled:"취소됨", ended:"종료", makeup_tag:"보강수업", zoom_host:"호스트 입장", zoom_join:"줌 입장", zoom_pending:"줌 준비 중",
-    btn_mk:"보강 잡기", btn_approve:"승인", btn_reject:"거절",
-    pending:"대기", approved:"승인됨(수업 취소)", rejected:"거절됨",
-    student:"학생", confirm_approve:"이 결석계를 승인하시겠습니까? 수업이 취소됩니다.",
-    confirm_reject:"이 결석계를 거절하시겠습니까?",
+    ev_mod_note:"이번 주는 한 번만 평가할 수 있습니다.",
+    student:"학생", no_abs:"제출된 결석계가 없습니다.", no_mk:"보강 기록이 없습니다.", no_students:"담당 학생이 없습니다.",
+    pending:"대기", approved:"승인됨(취소)", rejected:"거절됨",
+    confirm_approve:"이 결석계를 승인하시겠습니까? 수업이 취소됩니다.", confirm_reject:"이 결석계를 거절하시겠습니까?",
+    btn_approve:"승인", btn_reject:"거절",
+    cancelled:"취소됨", ended:"종료", makeup_tag:"보강", zoom_host:"호스트 입장", zoom_join:"줌 입장", zoom_pending:"줌 준비 중", btn_mk:"보강 잡기",
+    err_when:"새 일시를 입력하세요.", success_mk:"✅ 보강이 잡혔습니다.", success_review:"✅ 평가가 제출됐습니다.", err_dup:"이번 주에 이미 평가했습니다.",
     review_this_week:"이번 주 평가 가능", review_done:"✅ 이번 주 평가 완료", btn_review:"평가하기", btn_done:"완료",
-    week_banner_a:"📅 이번 주차 기준일:", week_banner_b:"(수요일)", week_banner_c:"이번 주에 평가하지 않은 학생만 버튼이 활성화됩니다.",
-    err_when:"새 일시를 입력하세요.", err_dup:"이번 주에 이미 평가했습니다.",
-    success_mk:"✅ 보강이 잡혔습니다. 학생 화면에 자동 반영됩니다.",
-    success_review:"✅ 평가가 제출됐습니다.",
-    orig_label:"원래:", new_label:"보강:", reason_label:"사유:", review_this:"이번 주 평가",
+    week_banner_a:"📅 이번 주차 기준일:", week_banner_b:"(수)", week_banner_c:"이번 주에 평가하지 않은 학생만 버튼이 활성화됩니다.",
+    review_this:"이번 주",
+    orig_label:"원래:", new_label:"보강:", reason_label:"사유:",
+    classes:"수업", hrs:"시간", min:"분", min_until:"분 후",
   }
 };
 let LANG = localStorage.getItem("ontact_lang") || "en";
 function t(k){ return (I18N[LANG] && I18N[LANG][k]) || (I18N.en[k] || k); }
 function applyLang(){
   document.documentElement.lang = LANG;
-  // text content
-  document.querySelectorAll("[data-t]").forEach(el=>{
-    const key = el.getAttribute("data-t");
-    el.textContent = t(key);
-  });
-  // placeholders
-  document.querySelectorAll("[data-t-ph]").forEach(el=>{
-    el.setAttribute("placeholder", t(el.getAttribute("data-t-ph")));
-  });
-  // toggle UI
+  document.querySelectorAll("[data-t]").forEach(el=>{ el.textContent = t(el.getAttribute("data-t")); });
+  document.querySelectorAll("[data-t-ph]").forEach(el=>{ el.setAttribute("placeholder", t(el.getAttribute("data-t-ph"))); });
   $("lang-en").classList.toggle("on", LANG==="en");
   $("lang-kr").classList.toggle("on", LANG==="kr");
-  // 화면 다시 그리기 (동적 텍스트 포함)
   reRender();
 }
 $("lang-en").onclick = ()=>{ LANG="en"; localStorage.setItem("ontact_lang","en"); applyLang(); };
 $("lang-kr").onclick = ()=>{ LANG="kr"; localStorage.setItem("ontact_lang","kr"); applyLang(); };
 
 let USER=null, PROFILE=null;
+let BOOKINGS=[];      // 3주치 캐시
+let STUDENT_COLOR={}; // student_id -> hue
 
 async function gate(){
   const{data:{user}}=await sb.auth.getUser();
@@ -265,6 +342,7 @@ async function gate(){
   }
   PROFILE=profile;
   $("who").textContent=(profile.full_name||profile.email)+" · "+(profile.timezone||"");
+  $("my-tz").textContent = profile.timezone || "Asia/Seoul";
   applyLang();
   init();
 }
@@ -275,30 +353,29 @@ document.querySelectorAll(".tabs button").forEach(b=>{
     document.querySelectorAll(".tabs button").forEach(x=>x.classList.remove("on"));
     document.querySelectorAll(".panel").forEach(x=>x.classList.remove("on"));
     b.classList.add("on"); $("p-"+b.dataset.tab).classList.add("on");
-    if(b.dataset.tab==="classes") loadClasses();
-    if(b.dataset.tab==="abs")     loadAbsences();
-    if(b.dataset.tab==="makeup")  loadMakeups();
-    if(b.dataset.tab==="eval")    loadEval();
+    if(b.dataset.tab==="schedule") loadSchedule();
+    if(b.dataset.tab==="abs")      loadAbsences();
+    if(b.dataset.tab==="makeup")   loadMakeups();
+    if(b.dataset.tab==="eval")     loadEval();
   };
 });
 
 async function init(){
-  $("my-tz").textContent = PROFILE.timezone || "Asia/Seoul";
-  loadClasses();
+  await loadSchedule();
   refreshAbsBadge();
+  setInterval(updateHeroCountdown, 30000); // 30초마다 카운트다운 갱신
 }
 
-/* 현재 보이는 탭만 다시 그리기 (언어 전환 시) */
 function reRender(){
   if(!USER) return;
   const onTab = document.querySelector(".tabs button.on")?.dataset.tab;
-  if(onTab==="classes") loadClasses();
-  if(onTab==="abs")     loadAbsences();
-  if(onTab==="makeup")  loadMakeups();
-  if(onTab==="eval")    loadEval();
+  if(onTab==="schedule") renderSchedule();
+  if(onTab==="abs")      loadAbsences();
+  if(onTab==="makeup")   loadMakeups();
+  if(onTab==="eval")     loadEval();
 }
 
-/* 포맷 — 강사 본인 시간대 */
+/* === 포맷 === */
 const TZ = () => PROFILE.timezone || "Asia/Seoul";
 const localeOf = () => LANG==="kr" ? "ko-KR" : "en-US";
 function fmtTime(iso){ return new Intl.DateTimeFormat(localeOf(),{timeZone:TZ(),hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(iso)); }
@@ -307,67 +384,243 @@ function dayKey(iso){
   return parts.find(p=>p.type==='year').value+"-"+parts.find(p=>p.type==='month').value+"-"+parts.find(p=>p.type==='day').value;
 }
 function dayHeader(iso){ return new Intl.DateTimeFormat(localeOf(),{timeZone:TZ(),month:'long',day:'numeric',weekday:'long'}).format(new Date(iso)); }
+function shortDate(d){ return new Intl.DateTimeFormat(localeOf(),{timeZone:TZ(),month:'short',day:'numeric'}).format(d); }
+function dayLabel(d){ return new Intl.DateTimeFormat(localeOf(),{timeZone:TZ(),weekday:'short'}).format(d); }
 
-/* ── 내 수업 ── */
-async function loadClasses(){
-  const fromISO = new Date(Date.now() - 24*60*60*1000).toISOString();
-  const { data, error } = await sb.from("bookings")
-    .select("id,start_at,is_cancelled,zoom_join_url,zoom_start_url,absence_id,makeup_of,profiles(full_name,email)")
-    .eq("teacher_id", USER.id)
-    .gte("start_at", fromISO)
-    .order("start_at",{ascending:true})
-    .limit(80);
-  const list = $("my-classes");
-  if(error){ list.innerHTML = `<div class="empty">${error.message}</div>`; return; }
-  if(!data || data.length===0){ list.innerHTML=`<div class="empty">${t("no_classes")}</div>`; return; }
-
-  const groups = {};
-  data.forEach(b=>{ const k=dayKey(b.start_at); (groups[k]||(groups[k]=[])).push(b); });
-
-  let html="";
-  Object.keys(groups).sort().forEach(k=>{
-    const sample = groups[k][0].start_at;
-    html += `<div class="day-header">${dayHeader(sample)}</div>`;
-    groups[k].forEach(b=>{
-      const startMs = new Date(b.start_at).getTime();
-      const isPast = startMs < Date.now() - 25*60*1000;
-      const isFuture = startMs > Date.now();
-      const stu = b.profiles ? (b.profiles.full_name||b.profiles.email) : t("student");
-      let tag = "", zoomBtn="", mkBtn="";
-      if(b.is_cancelled){
-        tag = `<span class="tag tag-cancelled">${t("cancelled")}</span>`;
-        zoomBtn = `<button class="btn-zoom disabled">${t("cancelled")}</button>`;
-      } else if(isPast){
-        tag = `<span class="tag tag-done">${t("ended")}</span>`;
-        zoomBtn = `<button class="btn-zoom disabled">${t("ended")}</button>`;
-      } else {
-        zoomBtn = b.zoom_start_url
-          ? `<a class="btn-zoom" href="${b.zoom_start_url}" target="_blank">${t("zoom_host")}</a>`
-          : (b.zoom_join_url
-              ? `<a class="btn-zoom" href="${b.zoom_join_url}" target="_blank">${t("zoom_join")}</a>`
-              : `<button class="btn-zoom disabled">${t("zoom_pending")}</button>`);
-        if(isFuture) mkBtn = `<button class="btn-mk" data-bid="${b.id}" data-when="${b.start_at}" data-stu="${stu.replace(/"/g,'')}">${t("btn_mk")}</button>`;
-      }
-      if(b.makeup_of) tag += ` <span class="tag tag-makeup">${t("makeup_tag")}</span>`;
-      html += `<div class="cls ${isPast?'past':''} ${b.is_cancelled?'cancelled':''}">
-        <div><div class="when">${fmtTime(b.start_at)}${tag}</div><div class="who">${stu}</div></div>
-        <div class="cls-actions">${zoomBtn}${mkBtn}</div>
-      </div>`;
-    });
-  });
-  list.innerHTML = html;
-  document.querySelectorAll(".btn-mk").forEach(btn=>{ btn.onclick = ()=> openMakeup(btn.dataset); });
+/* === 이번 주 월요일 계산 (강사 timezone 기준) === */
+function mondayOf(d){
+  // d 가 속한 주의 월요일 0:00 (강사 timezone 기준의 YYYY-MM-DD)
+  const k = dayKey(d.toISOString());
+  // 그날의 요일을 강사 timezone 기준으로 확인
+  const parts = new Intl.DateTimeFormat('en-US',{timeZone:TZ(),weekday:'short'}).formatToParts(new Date(k+"T12:00:00Z"));
+  const wkMap={Sun:0,Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6};
+  const dow = wkMap[parts.find(p=>p.type==='weekday').value];
+  // 단순화: UTC 시각 기준으로 월요일까지 빼기 (이론적으로 timezone 차이로 1일 차이 가능하나 운영상 문제없음)
+  const base = new Date(k+"T00:00:00Z");
+  const diff = dow === 0 ? 6 : dow - 1;
+  base.setUTCDate(base.getUTCDate() - diff);
+  return base;
 }
 
-/* 보강 모달 */
-let mkCtx = null;
-function openMakeup(ds){
-  mkCtx = { bid: Number(ds.bid), origWhen: ds.when, stu: ds.stu };
-  $("mk-target").textContent = `${ds.stu} · ${new Intl.DateTimeFormat(localeOf(),{timeZone:TZ(),month:'long',day:'numeric',weekday:'short',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(ds.when))}`;
-  const d = new Date(ds.when); d.setDate(d.getDate()+1);
-  const local = new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,16);
-  $("mk-when").value = local;
-  $("mk-reason").value = ""; $("mk-msg").textContent = "";
+/* === 일정 로드 === */
+async function loadSchedule(){
+  const monday = mondayOf(new Date());
+  const fromISO = new Date(monday.getTime() - 24*60*60*1000).toISOString();
+  const toISO   = new Date(monday.getTime() + 21*24*60*60*1000).toISOString();
+  const { data } = await sb.from("bookings")
+    .select("id,start_at,is_cancelled,zoom_join_url,zoom_start_url,absence_id,makeup_of,student_id,profiles(full_name,email)")
+    .eq("teacher_id", USER.id)
+    .gte("start_at", fromISO)
+    .lte("start_at", toISO)
+    .order("start_at",{ascending:true});
+  BOOKINGS = data || [];
+  assignColors();
+  renderSchedule();
+}
+
+function assignColors(){
+  const ids = [...new Set(BOOKINGS.map(b=>b.student_id))];
+  STUDENT_COLOR = {};
+  ids.forEach((id, i)=>{ STUDENT_COLOR[id] = (i * 67) % 360; }); // hue
+}
+
+/* === Hero + Stats === */
+function updateHeroCountdown(){
+  const next = BOOKINGS.find(b=> !b.is_cancelled && new Date(b.start_at).getTime() > Date.now() - 5*60*1000);
+  if(!next){ return; }
+  const cd = document.querySelector("#hero .countdown");
+  if(cd){
+    const mins = Math.round((new Date(next.start_at).getTime() - Date.now())/60000);
+    cd.textContent = mins <= 0 ? t("next_now") : `${t("next_in")} ${mins} ${t("min")}`;
+  }
+}
+function renderHero(){
+  // 다음 수업 = 시작 5분 전 ~ 시작 25분 후 안에 있는 것을 우선, 없으면 가장 빠른 미래 수업
+  const now = Date.now();
+  const next = BOOKINGS.find(b=> !b.is_cancelled && new Date(b.start_at).getTime() > now - 5*60*1000);
+  const hero = $("hero");
+  if(!next){
+    hero.className = "hero empty";
+    hero.innerHTML = `<span>${t("no_upcoming")}</span>`;
+    return;
+  }
+  const stu = next.profiles ? (next.profiles.full_name||next.profiles.email) : t("student");
+  const mins = Math.round((new Date(next.start_at).getTime() - now)/60000);
+  const cdText = mins <= 0 ? t("next_now") : `${t("next_in")} ${mins} ${t("min")}`;
+  const hostBtn = next.zoom_start_url
+    ? `<a class="btn-host" href="${next.zoom_start_url}" target="_blank">${t("zoom_host")}</a>`
+    : (next.zoom_join_url
+        ? `<a class="btn-host" href="${next.zoom_join_url}" target="_blank">${t("zoom_join")}</a>`
+        : `<button class="btn-host disabled">${t("zoom_pending")}</button>`);
+  hero.className = "hero";
+  hero.innerHTML = `
+    <div>
+      <div class="label">${t("next_label")}</div>
+      <div class="when">${fmtTime(next.start_at)} <span style="font-size:.95rem;opacity:.7;font-weight:500;margin-left:6px">${dayHeader(next.start_at)}</span></div>
+      <div class="countdown">${cdText}</div>
+      <div class="stu">👤 ${stu}</div>
+    </div>
+    <div class="actions">${hostBtn}</div>`;
+}
+
+/* === Stats === */
+function renderStats(){
+  const now = Date.now();
+  const todayKey = dayKey(new Date().toISOString());
+  const today = BOOKINGS.filter(b=> dayKey(b.start_at)===todayKey && !b.is_cancelled);
+  const todayLeft = today.filter(b=> new Date(b.start_at).getTime() > now - 25*60*1000);
+  // 이번 주
+  const monday = mondayOf(new Date());
+  const sunEnd = new Date(monday.getTime() + 7*24*60*60*1000);
+  const week = BOOKINGS.filter(b=>{
+    const t = new Date(b.start_at).getTime();
+    return !b.is_cancelled && t >= monday.getTime() && t < sunEnd.getTime();
+  });
+  const students = new Set(BOOKINGS.filter(b=>!b.is_cancelled).map(b=>b.student_id));
+  $("s-today-left").textContent  = todayLeft.length;
+  $("s-today-total").textContent = today.length;
+  $("s-week").textContent        = week.length;
+  $("s-students").textContent    = students.size;
+}
+
+/* === 주간 그리드 === */
+function renderSchedule(){
+  renderHero();
+  renderStats();
+  renderWeekGrid(0);
+  renderWeekGrid(1);
+  renderWeekGrid(2);
+}
+
+function renderWeekGrid(weekOffset){
+  const baseMon = mondayOf(new Date());
+  const monday = new Date(baseMon.getTime() + weekOffset*7*24*60*60*1000);
+  const sun = new Date(monday.getTime() + 7*24*60*60*1000);
+  // 주차 라벨
+  $(`w${weekOffset}-range`)?.replaceChildren(document.createTextNode(`(${shortDate(monday)} – ${shortDate(new Date(sun.getTime()-1))})`));
+
+  // 이 주의 강사 수업들
+  const weekBks = BOOKINGS.filter(b=>{
+    const t = new Date(b.start_at).getTime();
+    return t >= monday.getTime() && t < sun.getTime();
+  });
+
+  // 요일 4개: 월화목금
+  const days = [0,1,3,4].map(off=> new Date(monday.getTime() + off*24*60*60*1000));
+  const todayK = dayKey(new Date().toISOString());
+
+  // 시간 슬롯 풀: weekBks 의 시각(HH:MM)들을 모은다 (강사 timezone 기준)
+  const timeSet = new Set();
+  weekBks.forEach(b=> timeSet.add(fmtTime(b.start_at)));
+  let times = [...timeSet].sort();
+
+  // 비어 있으면 빈 그리드만
+  const grid = $(`grid-${weekOffset}`);
+  if(weekOffset===0 && weekBks.length===0){
+    $("w0-stat").textContent = "";
+    grid.innerHTML = `<div style="grid-column:1 / -1" class="empty">${t("no_class_week")}</div>`;
+    return;
+  }
+  if(weekBks.length===0){
+    grid.innerHTML = `<div style="grid-column:1 / -1" class="empty">${t("no_class_week")}</div>`;
+    return;
+  }
+  if(times.length===0) times = ["—"];
+
+  // 이번 주 주간 통계
+  if(weekOffset===0){
+    const total = weekBks.filter(b=>!b.is_cancelled).length;
+    const mins = total * 20;
+    const h = Math.floor(mins/60), m = mins%60;
+    $("w0-stat").innerHTML = `<b>${total}</b> ${t("classes")} · <b>${h}</b>${t("hrs")} ${m?(`<b>${m}</b>${t("min")}`):''}`;
+  }
+
+  // 헤더 (요일)
+  let html = `<div></div>`;
+  days.forEach(d=>{
+    const k = dayKey(d.toISOString());
+    const isToday = k === todayK;
+    html += `<div class="col-h ${isToday?'today':''}">${dayLabel(d)}<span class="d">${shortDate(d)}</span></div>`;
+  });
+
+  // 행 (시간)
+  times.forEach(time=>{
+    html += `<div class="row-h">${time}</div>`;
+    days.forEach(d=>{
+      const dKey = dayKey(d.toISOString());
+      const cellBks = weekBks.filter(b=> dayKey(b.start_at)===dKey && fmtTime(b.start_at)===time);
+      if(cellBks.length===0){
+        html += `<div class="cell empty"></div>`;
+      } else {
+        // 1개 셀에 1개 수업 (정상). 혹시 여러 개면 첫 번째 보여줌
+        const b = cellBks[0];
+        const stu = b.profiles ? (b.profiles.full_name||b.profiles.email) : t("student");
+        const startMs = new Date(b.start_at).getTime();
+        const isPast = startMs < Date.now() - 25*60*1000;
+        const isNow = startMs >= Date.now() - 5*60*1000 && startMs <= Date.now() + 25*60*1000;
+        let cls = "has";
+        if(b.is_cancelled) cls += " cancelled";
+        else if(isNow) cls += " now";
+        else if(isPast) cls += " past";
+        if(b.makeup_of) cls += " makeup";
+        const hue = STUDENT_COLOR[b.student_id] ?? 30;
+        html += `<div class="cell ${cls}" data-bid="${b.id}" style="border-left:3px solid hsl(${hue},70%,55%)">
+          <span class="nm">${stu}</span>
+        </div>`;
+      }
+    });
+  });
+  grid.innerHTML = html;
+  grid.querySelectorAll(".cell.has").forEach(el=>{
+    el.onclick = ()=> openCell(Number(el.dataset.bid));
+  });
+}
+
+/* === Cell detail modal === */
+function openCell(bid){
+  const b = BOOKINGS.find(x=>x.id===bid);
+  if(!b) return;
+  const stu = b.profiles ? (b.profiles.full_name||b.profiles.email) : t("student");
+  $("c-title").textContent = stu;
+  $("c-meta").textContent = `${fmtTime(b.start_at)} · ${dayHeader(b.start_at)}`;
+  const startMs = new Date(b.start_at).getTime();
+  const isPast = startMs < Date.now() - 25*60*1000;
+  const isFuture = startMs > Date.now();
+  // 태그
+  let tags = "";
+  if(b.is_cancelled) tags += `<span class="tag tag-cancelled">${t("cancelled")}</span>`;
+  if(b.makeup_of)    tags += ` <span class="tag tag-makeup">${t("makeup_tag")}</span>`;
+  if(isPast && !b.is_cancelled) tags += ` <span class="tag tag-done">${t("ended")}</span>`;
+  $("c-tags").innerHTML = tags;
+  // 액션
+  let actions = "";
+  if(!b.is_cancelled && !isPast){
+    actions += b.zoom_start_url
+      ? `<a class="btn-host-modal" href="${b.zoom_start_url}" target="_blank">${t("zoom_host")}</a>`
+      : (b.zoom_join_url
+          ? `<a class="btn-host-modal" href="${b.zoom_join_url}" target="_blank">${t("zoom_join")}</a>`
+          : `<a class="btn-host-modal disabled">${t("zoom_pending")}</a>`);
+    if(isFuture){
+      actions += `<button class="btn-mk-modal" onclick="openMakeup({bid:${b.id},when:'${b.start_at}',stu:'${stu.replace(/'/g,"\\'")}'})">${t("btn_mk")}</button>`;
+    }
+  } else {
+    actions += `<button class="btn-host-modal disabled">${b.is_cancelled?t("cancelled"):t("ended")}</button>`;
+  }
+  $("c-actions").innerHTML = actions;
+  $("cell-modal").classList.add("on");
+}
+// 모달 바깥 클릭으로 닫기
+$("cell-modal").onclick = (e)=>{ if(e.target.id==="cell-modal") $("cell-modal").classList.remove("on"); };
+
+/* === 보강 모달 === */
+let mkCtx=null;
+function openMakeup(d){
+  $("cell-modal").classList.remove("on");
+  mkCtx = { bid:d.bid, origWhen:d.when, stu:d.stu };
+  $("mk-target").textContent = `${d.stu} · ${new Intl.DateTimeFormat(localeOf(),{timeZone:TZ(),month:'long',day:'numeric',weekday:'short',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(d.when))}`;
+  const dt = new Date(d.when); dt.setDate(dt.getDate()+1);
+  const local = new Date(dt.getTime() - dt.getTimezoneOffset()*60000).toISOString().slice(0,16);
+  $("mk-when").value = local; $("mk-reason").value = ""; $("mk-msg").textContent = "";
   $("mk-modal").classList.add("on");
 }
 $("mk-cancel").onclick = ()=> $("mk-modal").classList.remove("on");
@@ -376,7 +629,6 @@ $("mk-submit").onclick = async ()=>{
   const newWhen = $("mk-when").value;
   if(!newWhen){ $("mk-msg").textContent=t("err_when"); $("mk-msg").style.color="#d4512c"; return; }
   $("mk-submit").disabled = true;
-  $("mk-submit").textContent = "…";
   try{
     const{data:{session}}=await sb.auth.getSession();
     const res = await fetch(`${SUPABASE_URL}/functions/v1/create-makeup`,{
@@ -385,21 +637,13 @@ $("mk-submit").onclick = async ()=>{
       body: JSON.stringify({ original_booking_id: mkCtx.bid, new_start_at: new Date(newWhen).toISOString(), reason: $("mk-reason").value.trim() }),
     });
     const r = await res.json();
-    if(!res.ok || !r.ok){
-      $("mk-msg").textContent = (r.error||"Error");
-      $("mk-msg").style.color = "#d4512c";
-      $("mk-submit").disabled = false; $("mk-submit").textContent = t("mk_submit"); return;
-    }
-    $("mk-msg").textContent = t("success_mk");
-    $("mk-msg").style.color = "var(--teal)";
-    setTimeout(()=>{ $("mk-modal").classList.remove("on"); $("mk-submit").disabled=false; $("mk-submit").textContent=t("mk_submit"); loadClasses(); loadMakeups(); }, 1300);
-  }catch(e){
-    $("mk-msg").textContent = e.message;
-    $("mk-submit").disabled = false; $("mk-submit").textContent = t("mk_submit");
-  }
+    if(!res.ok || !r.ok){ $("mk-msg").textContent = r.error||"Error"; $("mk-msg").style.color="#d4512c"; $("mk-submit").disabled=false; return; }
+    $("mk-msg").textContent = t("success_mk"); $("mk-msg").style.color = "var(--teal)";
+    setTimeout(()=>{ $("mk-modal").classList.remove("on"); $("mk-submit").disabled=false; loadSchedule(); }, 1200);
+  }catch(e){ $("mk-msg").textContent = e.message; $("mk-submit").disabled = false; }
 };
 
-/* 결석계 */
+/* === 결석계 === */
 async function refreshAbsBadge(){
   const{count}=await sb.from("absences").select("*",{count:'exact',head:true}).eq("teacher_id",USER.id).eq("status","pending");
   const badge=$("abs-badge");
@@ -434,13 +678,12 @@ async function loadAbsences(){
 }
 async function decideAbsence(absId, bookingId, approve){
   if(!confirm(approve?t("confirm_approve"):t("confirm_reject"))) return;
-  const{error:e1}=await sb.from("absences").update({status:approve?"approved":"rejected", decided_at:new Date().toISOString()}).eq("id",absId);
-  if(e1){ alert(e1.message); return; }
+  await sb.from("absences").update({status:approve?"approved":"rejected", decided_at:new Date().toISOString()}).eq("id",absId);
   if(approve && bookingId){ await sb.from("bookings").update({is_cancelled:true}).eq("id",bookingId); }
-  loadAbsences(); refreshAbsBadge(); loadClasses();
+  loadAbsences(); refreshAbsBadge(); loadSchedule();
 }
 
-/* 보강 기록 */
+/* === 보강 기록 === */
 async function loadMakeups(){
   const{data}=await sb.from("makeup_classes")
     .select("id,reason,created_at,original_booking,new_booking")
@@ -465,7 +708,7 @@ async function loadMakeups(){
   }).join("");
 }
 
-/* 학생 주간 평가 */
+/* === 평가 === */
 function thisWednesday(){
   const tz = "Asia/Seoul";
   const parts = new Intl.DateTimeFormat('en-CA',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit',weekday:'short'}).formatToParts(new Date());
@@ -480,16 +723,13 @@ function thisWednesday(){
 async function loadEval(){
   const wed = thisWednesday();
   $("ev-banner").innerHTML = `<div class="ev-week-banner">${t("week_banner_a")} <b>${wed}</b> ${t("week_banner_b")}<br>${t("week_banner_c")}</div>`;
-
   const{data:enrollments}=await sb.from("enrollments")
     .select("student_id,profiles(full_name,email)")
     .eq("teacher_id",USER.id).in("status",["active","completed"]);
   if(!enrollments || enrollments.length===0){ $("ev-list").innerHTML=`<div class="empty">${t("no_students")}</div>`; return; }
   const seen=new Set(); const students=enrollments.filter(e=>{ if(seen.has(e.student_id)) return false; seen.add(e.student_id); return true; });
-
   const{data:doneThisWeek}=await sb.from("feedback").select("student_id,rating,comment").eq("teacher_id",USER.id).eq("week_of",wed);
   const doneMap = {}; (doneThisWeek||[]).forEach(d=>doneMap[d.student_id]=d);
-
   $("ev-list").innerHTML = students.map(s=>{
     const stu = s.profiles ? (s.profiles.full_name||s.profiles.email) : t("student");
     const d = doneMap[s.student_id];
@@ -506,7 +746,6 @@ async function loadEval(){
   }).join("");
   document.querySelectorAll(".btn-eval:not([disabled])").forEach(b=>{ b.onclick=()=>openEval(b.dataset); });
 }
-
 let evCtx=null;
 function openEval(ds){
   evCtx = { sid: ds.sid, sname: ds.sname };
@@ -528,8 +767,7 @@ $("ev-submit").onclick = async ()=>{
     $("ev-msg").style.color = "#d4512c";
     $("ev-submit").disabled = false; return;
   }
-  $("ev-msg").textContent = t("success_review");
-  $("ev-msg").style.color = "var(--teal)";
+  $("ev-msg").textContent = t("success_review"); $("ev-msg").style.color = "var(--teal)";
   setTimeout(()=>{ $("ev-modal").classList.remove("on"); $("ev-submit").disabled=false; loadEval(); }, 1100);
 };
 
