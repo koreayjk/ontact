@@ -353,6 +353,19 @@
   </div>
 </div>
 
+<!-- 레벨테스트 슬롯 예약 모달 -->
+<div id="lt-pick-modal" class="modal">
+  <div class="modal-box" style="max-width:520px">
+    <h3 style="font-size:1.1rem;margin-bottom:4px">🎙 무료 레벨테스트 예약</h3>
+    <p class="sub">원하시는 시간대를 선택하세요. 줌 미팅이 자동으로 만들어집니다.</p>
+    <div id="lt-slots-list" style="margin-top:12px;max-height:50vh;overflow-y:auto"><div class="empty">불러오는 중…</div></div>
+    <div class="modal-btns">
+      <button class="btn-ghost" id="lt-pick-cancel">닫기</button>
+    </div>
+    <div class="msg" id="lt-pick-msg"></div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const SUPABASE_URL="https://nhydhyolgrhsykdcqfzb.supabase.co";
@@ -403,9 +416,7 @@ function renderLevelTestBanner(){
       <button class="lt-btn" id="lt-apply">지금 신청하기</button>
     </div>`;
     const btn=document.getElementById("lt-apply");
-    if(btn) btn.onclick=()=>{
-      alert("레벨테스트 신청 기능은 매니저가 일정을 여는 다음 단계에서 연결됩니다. 잠시만 기다려주세요. (담당 매니저에게 문의도 가능합니다)");
-    };
+    if(btn) btn.onclick = openLtPicker;
   }
 }
 $("logout").onclick=async(e)=>{ e.preventDefault(); await sb.auth.signOut(); location.href="login.html"; };
@@ -1133,6 +1144,77 @@ $("sfb-submit").onclick = async ()=>{
   $("sfb-msg").style.color = "var(--teal)";
   setTimeout(()=>{ $("sfb-modal").classList.remove("on"); $("sfb-submit").disabled = false; loadReport(); }, 1200);
 };
+
+/* ── 레벨테스트 슬롯 예약 ── */
+async function openLtPicker(){
+  $("lt-pick-modal").classList.add("on");
+  const list = $("lt-slots-list");
+  list.innerHTML = `<div class="empty">불러오는 중…</div>`;
+  $("lt-pick-msg").textContent = "";
+
+  // 본인이 이미 예약한 슬롯 확인
+  const{data:myBks}=await sb.from("leveltest_bookings").select("id,slot_id,start_at,zoom_join_url,level_result").eq("student_id",USER.id);
+  if(myBks && myBks.length>0){
+    const b = myBks[0];
+    list.innerHTML = `
+      <div class="lt-box lt-done" style="margin:0">
+        <div>
+          <h3>📅 예약된 레벨테스트</h3>
+          <p>${fmtTime(b.start_at)} · ${dayHeader(b.start_at)}</p>
+          ${b.level_result?`<p style="margin-top:4px"><b>결과: ${b.level_result}</b></p>`:""}
+        </div>
+        ${b.zoom_join_url?`<a class="btn-host" href="${b.zoom_join_url}" target="_blank">줌 입장</a>`:`<span class="badge b-pending">줌 준비 중</span>`}
+      </div>`;
+    return;
+  }
+
+  // 열린 슬롯 조회
+  const{data:slots}=await sb.from("leveltest_slots")
+    .select("id,start_at,duration_min,status")
+    .eq("status","open")
+    .gte("start_at", new Date().toISOString())
+    .order("start_at",{ascending:true});
+  if(!slots || slots.length===0){
+    list.innerHTML = `<div class="empty">현재 열려 있는 레벨테스트 시간이 없습니다.<br><span style="font-size:.8rem">담당 매니저가 곧 시간을 열어드릴 거예요.</span></div>`;
+    return;
+  }
+  list.innerHTML = slots.map(s=>`
+    <div class="cls" style="margin-bottom:8px">
+      <div>
+        <div class="when">${fmtTime(s.start_at)}</div>
+        <div class="who">${dayHeader(s.start_at)} · ${s.duration_min}분</div>
+      </div>
+      <button class="btn-zoom" data-sid="${s.id}">예약하기</button>
+    </div>`).join("");
+  list.querySelectorAll("button[data-sid]").forEach(btn=>{
+    btn.onclick = ()=> bookLevelSlot(btn.dataset.sid, btn);
+  });
+}
+async function bookLevelSlot(slotId, btn){
+  btn.disabled = true; btn.textContent = "처리 중…";
+  try{
+    const{data:{session}}=await sb.auth.getSession();
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/book-leveltest`,{
+      method:"POST",
+      headers:{ "Content-Type":"application/json", "Authorization":`Bearer ${session.access_token}`, "apikey":SUPABASE_ANON_KEY },
+      body: JSON.stringify({ slot_id: Number(slotId) }),
+    });
+    const r = await res.json();
+    if(!res.ok || !r.ok){
+      $("lt-pick-msg").textContent = "예약 실패: " + (r.error||"오류");
+      $("lt-pick-msg").style.color = "#d4512c";
+      btn.disabled = false; btn.textContent = "예약하기"; return;
+    }
+    $("lt-pick-msg").textContent = "✅ 예약 완료! 줌 링크를 확인하세요.";
+    $("lt-pick-msg").style.color = "var(--teal)";
+    setTimeout(()=>{ openLtPicker(); }, 1100);
+  }catch(e){
+    $("lt-pick-msg").textContent = "오류: "+e.message;
+    btn.disabled = false; btn.textContent = "예약하기";
+  }
+}
+$("lt-pick-cancel").onclick = ()=> $("lt-pick-modal").classList.remove("on");
+$("lt-pick-modal").onclick = (e)=>{ if(e.target.id==="lt-pick-modal") $("lt-pick-modal").classList.remove("on"); };
 
 gate();
 </script>
