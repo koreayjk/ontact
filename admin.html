@@ -94,10 +94,24 @@
       </div>
       <div class="form-row">
         <div><label>전문분야</label><input id="add-spec" placeholder="회화 · 비즈니스"></div>
-        <div><label>소개(선택)</label><input id="add-intro" placeholder="밝고 친근한 회화 전문"></div>
+        <div><label>전화번호 (긴급 연락용)</label><input id="add-phone" placeholder="+82 10-1234-5678 또는 +63 917-..."></div>
+      </div>
+      <div class="form-row full">
+        <div><label>소개 (선택)</label><input id="add-intro" placeholder="밝고 친근한 회화 전문"></div>
       </div>
       <button class="btn" id="add-btn">강사로 추가</button>
       <div class="msg" id="add-msg"></div>
+    </div>
+
+    <div class="card">
+      <h2 style="font-size:1rem;margin-bottom:4px">📞 강사 전화번호 수정</h2>
+      <p class="sub">강사 미입장 알람 발생 시 매니저가 즉시 전화 걸 수 있도록 연락처를 등록/수정하세요.</p>
+      <div class="form-row">
+        <div><label>강사</label><select id="ph-teacher"></select></div>
+        <div><label>전화번호</label><input id="ph-number" placeholder="+82 10-1234-5678"></div>
+      </div>
+      <button class="btn" id="ph-save">전화번호 저장</button>
+      <div class="msg" id="ph-msg"></div>
     </div>
 
     <div class="card">
@@ -187,6 +201,7 @@ async function loadTeachers(){
   }).join("")||`<tr><td colspan="5" class="muted">강사가 없습니다.</td></tr>`;
   const opts=TEACHERS.map(t=>`<option value="${t.id}">${t.display_name}</option>`).join("");
   $("hr-teacher").innerHTML=opts;$("z-teacher").innerHTML=opts;
+  if($("ph-teacher")) $("ph-teacher").innerHTML=opts;
 }
 
 async function loadMembers(){
@@ -201,11 +216,12 @@ async function loadMembers(){
 $("add-btn").onclick=async()=>{
   const id=$("add-member").value,name=$("add-name").value.trim();
   if(!id||!name){amsg("회원과 표시 이름을 입력하세요.",false);return;}
-  const{error:e1}=await sb.from("profiles").update({role:"teacher"}).eq("id",id);
+  const phone=$("add-phone").value.trim();
+  const{error:e1}=await sb.from("profiles").update({role:"teacher", phone: phone||null}).eq("id",id);
   if(e1){amsg("역할 변경 실패: "+e1.message,false);return;}
   const{error:e2}=await sb.from("teachers").upsert({id,display_name:name,specialties:$("add-spec").value.trim(),intro:$("add-intro").value.trim(),is_active:true});
   if(e2){amsg("강사 등록 실패: "+e2.message,false);return;}
-  amsg("강사로 추가됐습니다.",true);$("add-name").value=$("add-spec").value=$("add-intro").value="";
+  amsg("강사로 추가됐습니다.",true);$("add-name").value=$("add-spec").value=$("add-intro").value=$("add-phone").value="";
   await loadMembers();await loadTeachers();
 };
 function amsg(t,ok){$("add-msg").textContent=t;$("add-msg").style.color=ok?"#2c7a73":"#d4512c";}
@@ -228,6 +244,27 @@ $("z-save").onclick=async()=>{
   zmsg("줌 키가 저장됐습니다.",true);$("z-account").value=$("z-client").value=$("z-secret").value="";loadTeachers();
 };
 function zmsg(t,ok){$("z-msg").textContent=t;$("z-msg").style.color=ok?"#2c7a73":"#d4512c";}
+
+// 강사 전화번호 저장
+if($("ph-save")) $("ph-save").onclick = async ()=>{
+  const tid = $("ph-teacher").value;
+  const phone = $("ph-number").value.trim();
+  if(!tid){ phmsg("강사를 선택하세요.", false); return; }
+  if(!phone){ phmsg("전화번호를 입력하세요.", false); return; }
+  const { error } = await sb.from("profiles").update({ phone }).eq("id", tid);
+  if(error){ phmsg("저장 실패: "+error.message, false); return; }
+  phmsg("✅ 전화번호가 저장됐습니다.", true);
+  $("ph-number").value = "";
+};
+function phmsg(t,ok){ if(!$("ph-msg")) return; $("ph-msg").textContent=t; $("ph-msg").style.color=ok?"#2c7a73":"#d4512c"; }
+
+// 강사 select 변경 시 현재 번호 미리 채워주기
+if($("ph-teacher")) $("ph-teacher").onchange = async ()=>{
+  const tid = $("ph-teacher").value;
+  if(!tid) return;
+  const { data } = await sb.from("profiles").select("phone").eq("id", tid).single();
+  $("ph-number").value = data?.phone || "";
+};
 
 checkAdmin();
 </script>
