@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>온택 로그인 · ONTACT</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+  :root{--ink:#12273d;--paper:#f6f4ef;--line:#e3ddd0;--coral:#ef6a48;--muted:#6b7785}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:Pretendard,sans-serif;background:var(--paper);color:var(--ink);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+  .card{max-width:440px;width:100%;background:#fff;border:1px solid var(--line);border-radius:18px;padding:40px 32px}
+  h1{font-size:1.4rem;margin-bottom:6px;text-align:center}
+  .sub{font-size:.9rem;color:var(--muted);text-align:center;margin-bottom:28px}
+  .tabs{display:flex;background:var(--paper);border-radius:999px;padding:4px;margin-bottom:20px}
+  .tabs button{flex:1;padding:.7em;border:none;background:transparent;border-radius:999px;font-weight:700;cursor:pointer;color:var(--muted);font-family:inherit}
+  .tabs button.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.05)}
+  label{display:block;font-size:.78rem;font-weight:700;color:var(--muted);margin:14px 0 4px}
+  input,select{width:100%;padding:.85em 1em;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:.95rem}
+  input:focus,select:focus{outline:none;border-color:var(--coral)}
+  .btn{width:100%;padding:.95em;margin-top:18px;border:none;border-radius:999px;background:var(--coral);color:#fff;font-weight:800;cursor:pointer;font-size:.95rem;font-family:inherit}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .msg{font-size:.85rem;margin-top:12px;text-align:center;min-height:1.2em}
+  .home{display:block;text-align:center;margin-top:18px;font-size:.85rem;color:var(--muted);text-decoration:none}
+  .pane{display:none}.pane.on{display:block}
+  .loading{text-align:center;padding:40px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="card">
+  <div id="loading" class="loading">로그인 확인 중…</div>
+
+  <div id="forms" style="display:none">
+    <h1>온택 영어</h1>
+    <p class="sub">로그인하시면 역할별 페이지로 이동합니다.</p>
+
+    <div class="tabs">
+      <button id="tab-login" class="on">로그인</button>
+      <button id="tab-signup">회원가입</button>
+    </div>
+
+    <!-- 로그인 -->
+    <div id="pane-login" class="pane on">
+      <label>이메일</label>
+      <input id="li-email" type="email" placeholder="email@example.com">
+      <label>비밀번호</label>
+      <input id="li-pw" type="password" placeholder="비밀번호">
+      <button class="btn" id="li-btn">로그인</button>
+      <div class="msg" id="li-msg"></div>
+    </div>
+
+    <!-- 회원가입 (학생만 가입. 교사·매니저는 관리자가 승격) -->
+    <div id="pane-signup" class="pane">
+      <label>이름</label>
+      <input id="su-name" placeholder="홍길동">
+      <label>이메일</label>
+      <input id="su-email" type="email" placeholder="email@example.com">
+      <label>비밀번호 (6자 이상)</label>
+      <input id="su-pw" type="password">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div>
+          <label>나이</label>
+          <input id="su-age" type="number" min="5" max="100" placeholder="예: 28">
+        </div>
+        <div>
+          <label>성별</label>
+          <select id="su-gender">
+            <option value="">선택…</option>
+            <option value="male">남성</option>
+            <option value="female">여성</option>
+            <option value="other">기타</option>
+          </select>
+        </div>
+      </div>
+      <label>연락처 (전화번호)</label>
+      <input id="su-phone" type="tel" placeholder="010-1234-5678">
+      <label>국가 / 시간대</label>
+      <select id="su-tz">
+        <option value="Asia/Seoul|KR">대한민국 (Asia/Seoul)</option>
+        <option value="Asia/Manila|PH">필리핀 (Asia/Manila)</option>
+        <option value="Asia/Vientiane|LA">라오스 (Asia/Vientiane)</option>
+        <option value="America/Chicago|US">미국 중부 (America/Chicago)</option>
+        <option value="America/New_York|US">미국 동부 (America/New_York)</option>
+        <option value="America/Los_Angeles|US">미국 서부 (America/Los_Angeles)</option>
+      </select>
+      <button class="btn" id="su-btn">회원가입</button>
+      <div class="msg" id="su-msg"></div>
+    </div>
+
+    <a class="home" href="index.html">← 홈으로</a>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL="https://nhydhyolgrhsykdcqfzb.supabase.co";
+const SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5oeWRoeW9sZ3Joc3lrZGNxZnpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MTk1OTAsImV4cCI6MjA5NTk5NTU5MH0.s3qPFFN-4zMLAt-dtkOwzakCj-pkglKgbhyUR9uu4xs";
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+const $=(id)=>document.getElementById(id);
+
+const ROLE_PAGE={student:"student.html",teacher:"teacher.html",manager:"manager.html",admin:"admin.html"};
+
+async function routeIfLoggedIn(){
+  const{data:{user}}=await sb.auth.getUser();
+  if(!user){ $("loading").style.display="none"; $("forms").style.display="block"; return; }
+  const{data:profile}=await sb.from("profiles").select("role").eq("id",user.id).single();
+  const target=ROLE_PAGE[profile?.role]||"student.html";
+  location.href=target;
+}
+routeIfLoggedIn();
+
+// 탭 전환
+$("tab-login").onclick=()=>{ $("tab-login").classList.add("on"); $("tab-signup").classList.remove("on"); $("pane-login").classList.add("on"); $("pane-signup").classList.remove("on"); };
+$("tab-signup").onclick=()=>{ $("tab-signup").classList.add("on"); $("tab-login").classList.remove("on"); $("pane-signup").classList.add("on"); $("pane-login").classList.remove("on"); };
+
+// 로그인
+$("li-btn").onclick=async()=>{
+  $("li-msg").textContent=""; $("li-btn").disabled=true;
+  const email=$("li-email").value.trim(), password=$("li-pw").value;
+  const{error}=await sb.auth.signInWithPassword({email,password});
+  if(error){ $("li-msg").textContent="로그인 실패: "+error.message; $("li-msg").style.color="#d4512c"; $("li-btn").disabled=false; return; }
+  routeIfLoggedIn();
+};
+
+// 회원가입 (학생으로 가입)
+$("su-btn").onclick=async()=>{
+  $("su-msg").textContent=""; $("su-btn").disabled=true;
+  const name=$("su-name").value.trim(), email=$("su-email").value.trim(), pw=$("su-pw").value;
+  const age=$("su-age").value ? Number($("su-age").value) : null;
+  const gender=$("su-gender").value || null;
+  const phone=$("su-phone").value.trim() || null;
+  const[tz,country]=$("su-tz").value.split("|");
+  if(!name||!email||pw.length<6){ $("su-msg").textContent="이름·이메일·비밀번호(6자+)를 확인하세요."; $("su-msg").style.color="#d4512c"; $("su-btn").disabled=false; return; }
+  if(!phone){ $("su-msg").textContent="연락처(전화번호)를 입력해 주세요."; $("su-msg").style.color="#d4512c"; $("su-btn").disabled=false; return; }
+  const{data,error}=await sb.auth.signUp({email,password:pw,options:{data:{full_name:name}}});
+  if(error){ $("su-msg").textContent="가입 실패: "+error.message; $("su-msg").style.color="#d4512c"; $("su-btn").disabled=false; return; }
+  if(data?.user?.id){
+    await sb.from("profiles").update({
+      timezone:tz, country, full_name:name,
+      age, gender, phone
+    }).eq("id",data.user.id);
+  }
+  $("su-msg").textContent="가입 완료! 로그인합니다…"; $("su-msg").style.color="#2c7a73";
+  await sb.auth.signInWithPassword({email,password:pw});
+  routeIfLoggedIn();
+};
+</script>
+</body>
+</html>
