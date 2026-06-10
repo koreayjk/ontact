@@ -127,11 +127,16 @@
   /* TEACHERS + booking */
   .booking{background:var(--cream)}
   .bk-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:start}
+  .bk-grid-cards-only{grid-template-columns:1fr}
+  .bk-grid-cards-only .tcards{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
   .tcards{display:grid;grid-template-columns:1fr 1fr;gap:18px}
-  .tcard{background:#fff;border-radius:18px;overflow:hidden;border:1px solid var(--line);transition:transform .3s,box-shadow .3s}
+  .tcard{background:#fff;border-radius:18px;overflow:hidden;border:1px solid var(--line);transition:transform .3s,box-shadow .3s;cursor:pointer}
   .tcard:hover{transform:translateY(-5px);box-shadow:var(--shadow)}
+  .tcard .av-photo{height:240px;background:#1d3a5a;position:relative;overflow:hidden}
+  .tcard .av-photo img{width:100%;height:100%;object-fit:cover;object-position:center top}
   .tcard .av{height:128px;background:var(--ink);position:relative;display:grid;place-items:center}
   .tcard .av span{font-family:var(--serif);font-weight:900;font-size:2.4rem;color:#fff}
+  .tcard .av-photo .free,.tcard .av .free{position:absolute;top:10px;right:10px;background:rgba(255,255,255,.95);color:var(--teal);font-size:.72rem;font-weight:800;padding:.3em .6em;border-radius:999px;z-index:2}
   .tcard .av.c1{background:linear-gradient(135deg,#2c7a73,#1d3a5a)}
   .tcard .av.c2{background:linear-gradient(135deg,#ef6a48,#d4512c)}
   .tcard .av.c3{background:linear-gradient(135deg,#e6ad45,#c98a1f)}
@@ -286,10 +291,9 @@
       <a href="#faq">FAQ</a>
       <a href="#myclass" id="myclassLink" style="display:none">내 강의실</a>
       <a href="#" id="authBtn">로그인</a>
-      <a href="#cta" class="btn btn-primary">수강신청</a>
     </nav>
     <div class="nav-cta">
-      <a href="#cta" class="btn btn-primary">무료 레벨테스트</a>
+      <a href="login.html" class="btn btn-primary">무료 레벨테스트</a>
       <button class="burger" id="burger" aria-label="메뉴"><span></span><span></span><span></span></button>
     </div>
   </div>
@@ -303,7 +307,7 @@
     <h1 class="reveal">집에서 만나는<br><span class="em">진짜 영어</span>, 온택잉글리쉬</h1>
     <p class="lead reveal">강사 선택부터 시간 예약, 화상수업, 학습 평가까지 — 흩어진 모든 과정을 한 곳에서. 줌으로 만나는 나만의 1:1 영어 클래스.</p>
     <div class="hero-actions reveal">
-      <a href="#cta" class="btn btn-primary">무료 레벨테스트 신청 →</a>
+      <a href="login.html" class="btn btn-primary">무료 레벨테스트 신청 →</a>
       <a href="#book" class="btn btn-light">강사 둘러보기</a>
     </div>
     <div class="hero-trust reveal">
@@ -399,24 +403,9 @@
       <h2>강사를 고르고, <em>시간을 예약</em>하세요</h2>
       <p>강사 프로필과 예약 가능 시간을 보고 바로 신청할 수 있습니다.</p>
     </div>
-    <div class="bk-grid">
-      <div class="tcards">
-        <div class="tcard"><div class="av c1"><span>P</span><span class="free">예약가능</span></div><div class="meta"><b>Tr. Precious</b><div class="role">회화 · 비즈니스 영어</div><div class="rt">★ 4.9 · 1,200+ 수업</div></div></div>
-        <div class="tcard"><div class="av c2"><span>J</span><span class="free">예약가능</span></div><div class="meta"><b>Tr. Joshua</b><div class="role">발음 · 초등/주니어</div><div class="rt">★ 4.8 · 980+ 수업</div></div></div>
-        <div class="tcard"><div class="av c3"><span>G</span><span class="free">예약가능</span></div><div class="meta"><b>Tr. Grace</b><div class="role">시험영어 · 성인</div><div class="rt">★ 5.0 · 760+ 수업</div></div></div>
-        <div class="tcard"><div class="av c4"><span>D</span><span class="free">예약가능</span></div><div class="meta"><b>Tr. Daniel</b><div class="role">회화 · 토론</div><div class="rt">★ 4.9 · 1,050+ 수업</div></div></div>
-      </div>
-      <div class="bk-panel">
-        <h3>빠른 예약</h3>
-        <p class="sub">원하는 강사·요일·시간을 선택하세요</p>
-        <div class="bk-label">강사</div>
-        <div class="pills" data-group="t"><span class="pill-opt sel">Precious</span><span class="pill-opt">Joshua</span><span class="pill-opt">Grace</span><span class="pill-opt">Daniel</span></div>
-        <div class="bk-label">요일</div>
-        <div class="pills" data-group="d"><span class="pill-opt">월</span><span class="pill-opt sel">화</span><span class="pill-opt">수</span><span class="pill-opt">목</span><span class="pill-opt">금</span></div>
-        <div class="bk-label">시간 (20분 집중수업)</div>
-        <div class="pills" data-group="h"><span class="pill-opt">07:00</span><span class="pill-opt sel">08:00</span><span class="pill-opt">20:00</span><span class="pill-opt">21:00</span><span class="pill-opt">22:00</span></div>
-        <a href="#cta" class="btn btn-primary">이 시간으로 예약하기</a>
-        <p class="bk-note">로그인 후 결제 없이 먼저 체험수업도 가능해요</p>
+    <div class="bk-grid bk-grid-cards-only">
+      <div class="tcards" id="teachers-container">
+        <div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:30px">강사 정보를 불러오는 중…</div>
       </div>
     </div>
   </div>
@@ -570,7 +559,7 @@
     <h2>오늘, <em>무료 레벨테스트</em>로 시작하세요</h2>
     <p>나에게 맞는 강사와 커리큘럼을 찾는 가장 빠른 길. 부담 없이 첫 걸음을 떼어보세요.</p>
     <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
-      <a href="#book" class="btn btn-light">무료 레벨테스트 신청</a>
+      <a href="login.html" class="btn btn-light">무료 레벨테스트 신청</a>
       <a href="#book" class="btn btn-primary">강사 둘러보기</a>
     </div>
   </div>
@@ -585,6 +574,130 @@
   </div>
   <a href="login.html" class="lt-cta-btn">지금 시작하기 →</a>
 </section>
+
+<!-- TEACHER DETAIL MODAL -->
+<style>
+  .tmodal{display:none;position:fixed;inset:0;background:rgba(18,39,61,.6);z-index:1000;align-items:flex-start;justify-content:center;padding:40px 20px;overflow-y:auto;backdrop-filter:blur(4px)}
+  .tmodal.on{display:flex}
+  .tmodal-box{background:#fff;border-radius:20px;max-width:680px;width:100%;overflow:hidden;position:relative;box-shadow:0 30px 70px rgba(0,0,0,.3)}
+  .tmodal-close{position:absolute;top:14px;right:14px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.95);border:none;font-size:1.2rem;cursor:pointer;z-index:2;color:var(--ink);font-family:inherit}
+  .tmodal-close:hover{background:#fff;box-shadow:0 4px 12px rgba(0,0,0,.15)}
+  .tmodal-photo{width:100%;height:auto;display:block}
+  .tmodal-body{padding:28px 28px 32px}
+  .tmodal-body h3{font-family:var(--serif);font-size:1.8rem;color:var(--ink);margin-bottom:6px}
+  .tmodal-body .sub{color:var(--muted);font-size:.95rem;margin-bottom:18px}
+  .tmodal-video{position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:12px;background:#000;margin-bottom:18px}
+  .tmodal-video iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:0}
+  .tmodal-tags{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+  .tmodal-tags span{background:var(--paper);color:var(--ink);font-size:.82rem;font-weight:600;padding:.35em .85em;border-radius:999px;border:1px solid var(--line)}
+  .tmodal-cta{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+  .tmodal-cta a{flex:1;min-width:140px;text-align:center}
+</style>
+
+<div id="tmodal" class="tmodal" onclick="if(event.target===this)this.classList.remove('on')">
+  <div class="tmodal-box">
+    <button class="tmodal-close" onclick="document.getElementById('tmodal').classList.remove('on')">✕</button>
+    <img id="tm-photo" class="tmodal-photo" src="" alt="">
+    <div class="tmodal-body">
+      <h3 id="tm-name">–</h3>
+      <p class="sub" id="tm-role">원어민 1:1 화상 영어</p>
+      <div class="tmodal-tags" id="tm-tags"></div>
+      <div class="tmodal-video" id="tm-video-wrap" style="display:none">
+        <iframe id="tm-video" src="" allow="autoplay; fullscreen" allowfullscreen></iframe>
+      </div>
+      <p id="tm-bio" style="color:var(--ink);font-size:.95rem;line-height:1.7"></p>
+      <div class="tmodal-cta">
+        <a href="login.html" class="btn btn-primary">무료 레벨테스트 신청</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Supabase 클라이언트 (강사 정보 로드용)
+  const TC_SB_URL = "https://nhydhyolgrhsykdcqfzb.supabase.co";
+  const TC_SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5oeWRoeW9sZ3Joc3lrZGNxZnpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MTk1OTAsImV4cCI6MjA5NTk5NTU5MH0.s3qPFFN-4zMLAt-dtkOwzakCj-pkglKgbhyUR9uu4xs";
+
+  let TEACHERS_BY_ID = {};
+
+  async function loadTeachers() {
+    if (!window.supabase) {
+      console.warn("Supabase SDK not loaded yet");
+      setTimeout(loadTeachers, 200);
+      return;
+    }
+    const sb = window.supabase.createClient(TC_SB_URL, TC_SB_KEY);
+    const { data, error } = await sb.from("teachers")
+      .select("id, display_name, specialties, photo_url, video_url, tags, bio, rating, badge, is_active, show_on_main, sort_order")
+      .eq("is_active", true)
+      .eq("show_on_main", true)
+      .order("sort_order", { ascending: true });
+
+    const container = document.getElementById("teachers-container");
+    if (error || !data || data.length === 0) {
+      container.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:30px">강사 정보를 준비 중입니다.</div>`;
+      return;
+    }
+
+    TEACHERS_BY_ID = {};
+    container.innerHTML = data.map(t => {
+      TEACHERS_BY_ID[t.id] = t;
+      const photo = t.photo_url
+        ? `<img src="${t.photo_url}" alt="${t.display_name}" onerror="this.style.display='none'">`
+        : `<div style="width:100%;height:100%;background:linear-gradient(135deg,#2c7a73,#1d3a5a);display:grid;place-items:center;color:#fff;font-family:var(--serif);font-weight:900;font-size:3rem">${(t.display_name||"?").replace(/^Tr\.\s*/,"").charAt(0)}</div>`;
+      const badge = t.badge ? `${t.rating || 5.0} · ${t.badge} 강사` : `${t.rating || 5.0}`;
+      return `<div class="tcard" data-tid="${t.id}">
+        <div class="av-photo">${photo}<span class="free">예약가능</span></div>
+        <div class="meta">
+          <b>${t.display_name}</b>
+          <div class="role">${t.specialties || "원어민 1:1 화상 영어"}</div>
+          <div class="rt">★ ${badge}</div>
+        </div>
+      </div>`;
+    }).join("");
+
+    // 클릭 이벤트
+    container.querySelectorAll(".tcard[data-tid]").forEach(card => {
+      card.addEventListener("click", () => openTeacherModal(card.dataset.tid));
+    });
+  }
+
+  function openTeacherModal(tid) {
+    const t = TEACHERS_BY_ID[tid];
+    if (!t) return;
+    document.getElementById("tm-photo").src = t.photo_url || "";
+    document.getElementById("tm-photo").alt = t.display_name;
+    document.getElementById("tm-photo").style.display = t.photo_url ? "block" : "none";
+    document.getElementById("tm-name").textContent = t.display_name;
+    document.getElementById("tm-role").textContent = (t.specialties || "원어민 1:1 화상 영어") + (t.badge ? ` · ${t.badge} 강사` : "");
+    document.getElementById("tm-tags").innerHTML = (t.tags || []).map(x => `<span>${x}</span>`).join("");
+    document.getElementById("tm-bio").textContent = t.bio || "";
+    const vw = document.getElementById("tm-video-wrap");
+    const vf = document.getElementById("tm-video");
+    if (t.video_url) {
+      vf.src = t.video_url;
+      vw.style.display = "block";
+    } else {
+      vf.src = "";
+      vw.style.display = "none";
+    }
+    document.getElementById("tmodal").classList.add("on");
+  }
+
+  // 모달 닫을 때 비디오 정지
+  document.getElementById("tmodal").addEventListener("click", (e) => {
+    if (e.target.id === "tmodal" || e.target.classList.contains("tmodal-close")) {
+      document.getElementById("tm-video").src = "";
+    }
+  });
+
+  // 페이지 로드 시 강사 정보 불러오기
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", loadTeachers);
+  } else {
+    loadTeachers();
+  }
+</script>
 
 <!-- FOOTER -->
 <footer>
@@ -608,7 +721,7 @@
         <ul>
           <li>전화 · 카카오 채널 상담</li>
           <li>평일 10:00 – 18:00</li>
-          <li><a href="#cta">무료 레벨테스트</a></li>
+          <li><a href="login.html">무료 레벨테스트</a></li>
         </ul>
       </div>
     </div>

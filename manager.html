@@ -491,7 +491,7 @@ async function loadLive(){
   const monday = new Date(mondayOf(new Date()).getTime() + WEEK_OFFSET*7*86400000);
   const sun = new Date(monday.getTime() + 7*86400000);
   const{data}=await sb.from("bookings")
-    .select("id,start_at,is_cancelled,makeup_of,zoom_join_url,teacher_joined_at,student_joined_at,teacher_status,teacher_id,student_id,teachers(display_name),profiles(full_name,email)")
+    .select("id,start_at,is_cancelled,makeup_of,zoom_join_url,teacher_joined_at,student_joined_at,teacher_left_at,student_left_at,early_leave_flag,teacher_status,teacher_id,student_id,teachers(display_name),profiles(full_name,email)")
     .gte("start_at", monday.toISOString())
     .lt ("start_at", sun.toISOString())
     .order("start_at",{ascending:true});
@@ -579,32 +579,71 @@ function renderLive(){
 
 function renderAlerts(alerts, now){
   const area = $("alerts-area");
-  if(!alerts.length){ area.innerHTML = ""; return; }
-  area.innerHTML = alerts.map(({tc, st})=>{
-    const b = st.booking;
-    const stu = b.profiles ? (b.profiles.full_name||b.profiles.email) : t("student");
-    const myTime = fmtTime(b.start_at);
-    const tchTime = tc.timezone !== MY_TZ() ? ` · ${fmtTimeIn(b.start_at, tc.timezone)} (${tc.timezone})` : "";
-    const min = st.minLate;
-    let warnText, level;
-    if(min < 0){ // 시작 전 0~3분
-      warnText = `${Math.abs(min)} ${t("min")} ${t("alert_due_in")}`;
-      level = "warn";
-    } else {
-      warnText = `${min} ${t("min")} ${t("alert_late_by")}`;
-      level = "alert";
-    }
-    const callBtn = tc.phone
-      ? `<a class="btn-call ${level==='warn'?'warn':''}" href="tel:${tc.phone.replace(/\s+/g,'')}">${t("btn_call")} ${tc.phone}</a>`
-      : `<span class="badge b-pending">${t("no_phone")}</span>`;
-    return `<div class="alert-card ${level==='warn'?'warn':''}">
-      <div class="who-info">
-        <b>🚨 ${tc.display_name} — ${t("alert_title")}</b>
-        <div class="meta">${myTime}${tchTime} · ${stu} · <b>${warnText}</b></div>
-      </div>
-      <div class="actions">${callBtn}</div>
-    </div>`;
-  }).join("");
+
+  // 조기 이탈 알람 (지난 1시간 안에 early_leave_flag = true)
+  const recentEarlyLeaves = BOOKINGS_CACHE.filter(b=>{
+    if(!b.early_leave_flag) return false;
+    const t = new Date(b.start_at).getTime();
+    return t >= now - 60*60000 && t <= now + 60000;
+  });
+
+  let html = "";
+
+  // 강사 미입장 알람
+  if(alerts.length){
+    html += alerts.map(({tc, st})=>{
+      const b = st.booking;
+      const stu = b.profiles ? (b.profiles.full_name||b.profiles.email) : t("student");
+      const myTime = fmtTime(b.start_at);
+      const tchTime = tc.timezone !== MY_TZ() ? ` · ${fmtTimeIn(b.start_at, tc.timezone)} (${tc.timezone})` : "";
+      const min = st.minLate;
+      let warnText, level;
+      if(min < 0){
+        warnText = `${Math.abs(min)} ${t("min")} ${t("alert_due_in")}`;
+        level = "warn";
+      } else {
+        warnText = `${min} ${t("min")} ${t("alert_late_by")}`;
+        level = "alert";
+      }
+      const callBtn = tc.phone
+        ? `<a class="btn-call ${level==='warn'?'warn':''}" href="tel:${tc.phone.replace(/\s+/g,'')}">${t("btn_call")} ${tc.phone}</a>`
+        : `<span class="badge b-pending">${t("no_phone")}</span>`;
+      return `<div class="alert-card ${level==='warn'?'warn':''}">
+        <div class="who-info">
+          <b>🚨 ${tc.display_name} — ${t("alert_title")}</b>
+          <div class="meta">${myTime}${tchTime} · ${stu} · <b>${warnText}</b></div>
+        </div>
+        <div class="actions">${callBtn}</div>
+      </div>`;
+    }).join("");
+  }
+
+  // 조기 이탈 알람
+  if(recentEarlyLeaves.length){
+    html += recentEarlyLeaves.map(b=>{
+      const tc = TEACHERS_CACHE.find(x=>x.id===b.teacher_id);
+      const tname = b.teachers ? b.teachers.display_name : "–";
+      const stu = b.profiles ? (b.profiles.full_name||b.profiles.email) : t("student");
+      const myTime = fmtTime(b.start_at);
+      // 누가 나갔는지 추정 — teacher_left_at 있고 student_left_at 없으면 강사가 나감 등
+      let whoLeft = "";
+      if(b.teacher_left_at && !b.student_left_at) whoLeft = LANG==="kr"?"강사 이탈":"Teacher left";
+      else if(b.student_left_at && !b.teacher_left_at) whoLeft = LANG==="kr"?"학생 이탈":"Student left";
+      else whoLeft = LANG==="kr"?"중도 이탈":"Early leave";
+      const callBtn = tc && tc.phone
+        ? `<a class="btn-call warn" href="tel:${tc.phone.replace(/\s+/g,'')}">${t("btn_call")} ${tc.phone}</a>`
+        : "";
+      return `<div class="alert-card warn">
+        <div class="who-info">
+          <b>⚠️ ${tname} — ${whoLeft}</b>
+          <div class="meta">${myTime} · ${stu} · ${LANG==="kr"?"수업 종료 전 줌 퇴장":"Left zoom before class end"}</div>
+        </div>
+        <div class="actions">${callBtn}</div>
+      </div>`;
+    }).join("");
+  }
+
+  area.innerHTML = html;
 }
 
 function renderTeacherRows(states, now){
