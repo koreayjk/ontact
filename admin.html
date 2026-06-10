@@ -129,6 +129,14 @@
   .detail-box .val{font-size:.95rem;font-weight:700;color:var(--ink)}
   .detail-box .extra{font-size:.78rem;color:var(--muted);margin-top:2px}
 
+  /* STUDENT TAGS */
+  .stu-tag{display:inline-flex;align-items:center;background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:.25em .75em;font-size:.8rem;font-weight:600}
+  .tag-VIP{background:#fff7e6;border-color:var(--gold);color:var(--gold)}
+  .tag-요주의{background:#fef4f1;border-color:var(--alert);color:var(--alert)}
+  .tag-장기수강{background:#f0fdf4;border-color:var(--ok);color:var(--ok)}
+  .tag-단체학생{background:#eef2ff;border-color:#5566b5;color:#5566b5}
+  .tag-재등록\ 권유{background:#fff9ec;border-color:var(--warn);color:var(--warn)}
+
   /* SECTION TITLE */
   .sec-title{font-family:var(--serif);font-size:1.4rem;font-weight:800;margin-bottom:6px;color:var(--ink)}
   .sec-sub{color:var(--muted);font-size:.92rem;margin-bottom:16px}
@@ -188,8 +196,8 @@
     <div class="stats">
       <div class="stat"><div class="label">오늘 수업</div><div class="num" id="s-today">0</div><div class="delta" id="s-today-d">진행 중 0개</div></div>
       <div class="stat"><div class="label">이번 주 신규 결제</div><div class="num" id="s-week-pay">0</div><div class="delta" id="s-week-pay-d">₩0</div></div>
-      <div class="stat" id="card-expiring"><div class="label">만료 임박 (7일 내)</div><div class="num" id="s-expiring">0</div><div class="delta">학생 수강 종료</div></div>
-      <div class="stat" id="card-alerts"><div class="label">처리 대기</div><div class="num" id="s-pending">0</div><div class="delta" id="s-pending-d">결석계 + 오늘 노쇼</div></div>
+      <div class="stat" id="card-expiring" style="cursor:pointer" title="클릭하여 명단 보기"><div class="label">만료 임박 (7일 내)</div><div class="num" id="s-expiring">0</div><div class="delta">▼ 클릭하면 명단</div></div>
+      <div class="stat" id="card-alerts" style="cursor:pointer" title="클릭하여 명단 보기"><div class="label">처리 대기</div><div class="num" id="s-pending">0</div><div class="delta" id="s-pending-d">결석계 + 오늘 노쇼</div></div>
     </div>
 
     <!-- 빠른 액션 -->
@@ -235,6 +243,17 @@
           <option value="manager">매니저</option>
           <option value="admin">관리자</option>
         </select>
+        <select id="people-tag-filter">
+          <option value="">🏷️ 태그 (전체)</option>
+          <option value="VIP">VIP</option>
+          <option value="장기수강">장기수강</option>
+          <option value="단체학생">단체학생</option>
+          <option value="요주의">요주의</option>
+          <option value="레벨업 임박">레벨업 임박</option>
+          <option value="재등록 권유">재등록 권유</option>
+          <option value="환불 검토">환불 검토</option>
+        </select>
+        <label style="display:flex;align-items:center;gap:5px;color:var(--alert);font-size:.85rem;font-weight:600;cursor:pointer"><input type="checkbox" id="people-overdue-filter" style="width:auto"> 💰 미납만</label>
         <span style="margin-left:auto;color:var(--muted);font-size:.85rem" id="people-count">0명</span>
       </div>
 
@@ -431,6 +450,15 @@
   <a href="login.html" style="background:var(--coral);color:#fff;padding:.8em 2em;border-radius:8px;font-weight:700">로그인하기</a>
 </div>
 
+<!-- LIST MODAL -->
+<div id="list-modal" style="display:none;position:fixed;inset:0;background:rgba(18,39,61,.6);z-index:990;align-items:flex-start;justify-content:center;padding:60px 20px;overflow-y:auto;backdrop-filter:blur(4px)" onclick="if(event.target===this)this.style.display='none'">
+  <div style="background:#fff;border-radius:16px;max-width:680px;width:100%;padding:24px;position:relative;box-shadow:0 30px 70px rgba(0,0,0,.3)">
+    <button onclick="document.getElementById('list-modal').style.display='none'" style="position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:50%;background:var(--paper);border:0;cursor:pointer;font-size:1rem;font-family:inherit">✕</button>
+    <h2 id="list-modal-title" style="font-family:var(--serif);font-size:1.3rem;margin-bottom:14px"></h2>
+    <div id="list-modal-body" style="max-height:60vh;overflow-y:auto"></div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const SB_URL="https://nhydhyolgrhsykdcqfzb.supabase.co";
@@ -441,6 +469,7 @@ const $=id=>document.getElementById(id);
 let USER=null, PROFILE=null;
 let PEOPLE=[], TEACHERS=[], PAYMENTS=[], BOOKINGS=[];
 let EXPANDED_ROW=null;
+let EXPIRING_LIST=[], OVERDUE_LIST=[];
 
 // ──────── INIT ────────
 (async()=>{
@@ -473,6 +502,65 @@ document.querySelectorAll(".tabs button").forEach(b=>{
 document.querySelectorAll("[data-go]").forEach(el=>{
   el.onclick = ()=> document.querySelector(`[data-tab="${el.dataset.go}"]`).click();
 });
+
+// 만료 임박 카드 클릭
+$("card-expiring").onclick = ()=>{
+  if(EXPIRING_LIST.length === 0){ alert("만료 임박 학생이 없습니다."); return; }
+  $("list-modal-title").textContent = `⏰ 만료 임박 학생 (7일 내) — ${EXPIRING_LIST.length}명`;
+  $("list-modal-body").innerHTML = EXPIRING_LIST.map(e=>{
+    const dt = new Date(e.last_at).toLocaleDateString("ko-KR",{month:"numeric",day:"numeric",weekday:"short"});
+    return `<div style="padding:10px 4px;border-bottom:1px solid var(--paper);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+      <div>
+        <b>${e.name}</b> · <span style="color:var(--muted);font-size:.85rem">${e.teacher}</span>
+        <div style="font-size:.78rem;color:var(--muted);margin-top:2px">마지막 수업: ${dt}</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        ${e.phone ? `<a href="tel:${e.phone.replace(/\s+/g,'')}" style="background:var(--teal);color:#fff;padding:.4em .85em;border-radius:6px;font-size:.82rem;font-weight:600">📞 ${e.phone}</a>` : ""}
+        <button onclick="document.querySelector('[data-tab=people]').click();document.getElementById('list-modal').style.display='none';setTimeout(()=>{const tr=document.querySelector('tr.member-row[data-id=\\'${e.student_id}\\']');if(tr){tr.scrollIntoView({behavior:'smooth'});tr.click();}},300)" style="background:#fff;border:1.5px solid var(--ink);color:var(--ink);padding:.4em .85em;border-radius:6px;font-size:.82rem;cursor:pointer;font-weight:600">상세보기</button>
+      </div>
+    </div>`;
+  }).join("");
+  $("list-modal").style.display = "flex";
+};
+
+// 처리 대기 카드 클릭 → 결석계 + 미납 표시
+$("card-alerts").onclick = async ()=>{
+  $("list-modal-title").textContent = `⏳ 처리 대기 항목`;
+  // 결석계 pending
+  const{data:absPending}=await sb.from("absences").select("id,reason,requested_at,profiles!student_id(full_name,phone),bookings(start_at,teachers(display_name))").eq("status","pending").order("requested_at",{ascending:true});
+
+  let html = "";
+  if((absPending||[]).length > 0){
+    html += `<h3 style="font-size:.95rem;margin:8px 0">📝 결석계 대기 (${absPending.length}건)</h3>`;
+    html += absPending.map(a=>{
+      const stuName = a.profiles?.full_name || "—";
+      const phone = a.profiles?.phone || "";
+      const tname = a.bookings?.teachers?.display_name || "—";
+      const dt = a.bookings?.start_at ? new Date(a.bookings.start_at).toLocaleDateString("ko-KR",{month:"numeric",day:"numeric",weekday:"short",hour:"2-digit",minute:"2-digit"}) : "—";
+      return `<div style="padding:10px 4px;border-bottom:1px solid var(--paper)">
+        <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap">
+          <div><b>${stuName}</b> · <span style="color:var(--muted);font-size:.85rem">${tname} · ${dt}</span></div>
+          ${phone ? `<a href="tel:${phone.replace(/\s+/g,'')}" style="background:var(--teal);color:#fff;padding:.3em .75em;border-radius:6px;font-size:.78rem;font-weight:600">📞 ${phone}</a>` : ""}
+        </div>
+        <div style="font-size:.82rem;color:var(--ink);margin-top:4px">${(a.reason||"").substring(0,80)}${(a.reason||"").length>80?"…":""}</div>
+      </div>`;
+    }).join("");
+  }
+
+  if(OVERDUE_LIST.length > 0){
+    html += `<h3 style="font-size:.95rem;margin:12px 0 8px">💰 결제 미납 학생 (${OVERDUE_LIST.length}명)</h3>`;
+    html += OVERDUE_LIST.map(e=>`
+      <div style="padding:10px 4px;border-bottom:1px solid var(--paper);display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap">
+        <div><b>${e.name}</b><div style="font-size:.78rem;color:var(--muted)">${e.email||""}</div></div>
+        ${e.phone ? `<a href="tel:${e.phone.replace(/\s+/g,'')}" style="background:var(--alert);color:#fff;padding:.3em .75em;border-radius:6px;font-size:.78rem;font-weight:600">📞 ${e.phone}</a>` : ""}
+      </div>
+    `).join("");
+  }
+
+  if(!html) html = `<div style="color:var(--muted);padding:20px;text-align:center">처리 대기 항목이 없습니다.</div>`;
+  $("list-modal-body").innerHTML = html;
+  $("list-modal").style.display = "flex";
+};
 
 // ──────── LOAD ALL ────────
 async function loadAll(){
@@ -507,17 +595,43 @@ async function loadDashboard(){
   $("s-week-pay-d").textContent = `₩${sum.toLocaleString()}`;
 
   // 만료 임박 — enrollments where last booking start_at < 7일후
-  const{data:enrolls}=await sb.from("enrollments").select("id,student_id,bookings(start_at)").eq("status","active");
-  let expiring = 0;
+  const{data:enrolls}=await sb.from("enrollments").select("id,student_id,profiles!student_id(full_name,email,phone),teachers(display_name),bookings(start_at)").eq("status","active");
+  let expiring = [];
+  let overdueIds = new Set();
   for(const e of (enrolls||[])){
     if(!e.bookings || e.bookings.length===0) continue;
     const futureBookings = e.bookings.filter(b=>b.start_at > now.toISOString()).map(b=>b.start_at).sort();
     if(futureBookings.length === 0) continue;
     const last = futureBookings[futureBookings.length-1];
-    if(last <= sevenDaysLater) expiring++;
+    if(last <= sevenDaysLater){
+      expiring.push({
+        student_id: e.student_id,
+        name: e.profiles?.full_name || e.profiles?.email || "—",
+        phone: e.profiles?.phone || "",
+        teacher: e.teachers?.display_name || "—",
+        last_at: last,
+      });
+    }
   }
-  $("s-expiring").textContent = expiring;
-  if(expiring > 0) $("card-expiring").classList.add("warn");
+  $("s-expiring").textContent = expiring.length;
+  if(expiring.length > 0) $("card-expiring").classList.add("warn");
+  EXPIRING_LIST = expiring;
+
+  // 결제 미납 자동 감지: status='pending' 또는 결제 없는 active enrollment
+  const{data:pendingPays}=await sb.from("payments").select("student_id").eq("status","pending");
+  (pendingPays||[]).forEach(p=>overdueIds.add(p.student_id));
+  // profiles의 payment_overdue 자동 업데이트
+  if(overdueIds.size > 0){
+    await sb.from("profiles").update({payment_overdue:true}).in("id", Array.from(overdueIds));
+    // 미납 해제된 학생도 처리
+    const{data:allOverdue}=await sb.from("profiles").select("id").eq("payment_overdue",true);
+    const toClear = (allOverdue||[]).filter(p=>!overdueIds.has(p.id)).map(p=>p.id);
+    if(toClear.length > 0) await sb.from("profiles").update({payment_overdue:false}).in("id", toClear);
+  }
+  OVERDUE_LIST = Array.from(overdueIds).map(id=>{
+    const m = PEOPLE.find(p=>p.id===id);
+    return m ? {student_id:id, name:m.full_name||m.email, phone:m.phone||"", email:m.email} : null;
+  }).filter(Boolean);
 
   // 처리 대기 (결석계 pending + 오늘 노쇼)
   const{data:absPending,count:absCount}=await sb.from("absences").select("*",{count:"exact",head:true}).eq("status","pending");
@@ -553,7 +667,7 @@ async function loadDashboard(){
 
 // ──────── PEOPLE LOAD + TABLE ────────
 async function loadPeople(){
-  const{data}=await sb.from("profiles").select("id,full_name,email,role,age,gender,phone,country,timezone,created_at").order("created_at",{ascending:false});
+  const{data}=await sb.from("profiles").select("id,full_name,email,role,age,gender,phone,country,timezone,tags,payment_overdue,created_at").order("created_at",{ascending:false});
   PEOPLE=data||[];
   renderPeople();
   // 강사 추가 폼의 회원 선택
@@ -562,12 +676,16 @@ async function loadPeople(){
 function renderPeople(){
   const q = $("people-search").value.trim().toLowerCase();
   const roleFilter = $("people-role-filter").value;
+  const tagFilter = $("people-tag-filter").value;
+  const overdueFilter = $("people-overdue-filter").checked;
   const roleLab = {student:"학생",teacher:"강사",manager:"매니저",admin:"관리자"};
   const roleBadge = {student:"b-student",teacher:"b-teacher",manager:"b-manager",admin:"b-admin"};
   const genderLab = {male:"남",female:"여",other:"기타"};
 
   const filtered = PEOPLE.filter(m=>{
     if(roleFilter && m.role !== roleFilter) return false;
+    if(tagFilter && !(m.tags||[]).includes(tagFilter)) return false;
+    if(overdueFilter && !m.payment_overdue) return false;
     if(q){
       const s = `${m.full_name||""} ${m.email||""} ${m.phone||""}`.toLowerCase();
       if(!s.includes(q)) return false;
@@ -585,13 +703,15 @@ function renderPeople(){
 
   tbody.innerHTML = filtered.map(m=>{
     const ageGender = m.age || m.gender ? `${m.age||"–"} / ${genderLab[m.gender]||"–"}` : "–";
+    const tagChips = (m.tags||[]).slice(0,3).map(tag=>`<span class="stu-tag" style="font-size:.7rem;padding:.15em .55em">${tag}</span>`).join(" ");
+    const more = (m.tags||[]).length > 3 ? `<span style="color:var(--muted);font-size:.72rem">+${m.tags.length-3}</span>` : "";
     return `<tr class="member-row" data-id="${m.id}">
-      <td><b>${m.full_name||"–"}</b></td>
+      <td><b>${m.full_name||"–"}</b>${tagChips?`<div style="margin-top:3px;display:flex;flex-wrap:wrap;gap:3px">${tagChips}${more}</div>`:""}</td>
       <td><span class="badge ${roleBadge[m.role]||""}">${roleLab[m.role]||m.role}</span></td>
       <td class="muted" style="color:var(--muted)">${m.email||""}</td>
       <td class="muted" style="color:var(--muted)">${m.phone||"–"}</td>
       <td class="muted" style="color:var(--muted);font-size:.85rem">${ageGender}</td>
-      <td><span style="color:var(--muted);font-size:.82rem">활성</span></td>
+      <td>${m.payment_overdue?'<span class="badge b-refund">💰 미납</span>':'<span style="color:var(--muted);font-size:.82rem">활성</span>'}</td>
       <td style="text-align:right;color:var(--muted);font-size:.85rem">▼</td>
     </tr>`;
   }).join("");
@@ -629,6 +749,8 @@ async function togglePersonDetail(tr, personId){
     const{data:absences}=await sb.from("absences").select("requested_at,reason,status").eq("student_id",personId).order("requested_at",{ascending:false}).limit(5);
     // 매니저 알람 메모가 있는 booking (학생 본인 관련)
     const{data:alertNotes}=await sb.from("bookings").select("id,start_at,alert_note,alert_resolved_at,teacher_alert_note,teacher_alert_resolved_at,teachers(display_name)").eq("student_id",personId).or("alert_note.not.is.null,teacher_alert_note.not.is.null").order("start_at",{ascending:false}).limit(5);
+    // 학생 메모 일지
+    const{data:notes}=await sb.from("student_notes").select("id,content,author_name,created_at").eq("student_id",personId).order("created_at",{ascending:false}).limit(20);
 
     const now = new Date().toISOString();
     let nextLesson = null;
@@ -708,6 +830,39 @@ async function togglePersonDetail(tr, personId){
           </div>`;
         }).join("")}
       </div>` : ""}
+
+      <!-- 🏷️ 태그 -->
+      <h3 style="font-size:.95rem;margin:14px 0 6px">🏷️ 학생 태그</h3>
+      <div style="background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px">
+        <div id="tags-display-${personId}" style="margin-bottom:8px;display:flex;flex-wrap:wrap;gap:6px">
+          ${(m.tags||[]).map(tag=>`<span class="stu-tag">${tag} <button onclick="removeStudentTag('${personId}','${tag}')" style="background:none;border:0;color:inherit;cursor:pointer;margin-left:4px;font-weight:700">×</button></span>`).join("") || `<span style="color:var(--muted);font-size:.85rem">태그 없음</span>`}
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <select id="tag-preset-${personId}" style="padding:.4em .7em;font-size:.85rem;width:auto"><option value="">— 미리 정의된 태그 —</option><option>VIP</option><option>장기수강</option><option>단체학생</option><option>요주의</option><option>레벨업 임박</option><option>재등록 권유</option><option>환불 검토</option></select>
+          <input id="tag-input-${personId}" type="text" placeholder="또는 직접 입력" style="padding:.4em .7em;font-size:.85rem;width:auto;flex:1;min-width:140px">
+          <button class="btn" style="padding:.4em .9em;margin-top:0" onclick="addStudentTag('${personId}')">추가</button>
+        </div>
+      </div>
+
+      <!-- 📝 운영 메모 -->
+      <h3 style="font-size:.95rem;margin:14px 0 6px">📝 운영 메모 일지</h3>
+      <div style="background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px">
+        <div style="display:flex;gap:6px;margin-bottom:10px">
+          <textarea id="note-input-${personId}" rows="2" placeholder="이 학생에 대한 메모 (운영용, 학생은 볼 수 없음)" style="flex:1;font-size:.85rem;padding:.5em .7em"></textarea>
+          <button class="btn" style="margin-top:0;align-self:stretch" onclick="addStudentNote('${personId}')">메모 추가</button>
+        </div>
+        <div id="notes-list-${personId}">
+          ${(notes||[]).length ? (notes||[]).map(n=>`
+            <div style="padding:8px 12px;border-bottom:1px solid var(--paper);font-size:.85rem;display:flex;justify-content:space-between;gap:8px">
+              <div style="flex:1">
+                <div style="white-space:pre-wrap;color:var(--ink)">${n.content.replace(/</g,'&lt;')}</div>
+                <div style="font-size:.72rem;color:var(--muted);margin-top:4px">${n.author_name||"–"} · ${new Date(n.created_at).toLocaleString("ko-KR",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})}</div>
+              </div>
+              <button onclick="deleteStudentNote(${n.id},'${personId}')" style="background:none;border:0;color:var(--muted);cursor:pointer;font-size:.85rem;padding:0 4px">🗑️</button>
+            </div>
+          `).join("") : `<div class="empty" style="padding:10px;font-size:.85rem">메모가 없습니다.</div>`}
+        </div>
+      </div>
     `;
   } else if(isTeacher){
     content = `<div class="detail-box"><div class="lab">강사 페이지에서 자세히 보세요</div><a href="manager.html" class="btn" style="display:inline-block;margin-top:8px">🎛 라이브 관제실로</a></div>`;
@@ -723,6 +878,78 @@ async function togglePersonDetail(tr, personId){
 
 $("people-search").oninput = renderPeople;
 $("people-role-filter").onchange = renderPeople;
+$("people-tag-filter").onchange = renderPeople;
+$("people-overdue-filter").onchange = renderPeople;
+
+// ──────── STUDENT NOTES & TAGS (window 함수로 — onclick에서 호출) ────────
+window.addStudentNote = async function(studentId){
+  const input = $(`note-input-${studentId}`);
+  const content = input.value.trim();
+  if(!content){ alert("메모 내용을 입력하세요."); return; }
+  const{error}=await sb.from("student_notes").insert({
+    student_id: studentId,
+    author_id: USER.id,
+    author_name: PROFILE.full_name || PROFILE.email,
+    content,
+  });
+  if(error){ alert("저장 실패: "+error.message); return; }
+  input.value = "";
+  refreshStudentNotes(studentId);
+};
+
+window.deleteStudentNote = async function(noteId, studentId){
+  if(!confirm("이 메모를 삭제할까요?")) return;
+  const{error}=await sb.from("student_notes").delete().eq("id", noteId);
+  if(error){ alert("삭제 실패: "+error.message); return; }
+  refreshStudentNotes(studentId);
+};
+
+async function refreshStudentNotes(studentId){
+  const{data:notes}=await sb.from("student_notes").select("id,content,author_name,created_at").eq("student_id",studentId).order("created_at",{ascending:false}).limit(20);
+  const wrap = $(`notes-list-${studentId}`);
+  if(!wrap) return;
+  wrap.innerHTML = (notes||[]).length ? (notes||[]).map(n=>`
+    <div style="padding:8px 12px;border-bottom:1px solid var(--paper);font-size:.85rem;display:flex;justify-content:space-between;gap:8px">
+      <div style="flex:1">
+        <div style="white-space:pre-wrap;color:var(--ink)">${n.content.replace(/</g,'&lt;')}</div>
+        <div style="font-size:.72rem;color:var(--muted);margin-top:4px">${n.author_name||"–"} · ${new Date(n.created_at).toLocaleString("ko-KR",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})}</div>
+      </div>
+      <button onclick="deleteStudentNote(${n.id},'${studentId}')" style="background:none;border:0;color:var(--muted);cursor:pointer;font-size:.85rem;padding:0 4px">🗑️</button>
+    </div>
+  `).join("") : `<div class="empty" style="padding:10px;font-size:.85rem">메모가 없습니다.</div>`;
+}
+
+window.addStudentTag = async function(studentId){
+  const preset = $(`tag-preset-${studentId}`).value;
+  const input = $(`tag-input-${studentId}`).value.trim();
+  const newTag = preset || input;
+  if(!newTag) return;
+  const m = PEOPLE.find(p=>p.id===studentId);
+  const tags = [...(m.tags||[]), newTag].filter((v,i,arr)=>arr.indexOf(v)===i); // dedup
+  const{error}=await sb.from("profiles").update({tags}).eq("id",studentId);
+  if(error){ alert("태그 저장 실패: "+error.message); return; }
+  m.tags = tags;
+  refreshStudentTags(studentId);
+  $(`tag-preset-${studentId}`).value = "";
+  $(`tag-input-${studentId}`).value = "";
+};
+
+window.removeStudentTag = async function(studentId, tagToRemove){
+  const m = PEOPLE.find(p=>p.id===studentId);
+  const tags = (m.tags||[]).filter(t=>t!==tagToRemove);
+  const{error}=await sb.from("profiles").update({tags}).eq("id",studentId);
+  if(error){ alert("태그 삭제 실패: "+error.message); return; }
+  m.tags = tags;
+  refreshStudentTags(studentId);
+  renderPeople(); // 표에도 반영
+};
+
+function refreshStudentTags(studentId){
+  const m = PEOPLE.find(p=>p.id===studentId);
+  const wrap = $(`tags-display-${studentId}`);
+  if(!wrap) return;
+  wrap.innerHTML = (m.tags||[]).map(tag=>`<span class="stu-tag tag-${tag.replace(/\s+/g,'\\ ')}">${tag} <button onclick="removeStudentTag('${studentId}','${tag}')" style="background:none;border:0;color:inherit;cursor:pointer;margin-left:4px;font-weight:700">×</button></span>`).join("") || `<span style="color:var(--muted);font-size:.85rem">태그 없음</span>`;
+}
 
 // ──────── TEACHERS LOAD ────────
 async function loadTeachers(){
