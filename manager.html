@@ -127,6 +127,10 @@
   .lt-slot.booked{background:var(--paper);opacity:.85}
   .lt-slot .when{font-weight:700;font-size:.95rem}
   .lt-slot .meta{font-size:.78rem;color:var(--muted);margin-top:2px}
+  .wd-chip{display:inline-flex;align-items:center;cursor:pointer;user-select:none;background:#fff;border:1.5px solid var(--line);border-radius:999px;padding:.4em .9em;font-size:.88rem;font-weight:700;color:var(--ink);transition:all .15s}
+  .wd-chip input{display:none}
+  .wd-chip:hover{border-color:var(--ink)}
+  .wd-chip:has(input:checked){background:var(--ink);color:#fff;border-color:var(--ink)}
 
   .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;align-items:center;justify-content:center;padding:20px}
   .modal.on{display:flex}
@@ -156,6 +160,7 @@
 <header>
   <b>🧭 <span data-t="title">Manager Dashboard</span></b>
   <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+    <a href="admin.html" id="admin-link" style="display:none;background:rgba(255,255,255,.15);color:#fff;padding:.35em 1em;border-radius:8px;font-size:.82rem;font-weight:600;border:1px solid rgba(255,255,255,.25);text-decoration:none;transition:all .15s" onmouseover="this.style.background='rgba(255,255,255,.28)'" onmouseout="this.style.background='rgba(255,255,255,.15)'">⚙️ <span data-t="admin_link">Admin</span></a>
     <span class="who" id="who"></span>
     <div class="lang-tog"><button id="lang-en" class="on">EN</button><button id="lang-kr">KR</button></div>
     <a href="#" id="logout" data-t="logout">Logout</a>
@@ -238,17 +243,44 @@
   <!-- 레벨테스트 -->
   <div class="panel" id="p-leveltest">
     <div class="step">
-      <h2 data-t="lt_h">Open Level Test Slot</h2>
-      <p class="sub" data-t="lt_sub">Students can book any open slot. Zoom is auto-created.</p>
+      <h2 data-t="lt_h">레벨테스트 슬롯 만들기</h2>
+      <p class="sub" data-t="lt_sub">기간·요일·시간 범위를 정하면 20분 슬롯 + 10분 휴식으로 자동 생성됩니다. 줌은 학생이 예약할 때 자동으로 만들어져요.</p>
+
       <div class="form-row">
-        <div><label data-t="lt_when">Date & time (your timezone)</label><input id="lt-when" type="datetime-local"></div>
-        <div><label data-t="lt_dur">Duration (min)</label><input id="lt-dur" type="number" value="20" min="10" max="60"></div>
+        <div><label data-t="lt_start_date">시작 날짜</label><input id="lt-start-date" type="date"></div>
+        <div><label data-t="lt_end_date">종료 날짜 (포함)</label><input id="lt-end-date" type="date"></div>
       </div>
-      <button class="btn" id="lt-add" data-t="lt_add">Open Slot</button>
+
+      <div style="margin:14px 0 6px"><label style="display:block;margin-bottom:6px" data-t="lt_weekdays">요일 선택 (여러 개)</label>
+        <div id="lt-weekdays" style="display:flex;gap:8px;flex-wrap:wrap">
+          <label class="wd-chip"><input type="checkbox" value="1" checked><span>월</span></label>
+          <label class="wd-chip"><input type="checkbox" value="2" checked><span>화</span></label>
+          <label class="wd-chip"><input type="checkbox" value="3" checked><span>수</span></label>
+          <label class="wd-chip"><input type="checkbox" value="4" checked><span>목</span></label>
+          <label class="wd-chip"><input type="checkbox" value="5" checked><span>금</span></label>
+          <label class="wd-chip"><input type="checkbox" value="6"><span>토</span></label>
+          <label class="wd-chip"><input type="checkbox" value="0"><span>일</span></label>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div><label data-t="lt_time_from">시작 시각 (당일)</label><input id="lt-time-from" type="time" value="09:00"></div>
+        <div><label data-t="lt_time_to">종료 시각</label><input id="lt-time-to" type="time" value="17:00"></div>
+      </div>
+
+      <p class="sub" style="margin-top:8px;font-size:.82rem">⏱️ 각 슬롯 20분 + 10분 휴식 (30분 간격). 매니저 본인 시간대 기준.</p>
+
+      <div id="lt-preview" style="background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:12px;margin:10px 0;font-size:.85rem;color:var(--muted);display:none"></div>
+
+      <button class="btn" id="lt-preview-btn" style="background:#fff;color:var(--ink);border:1.5px solid var(--ink);margin-right:8px">미리보기</button>
+      <button class="btn" id="lt-add">🧪 슬롯 일괄 생성</button>
       <div class="msg" id="lt-msg"></div>
     </div>
     <div class="step">
-      <h2 data-t="lt_slots_h">Slots & Bookings</h2>
+      <h2 data-t="lt_slots_h">슬롯 · 예약</h2>
+      <div class="toolbar">
+        <button class="btn" id="lt-delete-empty" style="background:#fff;color:var(--alert);border:1.5px solid var(--alert);font-size:.85rem;padding:.45em .9em">🗑️ 예약 없는 슬롯 모두 삭제</button>
+      </div>
       <div id="lt-list"><div class="empty" data-t="loading">Loading…</div></div>
     </div>
   </div>
@@ -314,7 +346,7 @@ const $=(id)=>document.getElementById(id);
 
 const I18N = {
   en:{
-    title:"Manager Dashboard", logout:"Logout",
+    title:"Manager Dashboard", logout:"Logout", admin_link:"Admin",
     tab_live:"🎛 Live Control", tab_att:"✅ Attendance", tab_lt:"🧪 Level Test", tab_roster:"📒 Roster",
     live_now:"In session now", live_alert:"Teachers not in Zoom", live_pending_abs:"Pending absences", live_today_left:"Today remaining",
     s_teachers:"Active teachers", s_students:"Students this week", s_week_classes:"Classes this week", s_today_classes:"Today",
@@ -348,7 +380,7 @@ const I18N = {
     not_set:"Not set", min:"min",
   },
   kr:{
-    title:"매니저 대시보드", logout:"로그아웃",
+    title:"매니저 대시보드", logout:"로그아웃", admin_link:"총관리자",
     tab_live:"🎛 실시간 관제", tab_att:"✅ 출결", tab_lt:"🧪 레벨테스트", tab_roster:"📒 수강생 명부",
     live_now:"지금 진행 중", live_alert:"강사 미입장", live_pending_abs:"결석계 대기", live_today_left:"오늘 남은 수업",
     s_teachers:"활동 강사", s_students:"이번 주 학생", s_week_classes:"이번 주 수업", s_today_classes:"오늘",
@@ -416,6 +448,7 @@ async function gate(){
   PROFILE=profile;
   $("who").textContent=(profile.full_name||profile.email)+" · "+(profile.timezone||"");
   $("my-tz").textContent = profile.timezone || "Asia/Seoul";
+  if(profile.role==="admin") $("admin-link").style.display="inline-block";
   applyLang();
   init();
 }
@@ -869,17 +902,160 @@ async function loadLeveltest(){
   box.querySelectorAll("button[data-bk]").forEach(btn=>{ btn.onclick = ()=> openLevel(btn.dataset); });
 }
 
+// ─── 레벨테스트 슬롯 일괄 생성 ───
+// 시작일~종료일 사이의 선택 요일에, 시작시각~종료시각 사이 30분 간격으로 20분 슬롯 생성
+
+function ltCollectSlots(){
+  const startDate = $("lt-start-date").value;
+  const endDate = $("lt-end-date").value;
+  const timeFrom = $("lt-time-from").value;
+  const timeTo = $("lt-time-to").value;
+  const wdChecks = document.querySelectorAll('#lt-weekdays input[type="checkbox"]:checked');
+  const weekdays = Array.from(wdChecks).map(c => Number(c.value));
+
+  if(!startDate || !endDate || !timeFrom || !timeTo || weekdays.length === 0){
+    return { error: "시작일·종료일·시간·요일을 모두 입력하세요." };
+  }
+  if(startDate > endDate){
+    return { error: "종료일이 시작일보다 빨라요." };
+  }
+  if(timeFrom >= timeTo){
+    return { error: "종료 시각이 시작 시각보다 늦어야 합니다." };
+  }
+
+  const [fh, fm] = timeFrom.split(":").map(Number);
+  const [th, tm] = timeTo.split(":").map(Number);
+  const slotEndMin = th * 60 + tm; // 종료 시각(분)
+  const slotStartMin = fh * 60 + fm; // 시작 시각(분)
+
+  // 30분 간격으로 슬롯 시작 시각 리스트 (20분 + 10분 휴식)
+  // 마지막 슬롯은 시작+20분 <= 종료 시각이어야 함
+  const dailyStartMinutes = [];
+  for(let m = slotStartMin; m + 20 <= slotEndMin; m += 30){
+    dailyStartMinutes.push(m);
+  }
+  if(dailyStartMinutes.length === 0){
+    return { error: "시간 범위가 너무 짧아 슬롯이 안 만들어집니다 (최소 20분 필요)." };
+  }
+
+  // 시작일~종료일 사이 날짜 돌면서 요일 매치되면 슬롯 추가
+  const slots = [];
+  const start = new Date(startDate + "T00:00:00");
+  const end = new Date(endDate + "T00:00:00");
+  const myTz = MY_TZ();
+
+  for(let d = new Date(start); d.getTime() <= end.getTime(); d.setDate(d.getDate() + 1)){
+    const wd = d.getDay(); // 0=일, 1=월, ..., 6=토
+    if(!weekdays.includes(wd)) continue;
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth()+1).padStart(2,"0");
+    const dd = String(d.getDate()).padStart(2,"0");
+    for(const min of dailyStartMinutes){
+      const hh = String(Math.floor(min/60)).padStart(2,"0");
+      const mi = String(min%60).padStart(2,"0");
+      // 매니저 시간대 기준 → UTC 변환
+      // 매니저가 한국에 있으면 Asia/Seoul (+09:00)
+      // 정확한 변환은 ISO 형식에 오프셋 명시. 단순화 위해 매니저 OS 로컬 기준
+      const localStr = `${yyyy}-${mm}-${dd}T${hh}:${mi}:00`;
+      slots.push({ localStr, dateLabel: `${mm}/${dd}`, time: `${hh}:${mi}` });
+    }
+  }
+  return { slots, weekdays, dailyStartMinutes, dateCount: slots.length / dailyStartMinutes.length };
+}
+
+$("lt-preview-btn").onclick = ()=>{
+  const r = ltCollectSlots();
+  const box = $("lt-preview");
+  if(r.error){
+    box.style.display = "block";
+    box.style.color = "#d4512c";
+    box.textContent = "⚠️ " + r.error;
+    return;
+  }
+  box.style.display = "block";
+  box.style.color = "var(--ink)";
+  const wdNames = ["일","월","화","수","목","금","토"];
+  const wdStr = r.weekdays.sort().map(w => wdNames[w]).join(" ");
+  const timesStr = r.dailyStartMinutes.map(m => {
+    const h = String(Math.floor(m/60)).padStart(2,"0");
+    const mi = String(m%60).padStart(2,"0");
+    return `${h}:${mi}`;
+  }).join(", ");
+  const days = Math.round(r.slots.length / r.dailyStartMinutes.length);
+  box.innerHTML =
+    `<b style="color:var(--teal)">총 ${r.slots.length}개 슬롯 생성됨</b><br>` +
+    `• 날짜: ${days}일 (${wdStr})<br>` +
+    `• 매일 시간: ${timesStr}<br>` +
+    `• 처음 5개 예: ${r.slots.slice(0,5).map(s=>s.dateLabel+" "+s.time).join(", ")}${r.slots.length>5?" …":""}`;
+};
+
 $("lt-add").onclick = async ()=>{
-  const when = $("lt-when").value;
-  const dur = Number($("lt-dur").value) || 20;
+  const r = ltCollectSlots();
   const msg = $("lt-msg");
-  if(!when){ msg.textContent = t("err_lt"); msg.style.color = "#d4512c"; return; }
-  const{error}=await sb.from("leveltest_slots").insert({
-    manager_id: USER.id, start_at: new Date(when).toISOString(), duration_min: dur, status: "open",
-  });
-  if(error){ msg.textContent = error.message; msg.style.color = "#d4512c"; return; }
-  msg.textContent = t("success_lt"); msg.style.color = "var(--teal)";
-  $("lt-when").value = "";
+  if(r.error){ msg.textContent = "⚠️ " + r.error; msg.style.color = "#d4512c"; return; }
+  if(!confirm(`총 ${r.slots.length}개의 슬롯을 생성합니다. 진행할까요?`)){ return; }
+
+  $("lt-add").disabled = true;
+  msg.textContent = "생성 중…"; msg.style.color = "var(--muted)";
+
+  const rows = r.slots.map(s => ({
+    manager_id: USER.id,
+    start_at: new Date(s.localStr).toISOString(),
+    duration_min: 20,
+    status: "open",
+  }));
+
+  // 중복 방지 — 같은 manager_id + start_at 이미 있으면 skip
+  const{ data: existing } = await sb.from("leveltest_slots")
+    .select("start_at")
+    .eq("manager_id", USER.id)
+    .gte("start_at", new Date($("lt-start-date").value+"T00:00:00").toISOString())
+    .lte("start_at", new Date($("lt-end-date").value+"T23:59:59").toISOString());
+  const existingSet = new Set((existing||[]).map(x => x.start_at));
+  const newRows = rows.filter(r => !existingSet.has(r.start_at));
+  const skipped = rows.length - newRows.length;
+
+  if(newRows.length === 0){
+    msg.textContent = `이미 모두 등록된 슬롯입니다 (${skipped}개 건너뜀).`;
+    msg.style.color = "var(--muted)";
+    $("lt-add").disabled = false;
+    return;
+  }
+
+  const{ error } = await sb.from("leveltest_slots").insert(newRows);
+  $("lt-add").disabled = false;
+  if(error){
+    msg.textContent = "생성 실패: " + error.message;
+    msg.style.color = "#d4512c";
+    return;
+  }
+  msg.textContent = `✅ ${newRows.length}개 슬롯 생성됨${skipped>0?` (이미 등록된 ${skipped}개는 건너뜀)`:""}`;
+  msg.style.color = "var(--teal)";
+  $("lt-preview").style.display = "none";
+  loadLeveltest();
+};
+
+// 예약 없는 슬롯 일괄 삭제
+$("lt-delete-empty").onclick = async ()=>{
+  if(!confirm("예약이 안 잡힌 슬롯을 모두 삭제합니다. 진행할까요?")) return;
+  // 예약된 슬롯의 slot_id 목록
+  const{data:booked}=await sb.from("leveltest_bookings").select("slot_id");
+  const bookedIds = new Set((booked||[]).map(b=>b.slot_id));
+  const{data:allSlots}=await sb.from("leveltest_slots").select("id").eq("manager_id", USER.id);
+  const toDelete = (allSlots||[]).map(s=>s.id).filter(id => !bookedIds.has(id));
+  if(toDelete.length===0){
+    $("lt-msg").textContent = "삭제할 빈 슬롯이 없습니다.";
+    $("lt-msg").style.color = "var(--muted)";
+    return;
+  }
+  const{error}=await sb.from("leveltest_slots").delete().in("id", toDelete);
+  if(error){
+    $("lt-msg").textContent = "삭제 실패: " + error.message;
+    $("lt-msg").style.color = "#d4512c";
+    return;
+  }
+  $("lt-msg").textContent = `🗑️ ${toDelete.length}개 빈 슬롯 삭제됨`;
+  $("lt-msg").style.color = "var(--teal)";
   loadLeveltest();
 };
 
