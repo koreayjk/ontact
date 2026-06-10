@@ -193,11 +193,12 @@
     </a>
 
     <!-- 핵심 숫자 -->
-    <div class="stats">
+    <div class="stats" style="grid-template-columns:repeat(5,1fr)">
       <div class="stat"><div class="label">오늘 수업</div><div class="num" id="s-today">0</div><div class="delta" id="s-today-d">진행 중 0개</div></div>
       <div class="stat"><div class="label">이번 주 신규 결제</div><div class="num" id="s-week-pay">0</div><div class="delta" id="s-week-pay-d">₩0</div></div>
       <div class="stat" id="card-expiring" style="cursor:pointer" title="클릭하여 명단 보기"><div class="label">만료 임박 (7일 내)</div><div class="num" id="s-expiring">0</div><div class="delta">▼ 클릭하면 명단</div></div>
       <div class="stat" id="card-alerts" style="cursor:pointer" title="클릭하여 명단 보기"><div class="label">처리 대기</div><div class="num" id="s-pending">0</div><div class="delta" id="s-pending-d">결석계 + 오늘 노쇼</div></div>
+      <div class="stat" id="card-noshow" style="cursor:pointer" title="클릭하여 명단 보기"><div class="label">노쇼 3회+ 학생</div><div class="num" id="s-noshow-pattern">0</div><div class="delta">▼ 케어 필요</div></div>
     </div>
 
     <!-- 빠른 액션 -->
@@ -369,6 +370,18 @@
         <button class="btn" id="zk-btn">줌 키 저장</button>
         <div class="msg" id="zk-msg"></div>
       </div>
+
+      <div class="card">
+        <h2>📓 강사 코칭 노트</h2>
+        <p class="sub">매니저·관리자가 함께 쓰는 강사 인사관리 메모. 강사 본인은 못 봅니다.</p>
+        <label>강사 선택</label>
+        <select id="tn-teacher"></select>
+        <div style="margin-top:10px;display:flex;gap:6px">
+          <textarea id="tn-input" rows="2" placeholder="이 강사에 대한 노트 (예: 발음 교정 보강 필요, 학생 응대 좋음 등)" style="flex:1;font-size:.9rem;padding:.5em .7em"></textarea>
+          <button class="btn" style="margin-top:0;align-self:stretch" onclick="addTeacherNote()">노트 추가</button>
+        </div>
+        <div id="tn-list" style="margin-top:10px"></div>
+      </div>
     </div>
   </div>
 
@@ -398,7 +411,7 @@
         <input type="month" id="pay-month-filter">
       </div>
       <div style="overflow-x:auto"><table id="t-payments"><thead><tr>
-        <th>결제일</th><th>학생</th><th>강사</th><th>기간</th><th>금액</th><th>방법</th><th>상태</th><th>거래ID</th>
+        <th>결제일</th><th>학생</th><th>강사</th><th>기간</th><th>금액</th><th>방법</th><th>상태</th><th>거래ID</th><th>액션</th>
       </tr></thead><tbody></tbody></table></div>
     </div>
   </div>
@@ -450,7 +463,26 @@
   <a href="login.html" style="background:var(--coral);color:#fff;padding:.8em 2em;border-radius:8px;font-weight:700">로그인하기</a>
 </div>
 
-<!-- LIST MODAL -->
+<!-- REFUND MODAL -->
+<div id="refund-modal" style="display:none;position:fixed;inset:0;background:rgba(18,39,61,.6);z-index:990;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)" onclick="if(event.target===this)this.style.display='none'">
+  <div style="background:#fff;border-radius:16px;max-width:480px;width:100%;padding:24px;position:relative;box-shadow:0 30px 70px rgba(0,0,0,.3)">
+    <button onclick="document.getElementById('refund-modal').style.display='none'" style="position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:50%;background:var(--paper);border:0;cursor:pointer;font-size:1rem;font-family:inherit">✕</button>
+    <h2 style="font-family:var(--serif);font-size:1.2rem;margin-bottom:6px">💸 환불 처리</h2>
+    <p id="refund-student" style="color:var(--muted);font-size:.88rem;margin-bottom:14px">—</p>
+    <label>환불 금액 (원)</label>
+    <input id="refund-amount" type="number" min="0">
+    <label>환불 사유</label>
+    <textarea id="refund-reason" rows="3" placeholder="예: 학생 요청, 시스템 오류, 강사 사유 등"></textarea>
+    <div style="background:#fef9eb;border-left:3px solid var(--warn);padding:8px 12px;border-radius:0 8px 8px 0;margin-top:14px;font-size:.82rem">
+      ⚠️ 이 작업은 시스템 기록만 남깁니다. 실제 카드/계좌 환불은 토스 대시보드 또는 은행에서 별도 처리해야 합니다.
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button class="btn btn-danger" id="refund-confirm" style="flex:1">환불 처리</button>
+      <button class="btn-ghost" onclick="document.getElementById('refund-modal').style.display='none'" style="padding:.7em 1.4em;background:#fff;border:1.5px solid var(--line);border-radius:9px;cursor:pointer;font-family:inherit">취소</button>
+    </div>
+    <div class="msg" id="refund-msg"></div>
+  </div>
+</div>
 <div id="list-modal" style="display:none;position:fixed;inset:0;background:rgba(18,39,61,.6);z-index:990;align-items:flex-start;justify-content:center;padding:60px 20px;overflow-y:auto;backdrop-filter:blur(4px)" onclick="if(event.target===this)this.style.display='none'">
   <div style="background:#fff;border-radius:16px;max-width:680px;width:100%;padding:24px;position:relative;box-shadow:0 30px 70px rgba(0,0,0,.3)">
     <button onclick="document.getElementById('list-modal').style.display='none'" style="position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:50%;background:var(--paper);border:0;cursor:pointer;font-size:1rem;font-family:inherit">✕</button>
@@ -469,7 +501,7 @@ const $=id=>document.getElementById(id);
 let USER=null, PROFILE=null;
 let PEOPLE=[], TEACHERS=[], PAYMENTS=[], BOOKINGS=[];
 let EXPANDED_ROW=null;
-let EXPIRING_LIST=[], OVERDUE_LIST=[];
+let EXPIRING_LIST=[], OVERDUE_LIST=[], NOSHOW_LIST=[];
 
 // ──────── INIT ────────
 (async()=>{
@@ -513,6 +545,25 @@ $("card-expiring").onclick = ()=>{
       <div>
         <b>${e.name}</b> · <span style="color:var(--muted);font-size:.85rem">${e.teacher}</span>
         <div style="font-size:.78rem;color:var(--muted);margin-top:2px">마지막 수업: ${dt}</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        ${e.phone ? `<a href="tel:${e.phone.replace(/\s+/g,'')}" style="background:var(--teal);color:#fff;padding:.4em .85em;border-radius:6px;font-size:.82rem;font-weight:600">📞 ${e.phone}</a>` : ""}
+        <button onclick="document.querySelector('[data-tab=people]').click();document.getElementById('list-modal').style.display='none';setTimeout(()=>{const tr=document.querySelector('tr.member-row[data-id=\\'${e.student_id}\\']');if(tr){tr.scrollIntoView({behavior:'smooth'});tr.click();}},300)" style="background:#fff;border:1.5px solid var(--ink);color:var(--ink);padding:.4em .85em;border-radius:6px;font-size:.82rem;cursor:pointer;font-weight:600">상세보기</button>
+      </div>
+    </div>`;
+  }).join("");
+  $("list-modal").style.display = "flex";
+};
+
+$("card-noshow").onclick = ()=>{
+  if(NOSHOW_LIST.length === 0){ alert("최근 30일 노쇼 3회 이상인 학생이 없습니다."); return; }
+  $("list-modal-title").textContent = `🚨 노쇼 3회 이상 학생 (최근 30일) — ${NOSHOW_LIST.length}명`;
+  $("list-modal-body").innerHTML = NOSHOW_LIST.map(e=>{
+    const dt = new Date(e.last).toLocaleDateString("ko-KR",{month:"numeric",day:"numeric"});
+    return `<div style="padding:10px 4px;border-bottom:1px solid var(--paper);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+      <div>
+        <b>${e.name}</b> · <span style="color:var(--alert);font-weight:700;font-size:.92rem">${e.count}회 노쇼</span>
+        <div style="font-size:.78rem;color:var(--muted);margin-top:2px">${e.email} · 최근 ${dt}</div>
       </div>
       <div style="display:flex;gap:6px">
         ${e.phone ? `<a href="tel:${e.phone.replace(/\s+/g,'')}" style="background:var(--teal);color:#fff;padding:.4em .85em;border-radius:6px;font-size:.82rem;font-weight:600">📞 ${e.phone}</a>` : ""}
@@ -640,6 +691,27 @@ async function loadDashboard(){
   $("s-pending").textContent = pending;
   $("s-pending-d").textContent = `결석계 ${absCount||0}건 · 노쇼 ${todayNoshow}건`;
   if(pending > 0) $("card-alerts").classList.add("alert");
+
+  // 노쇼 패턴 — 지난 30일 내 학생별 노쇼 횟수 집계
+  const thirtyDaysAgo = new Date(now.getTime() - 30*24*60*60000).toISOString();
+  const{data:noshowBks}=await sb.from("bookings").select("student_id,start_at,student_status,profiles!student_id(full_name,email,phone)").gte("start_at",thirtyDaysAgo).lte("start_at",now.toISOString()).eq("student_status","no_show").eq("is_cancelled",false);
+  const noshowCounts = {};
+  (noshowBks||[]).forEach(b=>{
+    if(!b.student_id) return;
+    if(!noshowCounts[b.student_id]) noshowCounts[b.student_id] = { count: 0, profile: b.profiles, last: b.start_at };
+    noshowCounts[b.student_id].count++;
+    if(b.start_at > noshowCounts[b.student_id].last) noshowCounts[b.student_id].last = b.start_at;
+  });
+  NOSHOW_LIST = Object.entries(noshowCounts).filter(([_,v])=>v.count >= 3).map(([sid,v])=>({
+    student_id: sid,
+    name: v.profile?.full_name || v.profile?.email || "—",
+    email: v.profile?.email || "",
+    phone: v.profile?.phone || "",
+    count: v.count,
+    last: v.last,
+  })).sort((a,b)=>b.count - a.count);
+  $("s-noshow-pattern").textContent = NOSHOW_LIST.length;
+  if(NOSHOW_LIST.length > 0) $("card-noshow").classList.add("alert");
 
   // 최근 결제
   const{data:recPay}=await sb.from("payments").select("amount,paid_at,profiles!student_id(full_name,email),teachers(display_name)").eq("status","paid").order("paid_at",{ascending:false}).limit(5);
@@ -959,7 +1031,50 @@ async function loadTeachers(){
   $("hr-teacher").innerHTML = opts;
   $("zk-teacher").innerHTML = opts;
   $("gc-teacher").innerHTML = opts;
+  $("tn-teacher").innerHTML = `<option value="">— 강사 선택 —</option>` + opts;
 }
+
+// ──────── TEACHER COACHING NOTES ────────
+$("tn-teacher").addEventListener("change", refreshTeacherNotes);
+
+async function refreshTeacherNotes(){
+  const tid = $("tn-teacher").value;
+  if(!tid){ $("tn-list").innerHTML = ""; return; }
+  const{data:notes}=await sb.from("teacher_notes").select("id,content,author_name,created_at").eq("teacher_id",tid).order("created_at",{ascending:false}).limit(30);
+  $("tn-list").innerHTML = `<div style="background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden;max-height:300px;overflow-y:auto">${
+    (notes||[]).length ? (notes||[]).map(n=>`
+      <div style="padding:8px 12px;border-bottom:1px solid var(--paper);font-size:.85rem;display:flex;justify-content:space-between;gap:8px">
+        <div style="flex:1">
+          <div style="white-space:pre-wrap;color:var(--ink)">${n.content.replace(/</g,'&lt;')}</div>
+          <div style="font-size:.72rem;color:var(--muted);margin-top:4px">${n.author_name||"–"} · ${new Date(n.created_at).toLocaleString("ko-KR",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})}</div>
+        </div>
+        <button onclick="deleteTeacherNote(${n.id})" style="background:none;border:0;color:var(--muted);cursor:pointer;font-size:.85rem;padding:0 4px">🗑️</button>
+      </div>
+    `).join("") : `<div class="empty" style="padding:14px;font-size:.85rem">노트가 없습니다.</div>`
+  }</div>`;
+}
+
+window.addTeacherNote = async function(){
+  const tid = $("tn-teacher").value;
+  const content = $("tn-input").value.trim();
+  if(!tid){ alert("강사를 선택하세요."); return; }
+  if(!content){ alert("노트 내용을 입력하세요."); return; }
+  const{error}=await sb.from("teacher_notes").insert({
+    teacher_id: tid,
+    author_id: USER.id,
+    author_name: PROFILE.full_name || PROFILE.email,
+    content,
+  });
+  if(error){ alert("저장 실패: "+error.message); return; }
+  $("tn-input").value = "";
+  refreshTeacherNotes();
+};
+window.deleteTeacherNote = async function(noteId){
+  if(!confirm("이 노트를 삭제할까요?")) return;
+  const{error}=await sb.from("teacher_notes").delete().eq("id", noteId);
+  if(error){ alert("삭제 실패: "+error.message); return; }
+  refreshTeacherNotes();
+};
 
 async function loadEditTeachers(){
   const{data}=await sb.from("teachers").select("id,display_name").order("sort_order",{ascending:true});
@@ -1113,7 +1228,7 @@ $("zk-btn").onclick=async()=>{
 
 // ──────── PAYMENTS ────────
 async function loadPayments(){
-  const{data:pays}=await sb.from("payments").select("id,amount,method,status,paid_at,pg_tid,enrollment_id,student_id,teacher_id,profiles!student_id(full_name,email),teachers(display_name),enrollments(months)").order("paid_at",{ascending:false,nullsFirst:false});
+  const{data:pays}=await sb.from("payments").select("id,amount,method,status,paid_at,pg_tid,enrollment_id,student_id,teacher_id,refund_reason,refunded_at,refund_amount,profiles!student_id(full_name,email),teachers(display_name),enrollments(months)").order("paid_at",{ascending:false,nullsFirst:false});
   PAYMENTS=pays||[];
   // 통계
   const now=new Date();
@@ -1148,21 +1263,58 @@ function renderPayments(){
     return true;
   });
   const tbody=$("t-payments").querySelector("tbody");
-  if(filtered.length===0){tbody.innerHTML=`<tr><td colspan="8" class="empty">결과가 없습니다.</td></tr>`;return;}
-  tbody.innerHTML=filtered.map(p=>`<tr>
-    <td>${p.paid_at?new Date(p.paid_at).toLocaleDateString("ko-KR"):"–"}</td>
-    <td><b>${p.profiles?.full_name||"–"}</b><div style="font-size:.78rem;color:var(--muted)">${p.profiles?.email||""}</div></td>
-    <td>${p.teachers?.display_name||"–"}</td>
-    <td>${p.enrollments?.months?p.enrollments.months+"개월":"–"}</td>
-    <td><b>₩${(p.amount||0).toLocaleString()}</b></td>
-    <td>${p.method||"–"}</td>
-    <td><span class="badge ${statusBadge[p.status]||""}">${statusLab[p.status]||p.status}</span></td>
-    <td style="font-size:.78rem;color:var(--muted)">${p.pg_tid||"–"}</td>
-  </tr>`).join("");
+  if(filtered.length===0){tbody.innerHTML=`<tr><td colspan="9" class="empty">결과가 없습니다.</td></tr>`;return;}
+  tbody.innerHTML=filtered.map(p=>{
+    const refundBtn = p.status==="paid"
+      ? `<button class="btn-ghost" style="padding:.3em .7em;font-size:.78rem;margin:0;border-radius:6px;cursor:pointer" onclick="openRefundModal(${p.id},${p.amount||0},'${(p.profiles?.full_name||p.profiles?.email||'').replace(/'/g,"\\'")}')">환불</button>`
+      : p.status==="refund"
+        ? `<span style="font-size:.78rem;color:var(--muted)">${p.refunded_at?new Date(p.refunded_at).toLocaleDateString("ko-KR"):"환불됨"}</span>`
+        : "–";
+    return `<tr>
+      <td>${p.paid_at?new Date(p.paid_at).toLocaleDateString("ko-KR"):"–"}</td>
+      <td><b>${p.profiles?.full_name||"–"}</b><div style="font-size:.78rem;color:var(--muted)">${p.profiles?.email||""}</div></td>
+      <td>${p.teachers?.display_name||"–"}</td>
+      <td>${p.enrollments?.months?p.enrollments.months+"개월":"–"}</td>
+      <td><b>₩${(p.amount||0).toLocaleString()}</b>${p.refund_amount?`<div style="font-size:.72rem;color:var(--alert)">−₩${p.refund_amount.toLocaleString()}</div>`:""}</td>
+      <td>${p.method||"–"}</td>
+      <td><span class="badge ${statusBadge[p.status]||""}">${statusLab[p.status]||p.status}</span>${p.refund_reason?`<div style="font-size:.72rem;color:var(--muted);margin-top:2px" title="${p.refund_reason}">사유: ${p.refund_reason.substring(0,20)}${p.refund_reason.length>20?"…":""}</div>`:""}</td>
+      <td style="font-size:.78rem;color:var(--muted)">${p.pg_tid||"–"}</td>
+      <td>${refundBtn}</td>
+    </tr>`;
+  }).join("");
 }
 $("pay-search").oninput=renderPayments;
 $("pay-status-filter").onchange=renderPayments;
 $("pay-month-filter").onchange=renderPayments;
+
+// ──────── REFUND ────────
+let REFUND_PAYMENT_ID = null;
+window.openRefundModal = function(paymentId, amount, studentName){
+  REFUND_PAYMENT_ID = paymentId;
+  $("refund-student").textContent = `${studentName} · 원 결제 ₩${amount.toLocaleString()}`;
+  $("refund-amount").value = amount;
+  $("refund-reason").value = "";
+  $("refund-msg").textContent = "";
+  $("refund-modal").style.display = "flex";
+};
+$("refund-confirm").onclick = async ()=>{
+  const amount = Number($("refund-amount").value);
+  const reason = $("refund-reason").value.trim();
+  if(!amount || amount <= 0){ $("refund-msg").textContent = "환불 금액을 입력하세요."; $("refund-msg").style.color="#d4512c"; return; }
+  if(!reason){ $("refund-msg").textContent = "환불 사유를 입력하세요."; $("refund-msg").style.color="#d4512c"; return; }
+  $("refund-confirm").disabled = true; $("refund-msg").textContent="처리 중…"; $("refund-msg").style.color="var(--muted)";
+  const{error}=await sb.from("payments").update({
+    status: "refund",
+    refund_reason: reason,
+    refund_amount: amount,
+    refunded_at: new Date().toISOString(),
+    refunded_by: USER.id,
+  }).eq("id", REFUND_PAYMENT_ID);
+  $("refund-confirm").disabled = false;
+  if(error){ $("refund-msg").textContent = "실패: "+error.message; $("refund-msg").style.color="#d4512c"; return; }
+  $("refund-modal").style.display = "none";
+  await loadPayments();
+};
 
 // ──────── MONTHLY NOTICE ────────
 $("mn-gen").onclick=async()=>{
