@@ -177,6 +177,7 @@
   <div class="tabs">
     <button class="on" data-tab="live" data-t="tab_live">🎛 Live Control</button>
     <button data-tab="attendance" data-t="tab_att">✅ Attendance</button>
+    <button data-tab="reports" data-t="tab_reports">📊 Teacher Reports</button>
     <button data-tab="leveltest" data-t="tab_lt">🧪 Level Test</button>
     <button data-tab="roster" data-t="tab_roster">📒 Roster</button>
   </div>
@@ -243,6 +244,15 @@
           <th data-t="th_teacher_st">T</th><th data-t="th_student_st">S</th><th data-t="th_status">Status</th>
         </tr></thead><tbody></tbody>
       </table></div>
+    </div>
+  </div>
+
+  <!-- 강사 리포트 -->
+  <div class="panel" id="p-reports">
+    <div class="step">
+      <h2 data-t="reports_h">📊 Teacher Weekly Reports</h2>
+      <p class="sub" data-t="reports_sub">Attendance, no-show, late, and student feedback by teacher. Past 4 weeks.</p>
+      <div id="reports-list"><div class="empty" data-t="loading">Loading…</div></div>
     </div>
   </div>
 
@@ -353,6 +363,9 @@ const $=(id)=>document.getElementById(id);
 const I18N = {
   en:{
     title:"Manager Dashboard", logout:"Logout", admin_link:"Admin",
+    tab_reports:"📊 Teacher Reports",
+    reports_h:"Teacher Weekly Reports",
+    reports_sub:"Attendance, no-show, late, and student feedback by teacher. Past 4 weeks.",
     tab_live:"🎛 Live Control", tab_att:"✅ Attendance", tab_lt:"🧪 Level Test", tab_roster:"📒 Roster",
     live_now:"In session now", live_alert:"Teachers not in Zoom", live_pending_abs:"Pending absences", live_today_left:"Today remaining",
     s_teachers:"Active teachers", s_students:"Students this week", s_week_classes:"Classes this week", s_today_classes:"Today",
@@ -387,6 +400,9 @@ const I18N = {
   },
   kr:{
     title:"매니저 대시보드", logout:"로그아웃", admin_link:"총관리자",
+    tab_reports:"📊 강사 리포트",
+    reports_h:"강사 주간 리포트",
+    reports_sub:"강사별 출석률·노쇼·지각·학생 평가 — 최근 4주간 통계.",
     tab_live:"🎛 실시간 관제", tab_att:"✅ 출결", tab_lt:"🧪 레벨테스트", tab_roster:"📒 수강생 명부",
     live_now:"지금 진행 중", live_alert:"강사 미입장", live_pending_abs:"결석계 대기", live_today_left:"오늘 남은 수업",
     s_teachers:"활동 강사", s_students:"이번 주 학생", s_week_classes:"이번 주 수업", s_today_classes:"오늘",
@@ -467,6 +483,7 @@ document.querySelectorAll(".tabs button").forEach(b=>{
     b.classList.add("on"); $("p-"+b.dataset.tab).classList.add("on");
     if(b.dataset.tab==="live")       loadLive();
     if(b.dataset.tab==="attendance") loadAttendance();
+    if(b.dataset.tab==="reports")    loadReports();
     if(b.dataset.tab==="leveltest")  loadLeveltest();
     if(b.dataset.tab==="roster")     loadRoster();
   };
@@ -483,6 +500,7 @@ function reRender(){
   const tab = document.querySelector(".tabs button.on")?.dataset.tab;
   if(tab==="live")       renderLive();
   if(tab==="attendance") loadAttendance();
+  if(tab==="reports")    loadReports();
   if(tab==="leveltest")  loadLeveltest();
   if(tab==="roster")     loadRoster();
 }
@@ -936,6 +954,139 @@ $("att-apply").onclick = loadAttendance;
 $("att-search").oninput = ()=>{ loadAttendance(); };
 
 /* ────── 레벨테스트 ────── */
+// ──────── TEACHER REPORTS ────────
+async function loadReports(){
+  const area = $("reports-list");
+  area.innerHTML = `<div class="empty">${t("loading")}</div>`;
+
+  const now = Date.now();
+  const fourWeeksAgo = new Date(now - 28*24*60*60000).toISOString();
+  const oneWeekAgo = new Date(now - 7*24*60*60000).toISOString();
+
+  // 강사 + 평점 + booking 통계 한 번에
+  const{data:teachers}=await sb.from("teachers").select("id,display_name,is_active").eq("is_active",true).order("display_name",{ascending:true});
+  if(!teachers || teachers.length===0){ area.innerHTML = `<div class="empty">${LANG==="kr"?"강사가 없습니다.":"No teachers."}</div>`; return; }
+
+  const tIds = teachers.map(t=>t.id);
+
+  // 4주 booking + 평점
+  const{data:bks}=await sb.from("bookings").select("teacher_id,start_at,teacher_status,student_status,teacher_late_min,early_leave_flag,is_cancelled").in("teacher_id",tIds).gte("start_at",fourWeeksAgo).lte("start_at",new Date(now).toISOString()).eq("is_cancelled",false);
+  const{data:fbs}=await sb.from("student_feedback").select("teacher_id,rating,comment,created_at").in("teacher_id",tIds).gte("created_at",fourWeeksAgo);
+  const{data:tnotes}=await sb.from("teacher_notes").select("teacher_id,content,author_name,created_at").in("teacher_id",tIds).order("created_at",{ascending:false});
+
+  // 강사별 그룹
+  const stats = {};
+  teachers.forEach(t=>{
+    stats[t.id] = { name:t.display_name, total:0, week:0, on_time:0, late:0, no_show:0, late_min_sum:0, early_leave:0, ratings:[], notes:[] };
+  });
+  (bks||[]).forEach(b=>{
+    if(!stats[b.teacher_id]) return;
+    const s = stats[b.teacher_id];
+    s.total++;
+    if(b.start_at >= oneWeekAgo) s.week++;
+    if(b.teacher_status === "on_time") s.on_time++;
+    else if(b.teacher_status === "late"){ s.late++; s.late_min_sum += (b.teacher_late_min||0); }
+    else if(b.teacher_status === "no_show") s.no_show++;
+    if(b.early_leave_flag) s.early_leave++;
+  });
+  (fbs||[]).forEach(f=>{
+    if(stats[f.teacher_id] && f.rating) stats[f.teacher_id].ratings.push({r:f.rating, c:f.comment, d:f.created_at});
+  });
+  (tnotes||[]).forEach(n=>{
+    if(stats[n.teacher_id]) stats[n.teacher_id].notes.push(n);
+  });
+
+  // 강사 컨디션 분류
+  function condition(s){
+    if(s.total === 0) return {label: LANG==="kr"?"수업 없음":"No classes", color:"var(--muted)", icon:"💤"};
+    const onTimeRate = s.on_time / s.total;
+    const noShowRate = s.no_show / s.total;
+    if(noShowRate >= 0.1 || (s.late / s.total) >= 0.3){
+      return {label: LANG==="kr"?"⚠️ 케어 필요":"⚠️ Needs attention", color:"var(--alert)", icon:"🚨"};
+    }
+    if(onTimeRate >= 0.9){
+      return {label: LANG==="kr"?"우수":"Excellent", color:"var(--ok)", icon:"⭐"};
+    }
+    if(onTimeRate >= 0.75){
+      return {label: LANG==="kr"?"양호":"Good", color:"var(--teal)", icon:"✓"};
+    }
+    return {label: LANG==="kr"?"주의":"Watch", color:"var(--warn)", icon:"👀"};
+  }
+
+  area.innerHTML = Object.entries(stats).map(([tid,s])=>{
+    const c = condition(s);
+    const avgRating = s.ratings.length > 0 ? (s.ratings.reduce((a,b)=>a+b.r,0)/s.ratings.length).toFixed(1) : "—";
+    const avgLateMin = s.late > 0 ? (s.late_min_sum / s.late).toFixed(1) : 0;
+    const onTimePct = s.total > 0 ? Math.round(s.on_time/s.total*100) : 0;
+    return `<div style="background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+        <div>
+          <b style="font-size:1.05rem">${s.name}</b>
+          <span style="color:${c.color};font-weight:700;margin-left:8px">${c.icon} ${c.label}</span>
+        </div>
+        <div style="font-size:.85rem;color:var(--muted)">${LANG==="kr"?"이번 주":"This week"}: <b style="color:var(--ink)">${s.week}</b> · ${LANG==="kr"?"4주":"4w"}: <b style="color:var(--ink)">${s.total}</b></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:10px">
+        <div style="text-align:center;padding:8px;background:var(--paper);border-radius:8px">
+          <div style="font-size:.7rem;color:var(--muted)">${LANG==="kr"?"정시":"On time"}</div>
+          <div style="font-weight:700;font-size:1.1rem;color:var(--ok)">${onTimePct}%</div>
+        </div>
+        <div style="text-align:center;padding:8px;background:var(--paper);border-radius:8px">
+          <div style="font-size:.7rem;color:var(--muted)">${LANG==="kr"?"지각":"Late"}</div>
+          <div style="font-weight:700;font-size:1.1rem;color:var(--warn)">${s.late}</div>
+          ${avgLateMin>0?`<div style="font-size:.65rem;color:var(--muted)">avg ${avgLateMin}m</div>`:""}
+        </div>
+        <div style="text-align:center;padding:8px;background:var(--paper);border-radius:8px">
+          <div style="font-size:.7rem;color:var(--muted)">${LANG==="kr"?"노쇼":"No-show"}</div>
+          <div style="font-weight:700;font-size:1.1rem;color:${s.no_show>0?'var(--alert)':'var(--ink)'}">${s.no_show}</div>
+        </div>
+        <div style="text-align:center;padding:8px;background:var(--paper);border-radius:8px">
+          <div style="font-size:.7rem;color:var(--muted)">${LANG==="kr"?"중도이탈":"Left early"}</div>
+          <div style="font-weight:700;font-size:1.1rem;color:${s.early_leave>0?'var(--warn)':'var(--ink)'}">${s.early_leave}</div>
+        </div>
+        <div style="text-align:center;padding:8px;background:var(--paper);border-radius:8px">
+          <div style="font-size:.7rem;color:var(--muted)">${LANG==="kr"?"평점":"Rating"}</div>
+          <div style="font-weight:700;font-size:1.1rem;color:var(--ink)">★ ${avgRating}</div>
+          ${s.ratings.length>0?`<div style="font-size:.65rem;color:var(--muted)">${s.ratings.length} ${LANG==="kr"?"개":""}</div>`:""}
+        </div>
+      </div>
+      ${s.ratings.length > 0 ? `
+        <details style="margin-top:8px">
+          <summary style="cursor:pointer;font-size:.85rem;color:var(--muted)">📝 ${LANG==="kr"?"학생 평가":"Student feedback"} (${s.ratings.length})</summary>
+          <div style="margin-top:8px;max-height:200px;overflow-y:auto;background:var(--paper);border-radius:8px;padding:8px">
+          ${s.ratings.slice(0,10).map(f=>`<div style="padding:6px 8px;border-bottom:1px solid #fff;font-size:.82rem"><b>★ ${f.r}</b> ${f.c?`· ${f.c.replace(/</g,'&lt;')}`:""} <span style="color:var(--muted);font-size:.72rem">${new Date(f.d).toLocaleDateString("ko-KR",{month:"numeric",day:"numeric"})}</span></div>`).join("")}
+          </div>
+        </details>` : ""}
+      ${s.notes.length > 0 ? `
+        <details style="margin-top:8px">
+          <summary style="cursor:pointer;font-size:.85rem;color:var(--muted)">📓 ${LANG==="kr"?"코칭 노트":"Coaching notes"} (${s.notes.length})</summary>
+          <div style="margin-top:8px;max-height:200px;overflow-y:auto;background:var(--paper);border-radius:8px;padding:8px">
+          ${s.notes.slice(0,10).map(n=>`<div style="padding:6px 8px;border-bottom:1px solid #fff;font-size:.82rem"><div style="white-space:pre-wrap">${n.content.replace(/</g,'&lt;')}</div><div style="color:var(--muted);font-size:.7rem;margin-top:2px">${n.author_name||""} · ${new Date(n.created_at).toLocaleDateString("ko-KR")}</div></div>`).join("")}
+          </div>
+        </details>` : ""}
+      <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
+        <input type="text" id="tn-q-${tid}" placeholder="${LANG==="kr"?'새 코칭 노트…':'New coaching note…'}" style="flex:1;min-width:200px;padding:6px 10px;border:1px solid var(--line);border-radius:6px;font:inherit;font-size:.85rem">
+        <button onclick="addMgrTeacherNote('${tid}')" style="background:var(--ink);color:#fff;border:0;padding:.4em .9em;border-radius:6px;font:inherit;font-weight:600;font-size:.85rem;cursor:pointer">+ ${LANG==="kr"?'노트 추가':'Add note'}</button>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+window.addMgrTeacherNote = async function(tid){
+  const input = $(`tn-q-${tid}`);
+  const content = input.value.trim();
+  if(!content){ return; }
+  const{error}=await sb.from("teacher_notes").insert({
+    teacher_id: tid,
+    author_id: USER.id,
+    author_name: PROFILE.full_name || PROFILE.email || "Manager",
+    content,
+  });
+  if(error){ alert("Failed: "+error.message); return; }
+  input.value = "";
+  loadReports();
+};
+
 async function loadLeveltest(){
   const{data:slots}=await sb.from("leveltest_slots")
     .select("id,start_at,duration_min,status,manager_id")
