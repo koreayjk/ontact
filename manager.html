@@ -34,11 +34,17 @@
   .live-tile .lt-l{font-size:.78rem;color:var(--muted);font-weight:600}
 
   /* === 알람 카드 (강사 미입장) === */
-  .alert-card{background:#fef4f1;border:2px solid var(--alert);border-radius:14px;padding:14px 18px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+  .alert-card{background:#fef4f1;border:2px solid var(--alert);border-radius:14px;padding:14px 18px;margin-bottom:10px;display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap}
   .alert-card.warn{background:#fef9eb;border-color:var(--warn)}
   .alert-card .who-info b{font-size:1rem;display:block}
   .alert-card .who-info .meta{font-size:.85rem;color:var(--muted);margin-top:2px}
-  .alert-card .actions{display:flex;gap:8px;flex-wrap:wrap}
+  .alert-card .actions{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start}
+  .alert-memo-row{margin-top:8px}
+  .alert-memo-input{width:100%;min-width:280px;padding:6px 10px;border:1px solid rgba(0,0,0,.15);border-radius:6px;font:inherit;font-size:.85rem;background:#fff}
+  .alert-memo-input:focus{outline:none;border-color:var(--ink)}
+  .btn-resolve{background:#fff;color:var(--ink);border:1.5px solid var(--ink);padding:.45em .9em;border-radius:8px;font:inherit;font-weight:700;font-size:.85rem;cursor:pointer;white-space:nowrap;transition:all .15s}
+  .btn-resolve:hover{background:var(--ink);color:#fff}
+  .btn-resolve:disabled{opacity:.5;cursor:not-allowed}
   .btn-call{background:var(--alert);color:#fff;border:none;padding:.7em 1.4em;border-radius:999px;font-weight:800;text-decoration:none;font-size:.95rem;font-family:inherit;display:inline-flex;align-items:center;gap:6px}
   .btn-call.warn{background:var(--warn)}
   .btn-call:hover{transform:translateY(-1px)}
@@ -524,7 +530,7 @@ async function loadLive(){
   const monday = new Date(mondayOf(new Date()).getTime() + WEEK_OFFSET*7*86400000);
   const sun = new Date(monday.getTime() + 7*86400000);
   const{data}=await sb.from("bookings")
-    .select("id,start_at,is_cancelled,makeup_of,zoom_join_url,teacher_joined_at,student_joined_at,teacher_left_at,student_left_at,early_leave_flag,teacher_status,teacher_id,student_id,teachers(display_name),profiles(full_name,email)")
+    .select("id,start_at,is_cancelled,makeup_of,zoom_join_url,teacher_joined_at,student_joined_at,teacher_left_at,student_left_at,early_leave_flag,alert_resolved_at,alert_note,teacher_alert_resolved_at,teacher_alert_note,teacher_status,teacher_id,student_id,teachers(display_name),profiles(full_name,email)")
     .gte("start_at", monday.toISOString())
     .lt ("start_at", sun.toISOString())
     .order("start_at",{ascending:true});
@@ -613,9 +619,10 @@ function renderLive(){
 function renderAlerts(alerts, now){
   const area = $("alerts-area");
 
-  // 조기 이탈 알람 (지난 1시간 안에 early_leave_flag = true)
+  // 조기 이탈 알람 (지난 1시간 안에 early_leave_flag = true, 아직 해제 안 됨)
   const recentEarlyLeaves = BOOKINGS_CACHE.filter(b=>{
     if(!b.early_leave_flag) return false;
+    if(b.alert_resolved_at) return false; // 이미 처리됨
     const t = new Date(b.start_at).getTime();
     return t >= now - 60*60000 && t <= now + 60000;
   });
@@ -638,17 +645,25 @@ function renderAlerts(alerts, now){
         warnText = `${min} ${t("min")} ${t("alert_late_by")}`;
         level = "alert";
       }
+      // 이미 처리된 미입장 알람은 표시 안 함
+      if(b.teacher_alert_resolved_at) return "";
       const callBtn = tc.phone
         ? `<a class="btn-call ${level==='warn'?'warn':''}" href="tel:${tc.phone.replace(/\s+/g,'')}">${t("btn_call")} ${tc.phone}</a>`
         : `<span class="badge b-pending">${t("no_phone")}</span>`;
-      return `<div class="alert-card ${level==='warn'?'warn':''}">
-        <div class="who-info">
+      return `<div class="alert-card ${level==='warn'?'warn':''}" data-bid="${b.id}" data-akind="teacher_missing">
+        <div class="who-info" style="flex:1">
           <b>🚨 ${tc.display_name} — ${t("alert_title")}</b>
           <div class="meta">${myTime}${tchTime} · ${stu} · <b>${warnText}</b></div>
+          <div class="alert-memo-row">
+            <input type="text" class="alert-memo-input" placeholder="${LANG==='kr'?'메모 (선택)':'Note (optional)'}" data-bid="${b.id}" data-akind="teacher_missing">
+          </div>
         </div>
-        <div class="actions">${callBtn}</div>
+        <div class="actions">
+          ${callBtn}
+          <button class="btn-resolve" data-bid="${b.id}" data-akind="teacher_missing">${LANG==='kr'?'✅ 확인함':'✅ Resolved'}</button>
+        </div>
       </div>`;
-    }).join("");
+    }).filter(Boolean).join("");
   }
 
   // 조기 이탈 알람
@@ -658,7 +673,6 @@ function renderAlerts(alerts, now){
       const tname = b.teachers ? b.teachers.display_name : "–";
       const stu = b.profiles ? (b.profiles.full_name||b.profiles.email) : t("student");
       const myTime = fmtTime(b.start_at);
-      // 누가 나갔는지 추정 — teacher_left_at 있고 student_left_at 없으면 강사가 나감 등
       let whoLeft = "";
       if(b.teacher_left_at && !b.student_left_at) whoLeft = LANG==="kr"?"강사 이탈":"Teacher left";
       else if(b.student_left_at && !b.teacher_left_at) whoLeft = LANG==="kr"?"학생 이탈":"Student left";
@@ -666,17 +680,65 @@ function renderAlerts(alerts, now){
       const callBtn = tc && tc.phone
         ? `<a class="btn-call warn" href="tel:${tc.phone.replace(/\s+/g,'')}">${t("btn_call")} ${tc.phone}</a>`
         : "";
-      return `<div class="alert-card warn">
-        <div class="who-info">
+      return `<div class="alert-card warn" data-bid="${b.id}" data-akind="early_leave">
+        <div class="who-info" style="flex:1">
           <b>⚠️ ${tname} — ${whoLeft}</b>
           <div class="meta">${myTime} · ${stu} · ${LANG==="kr"?"수업 종료 전 줌 퇴장":"Left zoom before class end"}</div>
+          <div class="alert-memo-row">
+            <input type="text" class="alert-memo-input" placeholder="${LANG==='kr'?'메모 (선택)':'Note (optional)'}" data-bid="${b.id}" data-akind="early_leave">
+          </div>
         </div>
-        <div class="actions">${callBtn}</div>
+        <div class="actions">
+          ${callBtn}
+          <button class="btn-resolve" data-bid="${b.id}" data-akind="early_leave">${LANG==='kr'?'✅ 확인함':'✅ Resolved'}</button>
+        </div>
       </div>`;
     }).join("");
   }
 
-  area.innerHTML = html;
+  if(!html){
+    area.innerHTML = `<div style="background:#f0fdf4;border:1px solid #16a34a;color:#16a34a;border-radius:12px;padding:12px 16px;font-weight:600;text-align:center">${LANG==='kr'?'✓ 활성 알람 없음':'✓ No active alerts'}</div>`;
+  } else {
+    area.innerHTML = html;
+    // 확인함 버튼 클릭 핸들러
+    area.querySelectorAll(".btn-resolve").forEach(btn=>{
+      btn.onclick = async ()=>{
+        const bid = Number(btn.dataset.bid);
+        const akind = btn.dataset.akind;
+        const memoInput = area.querySelector(`.alert-memo-input[data-bid="${bid}"][data-akind="${akind}"]`);
+        const note = memoInput ? memoInput.value.trim() : "";
+        btn.disabled = true; btn.textContent = "…";
+        const upd = {};
+        if(akind === "early_leave"){
+          upd.alert_resolved_at = new Date().toISOString();
+          upd.alert_resolved_by = USER.id;
+          if(note) upd.alert_note = note;
+        } else if(akind === "teacher_missing"){
+          upd.teacher_alert_resolved_at = new Date().toISOString();
+          upd.teacher_alert_resolved_by = USER.id;
+          if(note) upd.teacher_alert_note = note;
+        }
+        const{error}=await sb.from("bookings").update(upd).eq("id", bid);
+        if(error){
+          alert("Failed: " + error.message);
+          btn.disabled = false;
+          btn.textContent = LANG==='kr'?'✅ 확인함':'✅ Resolved';
+          return;
+        }
+        // 즉시 카드 페이드아웃 후 다음 갱신에서 사라짐
+        const card = btn.closest(".alert-card");
+        if(card){
+          card.style.transition = "opacity .4s, transform .4s";
+          card.style.opacity = "0.4";
+          card.style.transform = "translateX(20px)";
+        }
+        // BOOKINGS_CACHE 업데이트
+        const b = BOOKINGS_CACHE.find(x=>x.id===bid);
+        if(b) Object.assign(b, upd);
+        setTimeout(()=>renderRoom(), 800);
+      };
+    });
+  }
 }
 
 function renderTeacherRows(states, now){
