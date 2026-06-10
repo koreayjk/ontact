@@ -627,6 +627,8 @@ async function togglePersonDetail(tr, personId){
     const{data:enrolls}=await sb.from("enrollments").select("id,months,start_date,slot_hm,price,status,payment_status,teachers(display_name),bookings(id,start_at,is_cancelled,teacher_status,student_status)").eq("student_id",personId).order("start_date",{ascending:false});
     const{data:pays}=await sb.from("payments").select("amount,paid_at,status,method").eq("student_id",personId).order("paid_at",{ascending:false}).limit(5);
     const{data:absences}=await sb.from("absences").select("requested_at,reason,status").eq("student_id",personId).order("requested_at",{ascending:false}).limit(5);
+    // 매니저 알람 메모가 있는 booking (학생 본인 관련)
+    const{data:alertNotes}=await sb.from("bookings").select("id,start_at,alert_note,alert_resolved_at,teacher_alert_note,teacher_alert_resolved_at,teachers(display_name)").eq("student_id",personId).or("alert_note.not.is.null,teacher_alert_note.not.is.null").order("start_at",{ascending:false}).limit(5);
 
     const now = new Date().toISOString();
     let nextLesson = null;
@@ -691,6 +693,21 @@ async function togglePersonDetail(tr, personId){
           </div>
         </div>
       </div>
+
+      ${(alertNotes||[]).length ? `<h3 style="font-size:.95rem;margin:14px 0 6px">⚠️ 매니저 알람 기록</h3>
+      <div style="background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden">
+        ${(alertNotes||[]).map(n=>{
+          const dt = new Date(n.start_at).toLocaleString("ko-KR",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit",weekday:"short"});
+          const tname = n.teachers?.display_name || "—";
+          const notes = [];
+          if(n.teacher_alert_note) notes.push(`<div style="font-size:.78rem;color:var(--muted)">🚨 강사 미입장: <span style="color:var(--ink)">${n.teacher_alert_note}</span></div>`);
+          if(n.alert_note) notes.push(`<div style="font-size:.78rem;color:var(--muted)">⚠️ 중도 이탈: <span style="color:var(--ink)">${n.alert_note}</span></div>`);
+          return `<div style="padding:8px 12px;border-bottom:1px solid var(--paper);font-size:.85rem">
+            <b>${dt}</b> · ${tname}
+            ${notes.join("")}
+          </div>`;
+        }).join("")}
+      </div>` : ""}
     `;
   } else if(isTeacher){
     content = `<div class="detail-box"><div class="lab">강사 페이지에서 자세히 보세요</div><a href="manager.html" class="btn" style="display:inline-block;margin-top:8px">🎛 라이브 관제실로</a></div>`;
