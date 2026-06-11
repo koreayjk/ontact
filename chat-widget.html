@@ -1,0 +1,717 @@
+<!--
+  ============================================================
+  온택 채팅 위젯 — chat-widget.html
+  ============================================================
+  포함 방법: 각 페이지(student/teacher/manager/admin)의 </body> 직전에:
+    <script>fetch('chat-widget.html').then(r=>r.text()).then(h=>document.body.insertAdjacentHTML('beforeend',h));</script>
+
+  요구 사항:
+   - window.sb (Supabase 클라이언트) 이미 초기화됨
+   - 사용자 로그인 상태 (auth.getUser() 호출 가능)
+-->
+
+<style>
+  /* 채팅 도크 — 오른쪽 아래 고정 */
+  .chat-dock {
+    position: fixed;
+    bottom: 0;
+    right: 20px;
+    z-index: 998;
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    font-family: 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    pointer-events: none;
+  }
+  .chat-dock > * { pointer-events: auto; }
+
+  /* 최소화된 도크 버튼 (오른쪽 끝) */
+  .chat-tab {
+    background: #12273d;
+    color: #fff;
+    border: 0;
+    padding: 10px 16px;
+    border-radius: 12px 12px 0 0;
+    font: inherit;
+    font-weight: 700;
+    font-size: .9rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 -4px 20px rgba(0,0,0,.15);
+    transition: all .15s;
+  }
+  .chat-tab:hover { background: #1d3a5a; transform: translateY(-1px); }
+  .chat-tab .badge {
+    background: #ef6a48;
+    color: #fff;
+    border-radius: 999px;
+    padding: 1px 8px;
+    font-size: .72rem;
+    font-weight: 700;
+  }
+  .chat-tab.hidden { display: none; }
+
+  /* 열린 채팅 목록 패널 */
+  .chat-list-panel {
+    width: 320px;
+    height: 480px;
+    background: #fff;
+    border-radius: 12px 12px 0 0;
+    box-shadow: 0 -8px 30px rgba(0,0,0,.2);
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .chat-list-panel.open { display: flex; }
+  .chat-list-panel .head {
+    background: #12273d;
+    color: #fff;
+    padding: 14px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .chat-list-panel .head h3 { font-size: 1rem; font-weight: 700; }
+  .chat-list-panel .head button {
+    background: transparent;
+    border: 0;
+    color: #fff;
+    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 0 4px;
+  }
+  .chat-list-panel .search {
+    padding: 10px;
+    border-bottom: 1px solid #e3ddd0;
+  }
+  .chat-list-panel .search input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #e3ddd0;
+    border-radius: 8px;
+    font: inherit;
+    font-size: .88rem;
+  }
+  .chat-list-panel .list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 0;
+  }
+  .chat-list-panel .conv-row {
+    padding: 10px 14px;
+    border-bottom: 1px solid #f6f4ef;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    transition: background .15s;
+  }
+  .chat-list-panel .conv-row:hover { background: #f9f7f2; }
+  .chat-list-panel .conv-row .who {
+    flex: 1;
+    overflow: hidden;
+  }
+  .chat-list-panel .conv-row .who b {
+    display: block;
+    font-size: .92rem;
+    color: #12273d;
+    margin-bottom: 2px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .chat-list-panel .conv-row .who .preview {
+    font-size: .8rem;
+    color: #6b7785;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .chat-list-panel .conv-row .role-tag {
+    font-size: .7rem;
+    background: #f6f4ef;
+    color: #6b7785;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 4px;
+    font-weight: 600;
+  }
+  .chat-list-panel .conv-row .unread {
+    background: #ef6a48;
+    color: #fff;
+    border-radius: 999px;
+    padding: 2px 7px;
+    font-size: .7rem;
+    font-weight: 700;
+    min-width: 18px;
+    text-align: center;
+  }
+  .chat-list-panel .empty {
+    padding: 20px;
+    text-align: center;
+    color: #6b7785;
+    font-size: .85rem;
+  }
+  .chat-list-panel .group-label {
+    padding: 8px 14px 4px;
+    font-size: .72rem;
+    color: #6b7785;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    font-weight: 700;
+    background: #f9f7f2;
+  }
+
+  /* 채팅 창 (1:1 메시지) */
+  .chat-room {
+    width: 320px;
+    height: 480px;
+    background: #fff;
+    border-radius: 12px 12px 0 0;
+    box-shadow: 0 -8px 30px rgba(0,0,0,.2);
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .chat-room.open { display: flex; }
+  .chat-room .head {
+    background: #12273d;
+    color: #fff;
+    padding: 12px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+  .chat-room .head .info { flex: 1; min-width: 0; }
+  .chat-room .head .info b {
+    display: block;
+    font-size: .95rem;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .chat-room .head .info .role-tag {
+    font-size: .72rem;
+    color: #b8c4d3;
+    background: rgba(255,255,255,.1);
+    padding: 1px 6px;
+    border-radius: 4px;
+    margin-top: 2px;
+    display: inline-block;
+  }
+  .chat-room .head button {
+    background: transparent;
+    border: 0;
+    color: #fff;
+    cursor: pointer;
+    font-size: 1.1rem;
+    padding: 0 4px;
+  }
+  .chat-room .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px;
+    background: #f9f7f2;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .chat-room .messages .msg {
+    max-width: 75%;
+    padding: 8px 12px;
+    border-radius: 14px;
+    font-size: .88rem;
+    line-height: 1.45;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+  }
+  .chat-room .messages .msg.mine {
+    background: #12273d;
+    color: #fff;
+    align-self: flex-end;
+    border-bottom-right-radius: 4px;
+  }
+  .chat-room .messages .msg.theirs {
+    background: #fff;
+    color: #12273d;
+    align-self: flex-start;
+    border: 1px solid #e3ddd0;
+    border-bottom-left-radius: 4px;
+  }
+  .chat-room .messages .msg-time {
+    font-size: .68rem;
+    color: #6b7785;
+    margin-top: 2px;
+  }
+  .chat-room .messages .msg.mine + .msg-time { text-align: right; }
+  .chat-room .messages .date-divider {
+    text-align: center;
+    color: #6b7785;
+    font-size: .72rem;
+    margin: 8px 0;
+    font-weight: 600;
+  }
+  .chat-room .input-area {
+    border-top: 1px solid #e3ddd0;
+    padding: 10px;
+    display: flex;
+    gap: 6px;
+    background: #fff;
+  }
+  .chat-room .input-area textarea {
+    flex: 1;
+    border: 1px solid #e3ddd0;
+    border-radius: 8px;
+    padding: 6px 10px;
+    font: inherit;
+    font-size: .88rem;
+    resize: none;
+    height: 36px;
+    max-height: 80px;
+  }
+  .chat-room .input-area textarea:focus {
+    outline: none;
+    border-color: #12273d;
+  }
+  .chat-room .input-area button {
+    background: #ef6a48;
+    color: #fff;
+    border: 0;
+    padding: 0 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: .85rem;
+  }
+  .chat-room .input-area button:hover { background: #d4512c; }
+  .chat-room .input-area button:disabled { opacity: .5; cursor: not-allowed; }
+
+  /* 모바일 */
+  @media (max-width: 540px) {
+    .chat-dock { right: 0; left: 0; }
+    .chat-list-panel, .chat-room { width: 100%; height: 70vh; border-radius: 12px 12px 0 0; }
+    .chat-tab { border-radius: 12px 0 0 0; margin-left: auto; }
+  }
+
+  /* 비로그인 시 숨김 */
+  .chat-dock.hidden { display: none; }
+</style>
+
+<div class="chat-dock hidden" id="chat-dock">
+  <!-- 채팅 목록 패널 (펼침 상태) -->
+  <div class="chat-list-panel" id="chat-list-panel">
+    <div class="head">
+      <h3>💬 채팅</h3>
+      <button onclick="toggleChatDock()">▼</button>
+    </div>
+    <div class="search">
+      <input type="search" id="chat-search" placeholder="이름·이메일로 검색">
+    </div>
+    <div class="list" id="chat-list">
+      <div class="empty">불러오는 중…</div>
+    </div>
+  </div>
+
+  <!-- 채팅 창 -->
+  <div class="chat-room" id="chat-room">
+    <div class="head">
+      <button onclick="closeChatRoom()">←</button>
+      <div class="info">
+        <b id="chat-room-name">—</b>
+        <span class="role-tag" id="chat-room-role"></span>
+      </div>
+      <button onclick="closeChatRoom()">✕</button>
+    </div>
+    <div class="messages" id="chat-messages"></div>
+    <div class="input-area">
+      <textarea id="chat-input" placeholder="메시지 입력… (Enter 전송)" rows="1"></textarea>
+      <button id="chat-send" onclick="sendChatMessage()">전송</button>
+    </div>
+  </div>
+
+  <!-- 최소화 탭 (오른쪽 끝) -->
+  <button class="chat-tab" id="chat-tab" onclick="toggleChatDock()">
+    💬 채팅
+    <span class="badge" id="chat-total-unread" style="display:none">0</span>
+  </button>
+</div>
+
+<script>
+(function(){
+  // ============================================================
+  // ONTACT CHAT WIDGET
+  // ============================================================
+  const _sb = window.sb;
+  if(!_sb){ console.warn("[chat] window.sb not found. Chat disabled."); return; }
+
+  let _me = null;        // current user profile { id, role, full_name, email }
+  let _conversations = []; // [{ id, type, other_user, unread, last_message_preview, last_message_at }]
+  let _activeConvId = null;
+  let _messages = [];    // current room messages
+  let _possibleContacts = []; // 채팅 가능한 사람들
+  let _realtimeChannel = null;
+
+  // 라벨
+  const ROLE_LABEL_KR = { student:"학생", teacher:"강사", manager:"매니저", admin:"총관리자" };
+
+  // ─── 초기화 ───
+  async function init(){
+    const { data:{ user } } = await _sb.auth.getUser();
+    if(!user){ return; } // 비로그인이면 위젯 안 보임
+
+    const { data:profile } = await _sb.from("profiles").select("id,role,full_name,email").eq("id",user.id).single();
+    if(!profile){ return; }
+
+    _me = profile;
+    document.getElementById("chat-dock").classList.remove("hidden");
+
+    await loadConversations();
+    await loadPossibleContacts();
+    renderChatList();
+    setupRealtime();
+    setupSearchHandler();
+    setupInputHandler();
+  }
+
+  // ─── 본인이 채팅할 수 있는 사람 목록 ───
+  // 권한 매트릭스:
+  //   student ↔ admin
+  //   teacher ↔ manager
+  //   admin   ↔ manager
+  async function loadPossibleContacts(){
+    let roles = [];
+    if(_me.role === "student") roles = ["admin"];
+    else if(_me.role === "teacher") roles = ["manager"];
+    else if(_me.role === "manager") roles = ["teacher", "admin"];
+    else if(_me.role === "admin") roles = ["student", "manager"];
+
+    if(roles.length === 0){ _possibleContacts = []; return; }
+    const { data } = await _sb.from("profiles").select("id,role,full_name,email").in("role", roles).order("role").order("full_name", { nullsFirst:false });
+    _possibleContacts = data || [];
+  }
+
+  // ─── 본인이 참여한 대화방 모두 로드 ───
+  async function loadConversations(){
+    const { data:convs } = await _sb.from("conversations")
+      .select("id, type, participant_a, participant_b, last_message_at, last_message_preview")
+      .or(`participant_a.eq.${_me.id},participant_b.eq.${_me.id}`)
+      .order("last_message_at", { ascending: false });
+
+    if(!convs || convs.length === 0){ _conversations = []; return; }
+
+    // 상대방 ID 모으기
+    const otherIds = convs.map(c => c.participant_a === _me.id ? c.participant_b : c.participant_a);
+    const { data:others } = await _sb.from("profiles").select("id, role, full_name, email").in("id", otherIds);
+    const otherMap = {};
+    (others || []).forEach(p => otherMap[p.id] = p);
+
+    // 읽음 기록
+    const { data:reads } = await _sb.from("message_reads").select("conversation_id, last_read_at").eq("user_id", _me.id);
+    const readMap = {};
+    (reads || []).forEach(r => readMap[r.conversation_id] = r.last_read_at);
+
+    // 안 읽은 메시지 수 계산을 위해 최근 메시지 가져오기
+    const convIds = convs.map(c => c.id);
+    const { data:recentMsgs } = await _sb.from("messages")
+      .select("conversation_id, sender_id, created_at")
+      .in("conversation_id", convIds)
+      .order("created_at", { ascending: false })
+      .limit(200);
+    const unreadMap = {};
+    (recentMsgs || []).forEach(m => {
+      if(m.sender_id === _me.id) return;
+      const lastRead = readMap[m.conversation_id] || "1970-01-01";
+      if(m.created_at > lastRead){
+        unreadMap[m.conversation_id] = (unreadMap[m.conversation_id] || 0) + 1;
+      }
+    });
+
+    _conversations = convs.map(c => {
+      const otherId = c.participant_a === _me.id ? c.participant_b : c.participant_a;
+      return {
+        id: c.id,
+        type: c.type,
+        other: otherMap[otherId] || { id: otherId, role: "?", full_name: "(unknown)" },
+        last_message_at: c.last_message_at,
+        last_message_preview: c.last_message_preview,
+        unread: unreadMap[c.id] || 0,
+      };
+    });
+  }
+
+  // ─── 채팅 목록 그리기 ───
+  function renderChatList(){
+    const searchQ = (document.getElementById("chat-search").value || "").trim().toLowerCase();
+    const listEl = document.getElementById("chat-list");
+
+    // 검색: 기존 대화 + 가능 연락처에서 매치되는 것
+    const matchesQ = (p) => {
+      if(!searchQ) return true;
+      return (`${p.full_name || ""} ${p.email || ""}`).toLowerCase().includes(searchQ);
+    };
+
+    // 안 읽음 표시
+    const totalUnread = _conversations.reduce((s, c) => s + c.unread, 0);
+    const badge = document.getElementById("chat-total-unread");
+    if(totalUnread > 0){ badge.textContent = totalUnread; badge.style.display = "inline-block"; }
+    else { badge.style.display = "none"; }
+
+    // 기존 대화방
+    const filtered = _conversations.filter(c => matchesQ(c.other));
+
+    // 기존 대화에 안 잡힌 "새 채팅 시작 가능한 사람들"
+    const existingOtherIds = new Set(_conversations.map(c => c.other.id));
+    const newContacts = _possibleContacts.filter(p => !existingOtherIds.has(p.id) && matchesQ(p));
+
+    let html = "";
+
+    if(filtered.length > 0){
+      html += `<div class="group-label">진행 중인 대화</div>`;
+      html += filtered.map(c => convRowHTML(c.other, c.last_message_preview, c.unread, c.id)).join("");
+    }
+
+    if(newContacts.length > 0){
+      html += `<div class="group-label">새 대화 시작하기</div>`;
+      html += newContacts.map(p => convRowHTML(p, "", 0, null)).join("");
+    }
+
+    if(html === ""){
+      html = `<div class="empty">${searchQ ? "검색 결과가 없습니다." : "채팅 가능한 사람이 없습니다."}</div>`;
+    }
+
+    listEl.innerHTML = html;
+    listEl.querySelectorAll(".conv-row").forEach(row => {
+      row.onclick = () => openChatRoom(row.dataset.otherId, row.dataset.convId === "null" ? null : Number(row.dataset.convId));
+    });
+  }
+
+  function convRowHTML(other, preview, unread, convId){
+    const roleText = ROLE_LABEL_KR[other.role] || other.role;
+    const previewText = preview ? escapeHtml(preview) : "<i style='color:#b8c4d3'>대화를 시작해보세요</i>";
+    return `<div class="conv-row" data-other-id="${other.id}" data-conv-id="${convId || 'null'}">
+      <div class="who">
+        <b>${escapeHtml(other.full_name || other.email || "—")}<span class="role-tag">${roleText}</span></b>
+        <div class="preview">${previewText}</div>
+      </div>
+      ${unread > 0 ? `<span class="unread">${unread}</span>` : ""}
+    </div>`;
+  }
+
+  function escapeHtml(s){
+    return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+
+  // ─── 채팅방 열기 (기존 또는 신규 대화) ───
+  async function openChatRoom(otherUserId, convId){
+    // 신규 대화면 conversation 먼저 만들기
+    if(!convId){
+      convId = await ensureConversation(otherUserId);
+      if(!convId){ alert("대화 방 생성 실패. 권한이 없는 상대일 수 있습니다."); return; }
+    }
+    _activeConvId = convId;
+    document.getElementById("chat-list-panel").classList.remove("open");
+    document.getElementById("chat-room").classList.add("open");
+
+    const conv = _conversations.find(c => c.id === convId);
+    const other = conv ? conv.other : _possibleContacts.find(p => p.id === otherUserId);
+    document.getElementById("chat-room-name").textContent = other?.full_name || other?.email || "—";
+    document.getElementById("chat-room-role").textContent = ROLE_LABEL_KR[other?.role] || other?.role || "";
+
+    await loadMessages(convId);
+    await markAsRead(convId);
+    // 새로 만든 대화는 _conversations에 아직 없을 수 있음 → 다시 로드
+    await loadConversations();
+    renderChatList();
+  }
+
+  // ─── 두 사람 사이 대화방 보장 (없으면 생성) ───
+  async function ensureConversation(otherUserId){
+    if(!otherUserId) return null;
+    // role 매트릭스에 따라 타입 결정
+    const myRole = _me.role;
+    const otherProfile = _possibleContacts.find(p => p.id === otherUserId);
+    if(!otherProfile) return null;
+    const otherRole = otherProfile.role;
+
+    let type = null;
+    let pa, pb; // participant_a, participant_b (alphabetic UUID 순)
+    if((myRole === "student" && otherRole === "admin") || (myRole === "admin" && otherRole === "student")){
+      type = "student_admin";
+      // a = student, b = admin
+      pa = myRole === "student" ? _me.id : otherUserId;
+      pb = myRole === "admin" ? _me.id : otherUserId;
+    } else if((myRole === "teacher" && otherRole === "manager") || (myRole === "manager" && otherRole === "teacher")){
+      type = "teacher_manager";
+      pa = myRole === "teacher" ? _me.id : otherUserId;
+      pb = myRole === "manager" ? _me.id : otherUserId;
+    } else if((myRole === "admin" && otherRole === "manager") || (myRole === "manager" && otherRole === "admin")){
+      type = "admin_manager";
+      // admin이 a, manager가 b (일관성)
+      pa = myRole === "admin" ? _me.id : otherUserId;
+      pb = myRole === "manager" ? _me.id : otherUserId;
+    }
+    if(!type) return null;
+
+    // 이미 있으면 가져오기
+    const { data:existing } = await _sb.from("conversations")
+      .select("id")
+      .eq("type", type)
+      .eq("participant_a", pa)
+      .eq("participant_b", pb)
+      .maybeSingle();
+
+    if(existing){ return existing.id; }
+
+    // 새로 생성
+    const { data:created, error } = await _sb.from("conversations")
+      .insert({ type, participant_a: pa, participant_b: pb })
+      .select("id")
+      .single();
+
+    if(error){ console.error("[chat] conversation create failed:", error); return null; }
+    return created.id;
+  }
+
+  // ─── 메시지 로드 ───
+  async function loadMessages(convId){
+    const { data } = await _sb.from("messages")
+      .select("id, sender_id, content, created_at")
+      .eq("conversation_id", convId)
+      .order("created_at", { ascending: true })
+      .limit(200);
+    _messages = data || [];
+    renderMessages();
+  }
+
+  function renderMessages(){
+    const el = document.getElementById("chat-messages");
+    let html = "";
+    let lastDate = "";
+    _messages.forEach(m => {
+      const d = new Date(m.created_at);
+      const dateStr = d.toLocaleDateString("ko-KR", { month:"long", day:"numeric", weekday:"short" });
+      if(dateStr !== lastDate){
+        html += `<div class="date-divider">─ ${dateStr} ─</div>`;
+        lastDate = dateStr;
+      }
+      const mine = m.sender_id === _me.id;
+      const timeStr = d.toLocaleTimeString("ko-KR", { hour:"2-digit", minute:"2-digit" });
+      html += `<div class="msg ${mine ? "mine" : "theirs"}">${escapeHtml(m.content)}</div>`;
+      html += `<div class="msg-time" style="${mine ? "text-align:right" : "text-align:left"}">${timeStr}</div>`;
+    });
+    if(!html) html = `<div class="empty" style="margin:auto;color:#6b7785">아직 메시지가 없습니다. 먼저 인사를 보내보세요.</div>`;
+    el.innerHTML = html;
+    el.scrollTop = el.scrollHeight;
+  }
+
+  // ─── 메시지 전송 ───
+  window.sendChatMessage = async function(){
+    if(!_activeConvId) return;
+    const input = document.getElementById("chat-input");
+    const content = input.value.trim();
+    if(!content) return;
+    document.getElementById("chat-send").disabled = true;
+    const { error } = await _sb.from("messages").insert({
+      conversation_id: _activeConvId,
+      sender_id: _me.id,
+      content,
+    });
+    document.getElementById("chat-send").disabled = false;
+    if(error){ alert("전송 실패: " + error.message); return; }
+    input.value = "";
+    input.style.height = "36px";
+    // Realtime이 처리하니까 자동으로 화면 갱신됨. 대비책으로 한 번 더 로드:
+    await loadMessages(_activeConvId);
+  };
+
+  // ─── 읽음 처리 ───
+  async function markAsRead(convId){
+    await _sb.from("message_reads").upsert({
+      user_id: _me.id,
+      conversation_id: convId,
+      last_read_at: new Date().toISOString(),
+    });
+  }
+
+  // ─── Realtime — 새 메시지 도착 시 자동 반영 ───
+  function setupRealtime(){
+    if(_realtimeChannel) _sb.removeChannel(_realtimeChannel);
+    _realtimeChannel = _sb.channel("chat-widget-" + _me.id)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, async (payload) => {
+        const m = payload.new;
+        // 본인 대화방 메시지만 처리
+        const myConv = _conversations.find(c => c.id === m.conversation_id);
+        const isMine = m.sender_id === _me.id;
+        if(!myConv && !isMine) {
+          // 신규 대화(다른 사람이 처음 메시지 보냄) → 대화 목록 다시 로드
+          await loadConversations();
+          renderChatList();
+          return;
+        }
+
+        // 현재 보고 있는 채팅방의 메시지면 즉시 추가
+        if(_activeConvId === m.conversation_id){
+          _messages.push(m);
+          renderMessages();
+          if(!isMine) markAsRead(m.conversation_id);
+        } else {
+          // 다른 방의 메시지 → 목록 다시 로드 (안 읽음 카운트 갱신)
+          await loadConversations();
+          renderChatList();
+        }
+      })
+      .subscribe();
+  }
+
+  // ─── UI 핸들러 ───
+  window.toggleChatDock = function(){
+    const panel = document.getElementById("chat-list-panel");
+    const tab = document.getElementById("chat-tab");
+    const room = document.getElementById("chat-room");
+    if(panel.classList.contains("open") || room.classList.contains("open")){
+      panel.classList.remove("open");
+      room.classList.remove("open");
+      tab.classList.remove("hidden");
+      _activeConvId = null;
+    } else {
+      panel.classList.add("open");
+      tab.classList.add("hidden");
+      loadConversations().then(renderChatList);
+    }
+  };
+
+  window.closeChatRoom = function(){
+    document.getElementById("chat-room").classList.remove("open");
+    document.getElementById("chat-list-panel").classList.add("open");
+    _activeConvId = null;
+    loadConversations().then(renderChatList);
+  };
+
+  function setupSearchHandler(){
+    document.getElementById("chat-search").addEventListener("input", renderChatList);
+  }
+
+  function setupInputHandler(){
+    const input = document.getElementById("chat-input");
+    input.addEventListener("keydown", (e) => {
+      if(e.key === "Enter" && !e.shiftKey){
+        e.preventDefault();
+        sendChatMessage();
+      }
+    });
+    input.addEventListener("input", () => {
+      input.style.height = "36px";
+      input.style.height = Math.min(input.scrollHeight, 80) + "px";
+    });
+  }
+
+  // ─── 시작 ───
+  // window.sb가 늦게 초기화될 수 있으므로 약간 대기
+  setTimeout(init, 300);
+})();
+</script>

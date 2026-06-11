@@ -773,5 +773,8 @@ $("ev-submit").onclick = async ()=>{
 
 gate();
 </script>
+<!-- Chat widget -->
+<script>window.sb = sb;</script>
+<script>fetch("chat-widget.html").then(r=>r.text()).then(h=>document.body.insertAdjacentHTML("beforeend",h));</script>
 </body>
 </html>
