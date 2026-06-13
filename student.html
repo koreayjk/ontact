@@ -195,8 +195,51 @@
 <body>
 <header>
   <b>🎓 학생 페이지</b>
-  <div><span class="who" id="who"></span><a href="#" id="logout">로그아웃</a></div>
+  <div>
+    <span class="who" id="who" style="cursor:pointer;text-decoration:underline;text-decoration-color:rgba(255,255,255,.3);text-decoration-style:dotted;text-underline-offset:3px" title="클릭하여 내 정보 수정" onclick="openProfileModal()"></span>
+    <a href="#" id="logout">로그아웃</a>
+  </div>
 </header>
+
+<!-- 내 정보 수정 모달 -->
+<div id="profile-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;border-radius:14px;padding:24px;max-width:440px;width:100%;max-height:85vh;overflow-y:auto;font-family:'Pretendard',sans-serif">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h2 style="font-size:1.15rem;margin:0;color:#12273d">✏️ 내 정보 수정</h2>
+      <button onclick="closeProfileModal()" style="background:none;border:0;font-size:1.4rem;cursor:pointer;color:#6b7785">✕</button>
+    </div>
+    
+    <div style="margin-bottom:14px">
+      <label style="display:block;font-size:.85rem;color:#12273d;font-weight:600;margin-bottom:4px">이름</label>
+      <input type="text" id="pm-name" placeholder="이름" style="width:100%;padding:9px 12px;border:1px solid #e3ddd0;border-radius:8px;font-size:.9rem;box-sizing:border-box">
+    </div>
+    
+    <div style="margin-bottom:14px">
+      <label style="display:block;font-size:.85rem;color:#12273d;font-weight:600;margin-bottom:4px">전화번호</label>
+      <input type="tel" id="pm-phone" placeholder="010-1234-5678" style="width:100%;padding:9px 12px;border:1px solid #e3ddd0;border-radius:8px;font-size:.9rem;box-sizing:border-box">
+    </div>
+    
+    <div style="margin-bottom:18px">
+      <label style="display:block;font-size:.85rem;color:#12273d;font-weight:600;margin-bottom:4px">시간대</label>
+      <div id="pm-tz-current" style="background:#f9f7f2;border:1px solid #e3ddd0;padding:10px;border-radius:8px;font-size:.85rem;margin-bottom:6px">
+        <div style="color:#6b7785;font-size:.78rem;margin-bottom:2px">현재 설정</div>
+        <b id="pm-tz-now" style="color:#12273d">—</b>
+      </div>
+      <div id="pm-tz-detected" style="display:none;background:#fff7e6;border:1px solid #c98a1f;padding:10px;border-radius:8px;font-size:.85rem">
+        <div style="color:#6b7785;font-size:.78rem;margin-bottom:2px">🌐 브라우저 감지</div>
+        <b id="pm-tz-browser" style="color:#c98a1f">—</b>
+        <button onclick="useDetectedTimezone()" style="margin-left:8px;background:#c98a1f;color:#fff;border:0;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:.78rem;font-weight:600">이걸로 변경</button>
+      </div>
+    </div>
+    
+    <div id="pm-msg" style="font-size:.85rem;margin-bottom:10px;display:none"></div>
+    
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button onclick="closeProfileModal()" style="background:#fff;border:1px solid #6b7785;color:#6b7785;padding:9px 16px;border-radius:8px;cursor:pointer;font-weight:600;font-size:.88rem">취소</button>
+      <button id="pm-save" onclick="saveProfile()" style="background:#ef6a48;color:#fff;border:0;padding:9px 18px;border-radius:8px;cursor:pointer;font-weight:700;font-size:.88rem">저장</button>
+    </div>
+  </div>
+</div>
 
 <div class="wrap">
   <div class="tabs">
@@ -396,6 +439,90 @@ async function gate(){
   $("who").textContent=(profile.full_name||profile.email)+" · "+(profile.timezone||"");
   renderLevelTestBanner();
   init();
+}
+
+// ──────── 내 정보 수정 모달 ────────
+window.openProfileModal = function(){
+  const modal = $("profile-modal");
+  $("pm-name").value = PROFILE.full_name || "";
+  $("pm-phone").value = PROFILE.phone || "";
+  $("pm-tz-now").textContent = PROFILE.timezone || "(설정 안 됨)";
+  $("pm-msg").style.display = "none";
+  
+  // 브라우저 시간대 자동 감지
+  try {
+    const detected = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if(detected && detected !== PROFILE.timezone){
+      $("pm-tz-browser").textContent = detected;
+      $("pm-tz-detected").style.display = "block";
+    } else {
+      $("pm-tz-detected").style.display = "none";
+    }
+  } catch(e) {
+    $("pm-tz-detected").style.display = "none";
+  }
+  
+  modal.style.display = "flex";
+};
+
+window.closeProfileModal = function(){
+  $("profile-modal").style.display = "none";
+};
+
+window.useDetectedTimezone = function(){
+  const detected = $("pm-tz-browser").textContent;
+  $("pm-tz-now").textContent = detected + " (변경 예정)";
+  $("pm-tz-now").style.color = "#c98a1f";
+  // 임시 저장 — 저장 버튼 누를 때 적용
+  $("pm-tz-now").dataset.newValue = detected;
+};
+
+window.saveProfile = async function(){
+  const newName = $("pm-name").value.trim();
+  const newPhone = $("pm-phone").value.trim();
+  const newTz = $("pm-tz-now").dataset.newValue || null; // 변경 안 했으면 null
+  
+  if(!newName){
+    showProfileMsg("이름을 입력하세요.", false);
+    return;
+  }
+  
+  const updates = {
+    full_name: newName,
+    phone: newPhone || null,
+  };
+  if(newTz) updates.timezone = newTz;
+  
+  $("pm-save").disabled = true;
+  $("pm-save").textContent = "저장 중…";
+  
+  const{ error } = await sb.from("profiles").update(updates).eq("id", USER.id);
+  
+  $("pm-save").disabled = false;
+  $("pm-save").textContent = "저장";
+  
+  if(error){
+    showProfileMsg("저장 실패: " + error.message, false);
+    return;
+  }
+  
+  // PROFILE 객체 업데이트
+  PROFILE.full_name = newName;
+  PROFILE.phone = newPhone || null;
+  if(newTz) PROFILE.timezone = newTz;
+  
+  // 헤더 업데이트
+  $("who").textContent = (PROFILE.full_name || PROFILE.email) + " · " + (PROFILE.timezone || "");
+  
+  showProfileMsg("✅ 저장됐습니다.", true);
+  setTimeout(closeProfileModal, 800);
+};
+
+function showProfileMsg(msg, ok){
+  const el = $("pm-msg");
+  el.textContent = msg;
+  el.style.display = "block";
+  el.style.color = ok ? "#2e7d32" : "#d4351c";
 }
 
 async function renderLevelTestBanner(){
