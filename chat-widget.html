@@ -232,6 +232,10 @@
     overflow-wrap: break-word;
     white-space: pre-wrap;
     box-sizing: border-box;
+    /* admin.html의 .msg 충돌 방지 */
+    margin: 0;
+    min-height: auto;
+    height: auto;
   }
   .chat-room .messages .msg.mine {
     background: #12273d;
