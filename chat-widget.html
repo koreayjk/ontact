@@ -379,6 +379,20 @@
   </button>
 </div>
 
+<!-- 단체 발송 모달 -->
+<div id="chat-broadcast-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;border-radius:14px;padding:24px;max-width:480px;width:100%;max-height:80vh;display:flex;flex-direction:column;font-family:'Hanken Grotesk',sans-serif">
+    <h3 id="chat-bc-title" style="font-size:1.15rem;margin-bottom:6px;color:#12273d">📢 전체 공지 보내기</h3>
+    <p id="chat-bc-sub" style="font-size:.82rem;color:#6b7785;margin-bottom:14px">모든 대상에게 1:1 메시지로 자동 발송됩니다.</p>
+    <textarea id="chat-bc-content" placeholder="공지 내용을 입력하세요…" style="width:100%;border:1px solid #e3ddd0;border-radius:10px;padding:12px;font:inherit;font-size:.9rem;resize:vertical;min-height:120px;margin-bottom:10px;box-sizing:border-box"></textarea>
+    <div id="chat-bc-info" style="font-size:.78rem;color:#c98a1f;background:#fff7e6;border:1px solid #c98a1f;padding:8px 10px;border-radius:6px;margin-bottom:14px"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button onclick="closeBroadcastModal()" style="background:#fff;border:1px solid #6b7785;color:#6b7785;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:600;font-size:.85rem">취소</button>
+      <button id="chat-bc-send" onclick="confirmBroadcast()" style="background:#c98a1f;color:#fff;border:0;padding:8px 18px;border-radius:8px;cursor:pointer;font-weight:700;font-size:.85rem">📢 발송</button>
+    </div>
+  </div>
+</div>
+
 <script>
 (function(){
   // ============================================================
@@ -508,47 +522,80 @@
     if(totalUnread > 0){ badge.textContent = totalUnread; badge.style.display = "inline-block"; }
     else { badge.style.display = "none"; }
 
-    // 기존 대화방
-    const filtered = _conversations.filter(c => matchesQ(c.other));
+    // 역할별 "항상 표시" 사람들 결정
+    // - admin: 매니저만 항상
+    // - manager: 관리자 + 모든 강사 항상
+    // - teacher: 매니저 (대화방으로 처리, "항상 표시" 불필요)
+    // - student: 학생은 이 함수 호출 안 됨 (바로 1:1 창)
+    let alwaysVisibleRoles = [];
+    if(_me.role === "admin") alwaysVisibleRoles = ["manager"];
+    else if(_me.role === "manager") alwaysVisibleRoles = ["admin", "teacher"];
+    else if(_me.role === "teacher") alwaysVisibleRoles = ["manager"];
 
-    // 새 대화 가능 — 검색 중일 때만 표시
-    let newContacts = [];
+    const alwaysVisible = _possibleContacts.filter(p => alwaysVisibleRoles.includes(p.role));
+    const existingOtherIds = new Set(_conversations.map(c => c.other.id));
+
+    // 기존 대화 (검색 적용)
+    const filteredConvs = _conversations.filter(c => matchesQ(c.other));
+
+    // "항상 보이는 사람들 중 아직 대화 없는 사람" — 검색 매치한 것만
+    const visibleNoConvYet = alwaysVisible
+      .filter(p => !existingOtherIds.has(p.id) && matchesQ(p));
+
+    // 검색 중일 때만 보이는 "기타 가능 연락처" (admin의 경우 학생들, manager의 경우 없음, etc)
+    let extraSearchResults = [];
     if(searchQ){
-      const existingOtherIds = new Set(_conversations.map(c => c.other.id));
-      newContacts = _possibleContacts.filter(p => !existingOtherIds.has(p.id) && matchesQ(p));
+      const alwaysVisibleIds = new Set(alwaysVisible.map(p => p.id));
+      extraSearchResults = _possibleContacts.filter(p => 
+        !existingOtherIds.has(p.id) && 
+        !alwaysVisibleIds.has(p.id) && 
+        matchesQ(p)
+      );
     }
 
     let html = "";
 
-    if(filtered.length > 0){
+    // 단체 발송 버튼 (admin/manager만, 검색 안 할 때만 표시)
+    if(!searchQ && (_me.role === "admin" || _me.role === "manager")){
+      const broadcastLabel = _me.role === "admin" ? "전체 학생에게 공지" : "전체 강사에게 공지";
+      html += `<div style="padding:10px 14px;border-bottom:1px solid #f6f4ef">
+        <button id="chat-broadcast-btn" style="width:100%;background:#fff7e6;border:1.5px dashed #c98a1f;color:#c98a1f;padding:9px;border-radius:8px;font-weight:700;cursor:pointer;font-size:.85rem">
+          📢 ${broadcastLabel}
+        </button>
+      </div>`;
+    }
+
+    // 진행 중인 대화
+    if(filteredConvs.length > 0){
       html += `<div class="group-label">진행 중인 대화</div>`;
-      html += filtered.map(c => convRowHTML(c.other, c.last_message_preview, c.unread, c.id)).join("");
+      html += filteredConvs.map(c => convRowHTML(c.other, c.last_message_preview, c.unread, c.id)).join("");
     }
 
-    if(newContacts.length > 0){
-      html += `<div class="group-label">검색 결과 — 새 대화 시작</div>`;
-      html += newContacts.map(p => convRowHTML(p, "", 0, null)).join("");
+    // 항상 보이는 사람들 (아직 대화 없는)
+    if(visibleNoConvYet.length > 0){
+      const label = _me.role === "admin" ? "매니저" : 
+                    _me.role === "manager" ? "관리자 · 강사" : 
+                    "연락 가능";
+      html += `<div class="group-label">${label}</div>`;
+      html += visibleNoConvYet.map(p => convRowHTML(p, "", 0, null)).join("");
     }
 
-    if(html === ""){
+    // 검색 결과 (기타)
+    if(extraSearchResults.length > 0){
+      html += `<div class="group-label">검색 결과</div>`;
+      html += extraSearchResults.map(p => convRowHTML(p, "", 0, null)).join("");
+    }
+
+    // 빈 화면 안내
+    if(html === "" || (!searchQ && filteredConvs.length === 0 && visibleNoConvYet.length === 0 && !(_me.role === "admin" || _me.role === "manager"))){
       if(searchQ){
-        html = `<div class="empty">"${escapeHtml(searchQ)}" 검색 결과가 없습니다.</div>`;
-      } else if(_conversations.length === 0){
-        // 처음 사용자 안내
-        const myRoleLabel = ROLE_LABEL_KR[_me.role] || _me.role;
-        const targetRoles = {
-          admin: "학생·매니저",
-          manager: "강사·총관리자",
-          teacher: "매니저",
-          student: "총관리자"
-        }[_me.role] || "다른 사람";
-        html = `<div class="empty" style="padding:30px 20px;line-height:1.6">
+        html += `<div class="empty">"${escapeHtml(searchQ)}" 검색 결과가 없습니다.</div>`;
+      } else if(_conversations.length === 0 && visibleNoConvYet.length === 0){
+        html += `<div class="empty" style="padding:30px 20px;line-height:1.6">
           <div style="font-size:2rem;margin-bottom:10px">💬</div>
           <b style="color:#12273d">아직 대화가 없습니다</b><br>
-          <span style="font-size:.82rem">위 검색창에 ${targetRoles} 이름을 입력해<br>새 대화를 시작하세요.</span>
+          <span style="font-size:.82rem">위 검색창에 이름을 입력해<br>새 대화를 시작하세요.</span>
         </div>`;
-      } else {
-        html = `<div class="empty">대화가 없습니다.</div>`;
       }
     }
 
@@ -556,6 +603,12 @@
     listEl.querySelectorAll(".conv-row").forEach(row => {
       row.onclick = () => openChatRoom(row.dataset.otherId, row.dataset.convId === "null" ? null : Number(row.dataset.convId));
     });
+
+    // 단체 발송 버튼 핸들러
+    const broadcastBtn = document.getElementById("chat-broadcast-btn");
+    if(broadcastBtn){
+      broadcastBtn.onclick = openBroadcastModal;
+    }
   }
 
   function convRowHTML(other, preview, unread, convId){
@@ -664,7 +717,7 @@
   // ─── 메시지 로드 ───
   async function loadMessages(convId){
     const { data } = await _sb.from("messages")
-      .select("id, sender_id, content, created_at")
+      .select("id, sender_id, content, created_at, broadcast_id")
       .eq("conversation_id", convId)
       .order("created_at", { ascending: true })
       .limit(200);
@@ -685,7 +738,13 @@
       }
       const mine = m.sender_id === _me.id;
       const timeStr = d.toLocaleTimeString("ko-KR", { hour:"2-digit", minute:"2-digit" });
-      html += `<div class="msg ${mine ? "mine" : "theirs"}">${escapeHtml(m.content)}</div>`;
+      const broadcastLabel = m.broadcast_id 
+        ? `<div style="font-size:.7rem;color:#c98a1f;font-weight:700;margin-bottom:3px">📢 단체 공지</div>`
+        : "";
+      const bgColor = m.broadcast_id 
+        ? (mine ? "background:#c98a1f" : "background:#fff7e6;border-color:#c98a1f")
+        : "";
+      html += `<div class="msg ${mine ? "mine" : "theirs"}" style="${bgColor}">${broadcastLabel}${escapeHtml(m.content)}</div>`;
       html += `<div class="msg-time" style="${mine ? "text-align:right" : "text-align:left"}">${timeStr}</div>`;
     });
     if(!html) html = `<div class="empty" style="margin:auto;color:#6b7785">아직 메시지가 없습니다. 먼저 인사를 보내보세요.</div>`;
@@ -710,6 +769,61 @@
     input.value = "";
     input.style.height = "36px";
     // Realtime이 메시지 도착 처리하니까 여기서 추가 작업 불필요
+  };
+
+  // ─── 단체 발송 — admin/manager용 ───
+  window.openBroadcastModal = function(){
+    const modal = document.getElementById("chat-broadcast-modal");
+    const title = document.getElementById("chat-bc-title");
+    const sub = document.getElementById("chat-bc-sub");
+    const info = document.getElementById("chat-bc-info");
+    const targetRole = _me.role === "admin" ? "student" : "teacher";
+    const targetLabel = _me.role === "admin" ? "학생" : "강사";
+    const count = _possibleContacts.filter(p => p.role === targetRole).length;
+    title.textContent = `📢 전체 ${targetLabel}에게 공지`;
+    sub.textContent = `모든 ${targetLabel}에게 1:1 메시지로 자동 발송됩니다.`;
+    info.innerHTML = `현재 등록된 ${targetLabel}: <b>${count}명</b>. 발송 시 각 ${targetLabel}의 1:1 대화방에 "📢 단체 공지" 표시와 함께 도착합니다.`;
+    document.getElementById("chat-bc-content").value = "";
+    modal.style.display = "flex";
+  };
+
+  window.closeBroadcastModal = function(){
+    document.getElementById("chat-broadcast-modal").style.display = "none";
+  };
+
+  window.confirmBroadcast = async function(){
+    const content = document.getElementById("chat-bc-content").value.trim();
+    if(!content){ alert("공지 내용을 입력하세요."); return; }
+    const targetRole = _me.role === "admin" ? "student" : "teacher";
+    const targetLabel = _me.role === "admin" ? "학생" : "강사";
+    const count = _possibleContacts.filter(p => p.role === targetRole).length;
+    if(!confirm(`${count}명의 ${targetLabel}에게 다음 공지를 발송합니다.\n\n"${content.substring(0,100)}${content.length>100?"…":""}"\n\n진행할까요?`)) return;
+
+    const btn = document.getElementById("chat-bc-send");
+    btn.disabled = true;
+    btn.textContent = "발송 중…";
+
+    const { data, error } = await _sb.rpc("send_broadcast", {
+      p_target_role: targetRole,
+      p_content: content,
+    });
+
+    btn.disabled = false;
+    btn.textContent = "📢 발송";
+
+    if(error){
+      alert("발송 실패: " + error.message);
+      return;
+    }
+    if(data?.error){
+      alert("발송 실패: " + data.error);
+      return;
+    }
+
+    alert(`✅ ${data.recipient_count}명에게 발송 완료`);
+    closeBroadcastModal();
+    await loadConversations();
+    renderChatList();
   };
 
   // ─── 읽음 처리 ───
@@ -812,7 +926,7 @@
   }
 
   // ─── UI 핸들러 ───
-  window.toggleChatDock = function(){
+  window.toggleChatDock = async function(){
     const panel = document.getElementById("chat-list-panel");
     const tab = document.getElementById("chat-tab");
     const room = document.getElementById("chat-room");
@@ -822,16 +936,37 @@
       tab.classList.remove("hidden");
       _activeConvId = null;
     } else {
-      panel.classList.add("open");
       tab.classList.add("hidden");
+      
+      // 학생은 채팅 버튼 → 바로 관리자 1:1 창
+      if(_me.role === "student"){
+        await loadConversations();
+        // 첫 관리자 찾기
+        const admins = _possibleContacts.filter(p => p.role === "admin");
+        if(admins.length > 0){
+          await openChatRoom(admins[0].id, null);
+          return;
+        }
+      }
+      
+      // 그 외 역할(admin/manager/teacher) — 목록 표시
+      panel.classList.add("open");
       loadConversations().then(renderChatList);
     }
   };
 
   window.closeChatRoom = function(){
     document.getElementById("chat-room").classList.remove("open");
-    document.getElementById("chat-list-panel").classList.add("open");
     _activeConvId = null;
+    
+    // 학생은 채팅창 닫으면 위젯 전체 닫힘 (목록 단계 없음)
+    if(_me.role === "student"){
+      document.getElementById("chat-tab").classList.remove("hidden");
+      return;
+    }
+    
+    // 그 외 역할은 목록으로 돌아감
+    document.getElementById("chat-list-panel").classList.add("open");
     loadConversations().then(renderChatList);
   };
 
