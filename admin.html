@@ -723,9 +723,9 @@ async function loadDashboard(){
   if(NOSHOW_LIST.length > 0) $("card-noshow").classList.add("alert");
 
   // 최근 결제
-  const{data:recPay}=await sb.from("payments").select("amount,paid_at,profiles!student_id(full_name,email),teachers(display_name)").eq("status","paid").order("paid_at",{ascending:false}).limit(5);
+  const{data:recPay}=await sb.from("payments").select("amount,paid_at,profiles!student_id(full_name,email),enrollments(teachers(display_name))").eq("status","paid").order("paid_at",{ascending:false}).limit(5);
   $("recent-pay").innerHTML = (recPay||[]).map(p=>`
-    <li><span><b>${p.profiles?.full_name||p.profiles?.email||"–"}</b><br><span class="meta">${p.teachers?.display_name||""}</span></span>
+    <li><span><b>${p.profiles?.full_name||p.profiles?.email||"–"}</b><br><span class="meta">${p.enrollments?.teachers?.display_name||""}</span></span>
     <span style="text-align:right"><b style="color:var(--teal)">₩${(p.amount||0).toLocaleString()}</b><br><span class="meta">${p.paid_at?new Date(p.paid_at).toLocaleDateString("ko-KR"):""}</span></span></li>
   `).join("") || `<li class="empty">결제 내역이 없습니다.</li>`;
 
@@ -953,9 +953,117 @@ async function togglePersonDetail(tr, personId){
 
   const detailRow = document.createElement("tr");
   detailRow.className = "detail-row";
-  detailRow.innerHTML = `<td colspan="7">${content}</td>`;
+
+  // ── 역할 변경 UI (모든 사람 펼침 영역 공통) ──
+  const isSelf = personId === USER.id;
+  const roleChangeHtml = isSelf
+    ? `<div style="background:#fff7e6;border:1px solid #c98a1f;color:#6b4f0e;padding:10px 14px;border-radius:8px;font-size:.85rem;margin-bottom:14px">
+         ⚠️ 본인의 역할은 변경할 수 없습니다. (실수 방지)
+       </div>`
+    : `<div style="background:var(--paper);border:1px solid var(--line);padding:12px 14px;border-radius:8px;margin-bottom:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+         <div style="font-size:.85rem;color:var(--ink)"><b>역할:</b> 현재 <span style="color:var(--teal);font-weight:700">${{student:"학생",teacher:"강사",manager:"매니저",admin:"총관리자"}[m.role]||m.role}</span></div>
+         <select id="role-change-select" style="padding:6px 10px;border:1px solid var(--line);border-radius:6px;font-size:.85rem">
+           <option value="">변경할 역할 선택…</option>
+           ${m.role!=="student"?'<option value="student">학생</option>':""}
+           ${m.role!=="teacher"?'<option value="teacher">강사</option>':""}
+           ${m.role!=="manager"?'<option value="manager">매니저</option>':""}
+           ${m.role!=="admin"?'<option value="admin">총관리자</option>':""}
+         </select>
+         <button onclick="changeUserRole('${personId}','${(m.full_name||m.email||"").replace(/'/g,"\\'")}')" style="background:var(--ink);color:#fff;border:0;padding:6px 14px;border-radius:6px;font-weight:700;cursor:pointer;font-size:.85rem">역할 변경</button>
+       </div>`;
+
+  detailRow.innerHTML = `<td colspan="7">${roleChangeHtml}${content}</td>`;
   tr.parentNode.insertBefore(detailRow, tr.nextSibling);
 }
+
+// 역할 변경 함수
+window.changeUserRole = async function(personId, personName){
+  const select = document.getElementById("role-change-select");
+  const newRole = select.value;
+  if(!newRole){ alert("변경할 역할을 선택하세요."); return; }
+  
+  const roleLab = {student:"학생", teacher:"강사", manager:"매니저", admin:"총관리자"};
+  
+  // 강사로 변경 시 — 강사 등록 카드로 유도
+  if(newRole === "teacher"){
+    const goToTeacherCard = confirm(
+      `강사 등록은 사진·소개·시간 등 추가 정보가 필요합니다.\n\n` +
+      `'➕ 강사 등록' 카드로 이동하시겠어요?\n` +
+      `(거기서 ${personName}을(를) 선택해 한 번에 등록할 수 있습니다)\n\n` +
+      `[확인] → 강사 등록 카드로 이동 (권장)\n` +
+      `[취소] → 권한만 강사로 변경 (비활성 상태, 나중에 등록 필요)`
+    );
+    
+    if(goToTeacherCard){
+      // 강사 등록 카드로 이동 + 드롭다운에서 자동 선택
+      const teacherMgmt = document.getElementById("teacher-mgmt");
+      if(teacherMgmt){
+        teacherMgmt.scrollIntoView({behavior:"smooth", block:"start"});
+        // 드롭다운에서 그 사람 자동 선택
+        setTimeout(() => {
+          const addMember = document.getElementById("add-member");
+          if(addMember){
+            addMember.value = personId;
+            // 이름도 자동 입력
+            const addName = document.getElementById("add-name");
+            if(addName && !addName.value) addName.value = personName;
+            // 시각 효과
+            addMember.style.outline = "3px solid var(--coral)";
+            setTimeout(() => addMember.style.outline = "", 2000);
+          }
+        }, 400);
+      }
+      return;
+    }
+    // 취소 → 그냥 권한만 변경 (아래 로직으로 계속)
+  }
+  
+  // 강등 안전 확인 — 마지막 admin 보호
+  if(newRole !== "admin"){
+    const currentPerson = PEOPLE.find(p=>p.id===personId);
+    if(currentPerson?.role === "admin"){
+      const adminCount = PEOPLE.filter(p=>p.role==="admin").length;
+      if(adminCount <= 1){
+        alert("⚠️ 마지막 남은 총관리자입니다. 강등 불가.\n먼저 다른 총관리자를 임명하세요.");
+        return;
+      }
+    }
+  }
+  
+  if(!confirm(`${personName}의 역할을 [${roleLab[newRole]}]으로 변경합니다.\n\n진행할까요?`)) return;
+  
+  // 1. profiles role 변경
+  const{ error } = await sb.from("profiles").update({ role: newRole }).eq("id", personId);
+  if(error){ alert("변경 실패: " + error.message); return; }
+  
+  // 2. 강사로 변경한 경우 — teachers 테이블에 row 없으면 자동 생성 (비활성 상태로)
+  if(newRole === "teacher"){
+    const{ data: existing } = await sb.from("teachers").select("id").eq("id", personId).maybeSingle();
+    if(!existing){
+      await sb.from("teachers").insert({
+        id: personId,
+        display_name: personName,
+        is_active: false,
+        rating: 5.0,
+        sort_order: 100,
+        show_on_main: false,
+      });
+    } else {
+      await sb.from("teachers").update({ is_active: false }).eq("id", personId);
+    }
+  }
+  
+  // 3. 강사 → 다른 역할로 변경한 경우 — teachers 비활성화
+  const oldPerson = PEOPLE.find(p=>p.id===personId);
+  if(oldPerson?.role === "teacher" && newRole !== "teacher"){
+    await sb.from("teachers").update({ is_active: false }).eq("id", personId);
+  }
+  
+  alert(`✅ ${personName} → [${roleLab[newRole]}] 변경 완료${newRole==="teacher" ? "\n\n⚠️ 권한만 변경됐고 비활성 상태입니다.\n'➕ 강사 등록' 카드에서 사진·소개·시간을 등록하세요." : ""}`);
+  await loadPeople();
+  await loadTeachers();
+  await loadEditTeachers();
+};
 
 $("people-search").oninput = renderPeople;
 $("people-role-filter").onchange = renderPeople;
@@ -1237,7 +1345,7 @@ $("zk-btn").onclick=async()=>{
 
 // ──────── PAYMENTS ────────
 async function loadPayments(){
-  const{data:pays}=await sb.from("payments").select("id,amount,method,status,paid_at,pg_tid,enrollment_id,student_id,teacher_id,refund_reason,refunded_at,refund_amount,profiles!student_id(full_name,email),teachers(display_name),enrollments(months)").order("paid_at",{ascending:false,nullsFirst:false});
+  const{data:pays}=await sb.from("payments").select("id,amount,method,status,paid_at,pg_tid,enrollment_id,student_id,refund_reason,refunded_at,refund_amount,profiles!student_id(full_name,email),enrollments(months,teacher_id,teachers(display_name))").order("paid_at",{ascending:false,nullsFirst:false});
   PAYMENTS=pays||[];
   // 통계
   const now=new Date();
@@ -1282,7 +1390,7 @@ function renderPayments(){
     return `<tr>
       <td>${p.paid_at?new Date(p.paid_at).toLocaleDateString("ko-KR"):"–"}</td>
       <td><b>${p.profiles?.full_name||"–"}</b><div style="font-size:.78rem;color:var(--muted)">${p.profiles?.email||""}</div></td>
-      <td>${p.teachers?.display_name||"–"}</td>
+      <td>${p.enrollments?.teachers?.display_name||"–"}</td>
       <td>${p.enrollments?.months?p.enrollments.months+"개월":"–"}</td>
       <td><b>₩${(p.amount||0).toLocaleString()}</b>${p.refund_amount?`<div style="font-size:.72rem;color:var(--alert)">−₩${p.refund_amount.toLocaleString()}</div>`:""}</td>
       <td>${p.method||"–"}</td>
