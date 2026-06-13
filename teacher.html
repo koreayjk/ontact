@@ -773,5 +773,25 @@ $("ev-submit").onclick = async ()=>{
 
 gate();
 </script>
+<!-- Chat widget -->
+<script>window.sb = sb;</script>
+<script>
+fetch("chat-widget.html").then(r => r.text()).then(html => {
+  const temp = document.createElement("div");
+  temp.innerHTML = html;
+  while(temp.firstChild){
+    const node = temp.firstChild;
+    if(node.tagName === "SCRIPT"){
+      const newScript = document.createElement("script");
+      if(node.src) newScript.src = node.src;
+      else newScript.textContent = node.textContent;
+      document.body.appendChild(newScript);
+      temp.removeChild(node);
+    } else {
+      document.body.appendChild(node);
+    }
+  }
+});
+</script>
 </body>
 </html>

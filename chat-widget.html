@@ -344,7 +344,7 @@
       <button onclick="toggleChatDock()">▼</button>
     </div>
     <div class="search">
-      <input type="search" id="chat-search" placeholder="이름·이메일로 검색">
+      <input type="search" id="chat-search" placeholder="🔎 이름·이메일로 검색해 새 대화 시작">
     </div>
     <div class="list" id="chat-list">
       <div class="empty">불러오는 중…</div>
@@ -492,7 +492,7 @@
     const searchQ = (document.getElementById("chat-search").value || "").trim().toLowerCase();
     const listEl = document.getElementById("chat-list");
 
-    // 검색: 기존 대화 + 가능 연락처에서 매치되는 것
+    // 검색 매치 헬퍼
     const matchesQ = (p) => {
       if(!searchQ) return true;
       return (`${p.full_name || ""} ${p.email || ""}`).toLowerCase().includes(searchQ);
@@ -507,9 +507,12 @@
     // 기존 대화방
     const filtered = _conversations.filter(c => matchesQ(c.other));
 
-    // 기존 대화에 안 잡힌 "새 채팅 시작 가능한 사람들"
-    const existingOtherIds = new Set(_conversations.map(c => c.other.id));
-    const newContacts = _possibleContacts.filter(p => !existingOtherIds.has(p.id) && matchesQ(p));
+    // 새 대화 가능 — 검색 중일 때만 표시
+    let newContacts = [];
+    if(searchQ){
+      const existingOtherIds = new Set(_conversations.map(c => c.other.id));
+      newContacts = _possibleContacts.filter(p => !existingOtherIds.has(p.id) && matchesQ(p));
+    }
 
     let html = "";
 
@@ -519,12 +522,30 @@
     }
 
     if(newContacts.length > 0){
-      html += `<div class="group-label">새 대화 시작하기</div>`;
+      html += `<div class="group-label">검색 결과 — 새 대화 시작</div>`;
       html += newContacts.map(p => convRowHTML(p, "", 0, null)).join("");
     }
 
     if(html === ""){
-      html = `<div class="empty">${searchQ ? "검색 결과가 없습니다." : "채팅 가능한 사람이 없습니다."}</div>`;
+      if(searchQ){
+        html = `<div class="empty">"${escapeHtml(searchQ)}" 검색 결과가 없습니다.</div>`;
+      } else if(_conversations.length === 0){
+        // 처음 사용자 안내
+        const myRoleLabel = ROLE_LABEL_KR[_me.role] || _me.role;
+        const targetRoles = {
+          admin: "학생·매니저",
+          manager: "강사·총관리자",
+          teacher: "매니저",
+          student: "총관리자"
+        }[_me.role] || "다른 사람";
+        html = `<div class="empty" style="padding:30px 20px;line-height:1.6">
+          <div style="font-size:2rem;margin-bottom:10px">💬</div>
+          <b style="color:#12273d">아직 대화가 없습니다</b><br>
+          <span style="font-size:.82rem">위 검색창에 ${targetRoles} 이름을 입력해<br>새 대화를 시작하세요.</span>
+        </div>`;
+      } else {
+        html = `<div class="empty">대화가 없습니다.</div>`;
+      }
     }
 
     listEl.innerHTML = html;
