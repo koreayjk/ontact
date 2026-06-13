@@ -822,19 +822,111 @@ async function renderLevelTestBanner(){
   const b=$("lt-banner");
   b.innerHTML = ""; // 기본 안 보임
 
-  // 이미 완료한 경우 → 결과 보기 버튼 포함
-  if(PROFILE.level_test_done){
+  // ════════════════════════════════════════
+  // 상태 5: 결과지 작성 완료 → 결과 확인하기
+  // ════════════════════════════════════════
+  const { data: ltrCheck } = await sb.from("level_test_results")
+    .select("id")
+    .eq("student_id", USER.id)
+    .order("test_date", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  
+  if(ltrCheck){
     b.innerHTML = `<div class="lt-box lt-done" style="margin-bottom:14px">
       <div style="flex:1">
         <h3>✅ 레벨테스트 완료</h3>
         <p>강사가 학생의 수준을 미리 파악했습니다. 본 수업이 더 효율적으로 진행됩니다. ${PROFILE.level_result?`현재 레벨: <b>${PROFILE.level_result}</b>`:""}</p>
-        <button onclick="openLevelResultModal()" style="background:var(--ink);color:#fff;border:0;padding:8px 18px;border-radius:8px;cursor:pointer;font-weight:700;font-size:.85rem;margin-top:8px">📊 레벨테스트 결과지 보기</button>
+        <button onclick="openLevelResultModal()" style="background:var(--ink);color:#fff;border:0;padding:8px 18px;border-radius:8px;cursor:pointer;font-weight:700;font-size:.85rem;margin-top:8px">📊 레벨테스트 결과 확인하기</button>
       </div>
       ${PROFILE.level_result?`<span class="badge">Lv. ${PROFILE.level_result}</span>`:""}
     </div>`;
     return;
   }
 
+  // ════════════════════════════════════════
+  // 본인 예약 조회
+  // ════════════════════════════════════════
+  const { data: myBookings } = await sb.from("leveltest_bookings")
+    .select("id, start_at, zoom_join_url")
+    .eq("student_id", USER.id)
+    .order("start_at", { ascending: false })
+    .limit(1);
+  
+  const myBooking = myBookings && myBookings[0];
+  
+  if(myBooking){
+    const bookingTime = new Date(myBooking.start_at);
+    const now = new Date();
+    const minutesPast = (now - bookingTime) / 60000; // 분 단위 (양수=지남, 음수=미래)
+    
+    // ════════════════════════════════════════
+    // 상태 4: 예약 시간 30분 이상 지남 → 결과 대기 (1단계: 시간 기반)
+    // 2단계에서 Zoom Webhook으로 정밀 감지로 교체 예정
+    // ════════════════════════════════════════
+    if(minutesPast >= 30){
+      const dateStr = bookingTime.toLocaleString("ko-KR", { 
+        month:"long", day:"numeric", weekday:"short", hour:"2-digit", minute:"2-digit" 
+      });
+      b.innerHTML = `<div style="background:linear-gradient(135deg,#f6f4ef 0%,#e8e2d5 100%);border:2px solid #6b7785;border-radius:18px;padding:24px 26px;margin-bottom:14px;box-shadow:0 8px 25px -10px rgba(107,119,133,.25)">
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:10px;flex-wrap:wrap">
+          <div style="font-size:2rem">⏳</div>
+          <div style="flex:1;min-width:200px">
+            <h3 style="font-family:'Fraunces',serif;font-size:1.25rem;font-weight:800;color:#12273d;margin-bottom:2px">레벨테스트 진행 완료</h3>
+            <p style="color:#6b7785;font-size:.88rem;margin:0">${dateStr} 진행됨</p>
+          </div>
+        </div>
+        <div style="background:#fff;border-radius:10px;padding:14px 16px;border:1px solid rgba(107,119,133,.2)">
+          <p style="font-size:.95rem;line-height:1.5;color:#12273d;margin:0;font-weight:600">📊 진단 결과를 곧 받아보실 예정입니다.</p>
+          <p style="font-size:.85rem;line-height:1.5;color:#6b7785;margin-top:6px;margin-bottom:0">매니저가 학생의 평가 결과를 정리하고 있습니다. 결과지가 준비되면 여기에서 확인할 수 있어요.</p>
+        </div>
+      </div>`;
+      return;
+    }
+    
+    // ════════════════════════════════════════
+    // 상태 3: 예약됨, 아직 진행 전 또는 진행 중 (30분 안 지남)
+    // ════════════════════════════════════════
+    const dateStr = bookingTime.toLocaleString("ko-KR", { 
+      month:"long", day:"numeric", weekday:"short", hour:"2-digit", minute:"2-digit" 
+    });
+    const isUpcoming = minutesPast < 0; // 미래 예약
+    const minutesUntil = Math.abs(minutesPast);
+    
+    let timingHint = "";
+    if(isUpcoming){
+      if(minutesUntil < 60){
+        timingHint = `<span style="background:#c98a1f;color:#fff;padding:2px 8px;border-radius:6px;font-size:.75rem;font-weight:700;margin-left:6px">${Math.ceil(minutesUntil)}분 후</span>`;
+      } else if(minutesUntil < 60 * 24){
+        timingHint = `<span style="background:#6b7785;color:#fff;padding:2px 8px;border-radius:6px;font-size:.75rem;font-weight:700;margin-left:6px">${Math.ceil(minutesUntil/60)}시간 후</span>`;
+      }
+    } else {
+      // 0~30분 사이 → 진행 중
+      timingHint = `<span style="background:#2e7d32;color:#fff;padding:2px 8px;border-radius:6px;font-size:.75rem;font-weight:700;margin-left:6px">🔴 진행 중</span>`;
+    }
+    
+    b.innerHTML = `<div style="background:linear-gradient(135deg,#e6f6ec 0%,#cce8d4 100%);border:2px solid #2e7d32;border-radius:18px;padding:24px 26px;margin-bottom:14px;box-shadow:0 8px 25px -10px rgba(46,125,50,.25)">
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:10px;flex-wrap:wrap">
+        <div style="font-size:2rem">🎙</div>
+        <div style="flex:1;min-width:200px">
+          <h3 style="font-family:'Fraunces',serif;font-size:1.25rem;font-weight:800;color:#12273d;margin-bottom:2px">레벨테스트 예약됨${timingHint}</h3>
+          <p style="color:#12273d;font-size:.95rem;margin:0;font-weight:600">📅 ${dateStr}</p>
+        </div>
+      </div>
+      <p style="font-size:.88rem;line-height:1.5;color:#12273d;margin-bottom:14px">예약 시간에 줌 미팅으로 입장하세요. 매니저(원어민 강사)와 1:1로 약 20분 진단을 진행합니다.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${myBooking.zoom_join_url 
+          ? `<a href="${myBooking.zoom_join_url}" target="_blank" style="background:#2e7d32;color:#fff;text-decoration:none;padding:.7em 1.5em;border-radius:10px;font-weight:700;font-size:.95rem;display:inline-block">🎥 줌 미팅 입장 →</a>` 
+          : `<span style="color:#d4351c;font-size:.85rem">⚠️ 줌 링크가 생성되지 않았습니다. 매니저에게 문의하세요.</span>`}
+      </div>
+    </div>`;
+    return;
+  }
+
+  // ════════════════════════════════════════
+  // 상태 2: 결제 완료 + 예약 안 함 → 예약 안내
+  // ════════════════════════════════════════
+  
   // 활성 수강이 있는지 확인 (결제 완료 + 본 수업 시작 전인지 판단)
   const{data:enrolls}=await sb.from("enrollments")
     .select("id,start_date,payment_status,status")
@@ -842,7 +934,7 @@ async function renderLevelTestBanner(){
     .eq("status","active")
     .order("start_date",{ascending:true});
 
-  if(!enrolls || enrolls.length === 0) return; // 활성 수강 없음 → 안 보임 (먼저 결제 유도)
+  if(!enrolls || enrolls.length === 0) return; // 상태 1: 결제 안 함 → 안 보임
 
   // 가장 빠른 활성 수강의 시작일
   const earliestStart = enrolls[0].start_date;
