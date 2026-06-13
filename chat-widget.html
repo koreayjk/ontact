@@ -401,15 +401,21 @@
     if(!profile){ return; }
 
     _me = profile;
+    // 위젯 즉시 표시 (이후 작업이 실패해도 채팅 탭은 보임)
     document.getElementById("chat-dock").classList.remove("hidden");
 
-    await loadConversations();
-    await loadPossibleContacts();
-    renderChatList();
-    setupRealtime();
-    setupPresence();
-    setupSearchHandler();
-    setupInputHandler();
+    try {
+      await loadConversations();
+      await loadPossibleContacts();
+      renderChatList();
+      setupRealtime();
+      setupPresence();
+      setupSearchHandler();
+      setupInputHandler();
+    } catch(e) {
+      console.error("[chat] init partial failure:", e);
+      // 위젯은 보임 — 부분 기능만 안 될 수 있음
+    }
   }
 
   // ─── 본인이 채팅할 수 있는 사람 목록 ───
@@ -823,12 +829,16 @@
   function startWhenReady(attempts){
     attempts = attempts || 0;
     if(!window.sb){
-      if(attempts > 30){ console.warn("[chat] window.sb not ready after 6s, giving up"); return; }
+      if(attempts > 30){ console.error("[chat] window.sb not ready after 6s, giving up"); return; }
       setTimeout(() => startWhenReady(attempts + 1), 200);
       return;
     }
-    init().catch(err => console.error("[chat] init failed:", err));
+    console.log("[chat] sb ready, calling init (attempt", attempts, ")");
+    init()
+      .then(() => console.log("[chat] init completed"))
+      .catch(err => console.error("[chat] init failed:", err));
   }
+  console.log("[chat] widget script loaded, waiting for sb");
   startWhenReady();
 })();
 </script>
