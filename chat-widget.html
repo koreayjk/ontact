@@ -222,13 +222,16 @@
     gap: 6px;
   }
   .chat-room .messages .msg {
-    max-width: 75%;
-    padding: 8px 12px;
-    border-radius: 14px;
-    font-size: .88rem;
-    line-height: 1.45;
+    max-width: 80%;
+    padding: 10px 14px;
+    border-radius: 16px;
+    font-size: .9rem;
+    line-height: 1.5;
     word-wrap: break-word;
+    word-break: break-word;
+    overflow-wrap: break-word;
     white-space: pre-wrap;
+    box-sizing: border-box;
   }
   .chat-room .messages .msg.mine {
     background: #12273d;
@@ -681,8 +684,7 @@
     if(error){ alert("전송 실패: " + error.message); return; }
     input.value = "";
     input.style.height = "36px";
-    // Realtime이 처리하니까 자동으로 화면 갱신됨. 대비책으로 한 번 더 로드:
-    await loadMessages(_activeConvId);
+    // Realtime이 메시지 도착 처리하니까 여기서 추가 작업 불필요
   };
 
   // ─── 읽음 처리 ───
@@ -712,6 +714,8 @@
 
         // 현재 보고 있는 채팅방의 메시지면 즉시 추가
         if(_activeConvId === m.conversation_id){
+          // ID 중복 방지
+          if(_messages.some(existing => existing.id === m.id)) return;
           _messages.push(m);
           renderMessages();
           if(!isMine) markAsRead(m.conversation_id);
