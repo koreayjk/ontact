@@ -265,6 +265,25 @@
   </div>
 </div>
 
+<!-- 레벨테스트 결과지 모달 -->
+<div id="ltr-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;border-radius:14px;max-width:680px;width:100%;max-height:92vh;overflow-y:auto;font-family:'Pretendard',sans-serif">
+    <!-- 헤더 (인쇄 시 숨김) -->
+    <div class="ltr-no-print" style="position:sticky;top:0;background:#fff;border-bottom:1px solid #e3ddd0;padding:14px 22px;display:flex;justify-content:space-between;align-items:center;z-index:5;border-radius:14px 14px 0 0">
+      <h2 style="font-size:1.1rem;margin:0;color:#12273d">📊 레벨테스트 결과지</h2>
+      <div style="display:flex;gap:6px">
+        <button onclick="downloadLevelResultPDF()" style="background:#ef6a48;color:#fff;border:0;padding:7px 14px;border-radius:7px;cursor:pointer;font-weight:700;font-size:.82rem">📥 PDF</button>
+        <button onclick="closeLevelResultModal()" style="background:none;border:0;font-size:1.5rem;cursor:pointer;color:#6b7785;padding:0 4px">✕</button>
+      </div>
+    </div>
+    
+    <!-- 결과지 본문 — PDF로 출력될 영역 -->
+    <div id="ltr-sheet" style="padding:30px 24px;color:#12273d;font-family:'Pretendard',sans-serif">
+      <!-- 동적으로 채워짐 -->
+    </div>
+  </div>
+</div>
+
 <div class="wrap">
   <div class="tabs">
     <button class="on" data-tab="signup">📚 수강신청</button>
@@ -435,6 +454,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script>
 const SUPABASE_URL="https://nhydhyolgrhsykdcqfzb.supabase.co";
 const SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5oeWRoeW9sZ3Joc3lrZGNxZnpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MTk1OTAsImV4cCI6MjA5NTk5NTU5MH0.s3qPFFN-4zMLAt-dtkOwzakCj-pkglKgbhyUR9uu4xs";
@@ -602,16 +622,213 @@ function showProfileMsg(msg, ok){
   el.style.color = ok ? "#2e7d32" : "#d4351c";
 }
 
+// ──────── 레벨테스트 결과지 모달 ────────
+
+const CEFR_DESC_KR = {
+  "Pre-A1": "입문 이하 — 몇 단어만 알고 있고, 간단한 문장도 만들기 어렵습니다.",
+  "A1": "입문 (Beginner) — 자기소개와 간단한 개인 질문에 답할 수 있습니다. 매우 기초적인 표현을 사용합니다.",
+  "A2": "초급 (Elementary) — 익숙한 주제, 일상, 개인 정보, 기본적인 필요에 대해 의사소통할 수 있습니다.",
+  "B1": "중급 (Intermediate) — 경험을 묘사하고, 의견을 표현하며, 주요 내용을 이해하고 일상적인 상황에서 의사소통할 수 있습니다.",
+  "B2": "중상급 (Upper Intermediate) — 복잡한 주제에 대해 토론하고, 관점을 설명하며, 상세한 글을 이해하고 유창하게 의사소통할 수 있습니다.",
+  "C1": "고급 (Advanced) — 학술, 직업, 사회적 목적으로 영어를 유연하고 효과적으로 사용할 수 있습니다.",
+  "C2": "숙달 (Mastery) — 원어민에 가까운 수준. 듣거나 읽은 거의 모든 것을 이해할 수 있습니다.",
+};
+
+let CURRENT_LTR = null; // 현재 표시 중인 결과 (PDF 파일명용)
+
+window.openLevelResultModal = async function(){
+  const modal = $("ltr-modal");
+  const sheet = $("ltr-sheet");
+  
+  sheet.innerHTML = `<div style="text-align:center;padding:40px;color:#6b7785">불러오는 중…</div>`;
+  modal.style.display = "flex";
+  
+  // 가장 최신 결과 조회
+  const { data, error } = await sb.from("level_test_results")
+    .select("*")
+    .eq("student_id", USER.id)
+    .order("test_date", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  
+  if(error || !data){
+    sheet.innerHTML = `<div style="text-align:center;padding:40px;color:#6b7785">
+      <p style="font-size:1rem;margin-bottom:10px">아직 상세 결과지가 없습니다.</p>
+      <p style="font-size:.85rem">매니저가 결과지를 작성하면 여기에 표시됩니다.</p>
+    </div>`;
+    return;
+  }
+  
+  CURRENT_LTR = data;
+  renderLevelResultSheet(data);
+};
+
+window.closeLevelResultModal = function(){
+  $("ltr-modal").style.display = "none";
+};
+
+function renderLevelResultSheet(d){
+  const sheet = $("ltr-sheet");
+  const studentName = PROFILE.full_name || PROFILE.email;
+  const testDateLabel = new Date(d.test_date + "T00:00:00").toLocaleDateString("ko-KR", { 
+    year:"numeric", month:"long", day:"numeric" 
+  });
+  
+  const desc = d.level_description || CEFR_DESC_KR[d.overall_level] || "";
+  
+  // 별점 HTML 생성
+  const stars = (score) => {
+    if(!score) return '<span style="color:#ccc">평가 없음</span>';
+    let s = "";
+    for(let i = 1; i <= 5; i++){
+      s += i <= score 
+        ? '<span style="color:#c98a1f;font-size:1.2rem">★</span>' 
+        : '<span style="color:#ddd;font-size:1.2rem">☆</span>';
+    }
+    return s + ` <span style="color:#6b7785;font-size:.85rem;margin-left:6px">${score}/5</span>`;
+  };
+  
+  const skillRow = (icon, label, score, note) => `
+    <div style="padding:10px 0;border-bottom:1px solid #f0eee8">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <span style="font-weight:600">${icon} ${label}</span>
+        <span>${stars(score)}</span>
+      </div>
+      ${note ? `<div style="font-size:.85rem;color:#6b7785;padding-left:24px">${escapeHtml(note)}</div>` : ""}
+    </div>`;
+  
+  sheet.innerHTML = `
+    <div style="text-align:center;margin-bottom:24px;padding-bottom:18px;border-bottom:2px solid #ef6a48">
+      <h1 style="font-size:1.4rem;margin:0;color:#12273d">🎓 ONTACT 영어 레벨테스트 결과지</h1>
+      <div style="font-size:.85rem;color:#6b7785;margin-top:6px">Personal English Proficiency Report</div>
+    </div>
+    
+    <!-- 학생 정보 -->
+    <table style="width:100%;font-size:.9rem;margin-bottom:24px;border-collapse:collapse">
+      <tr>
+        <td style="padding:5px 0;width:30%;color:#6b7785">학생명</td>
+        <td style="padding:5px 0;font-weight:600">${escapeHtml(studentName)}</td>
+      </tr>
+      <tr>
+        <td style="padding:5px 0;color:#6b7785">시험일</td>
+        <td style="padding:5px 0;font-weight:600">${testDateLabel}</td>
+      </tr>
+      <tr>
+        <td style="padding:5px 0;color:#6b7785">평가자</td>
+        <td style="padding:5px 0;font-weight:600">${escapeHtml(d.conducted_by_name || "—")}</td>
+      </tr>
+    </table>
+    
+    <!-- 종합 평가 -->
+    <div style="background:#f9f7f2;border:1px solid #e3ddd0;border-radius:10px;padding:18px;margin-bottom:24px">
+      <div style="font-size:.85rem;color:#6b7785;margin-bottom:4px">종합 평가</div>
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:10px;flex-wrap:wrap">
+        <div style="font-size:2.2rem;font-weight:700;color:#ef6a48">${d.overall_level}</div>
+        <div style="flex:1;min-width:200px">
+          <div style="font-size:.85rem;color:#12273d;line-height:1.5">${escapeHtml(desc)}</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 5대 평가 항목 -->
+    <h2 style="font-size:1.05rem;margin:24px 0 10px;color:#12273d;border-bottom:1px solid #e3ddd0;padding-bottom:6px">📊 세부 평가 (5대 항목 / 각 5점 만점)</h2>
+    <div>
+      ${skillRow("📚", "어휘 (Vocabulary)", d.vocab_score, d.vocab_note)}
+      ${skillRow("✏️", "문법 (Grammar)", d.grammar_score, d.grammar_note)}
+      ${skillRow("🗣️", "유창성 (Fluency)", d.fluency_score, d.fluency_note)}
+      ${skillRow("🔊", "발음 (Pronunciation)", d.pronunciation_score, d.pronunciation_note)}
+      ${skillRow("🤝", "상호작용 (Interaction)", d.interaction_score, d.interaction_note)}
+    </div>
+    
+    <!-- 강점 / 개선점 / 추천 -->
+    ${(d.strengths || d.weaknesses || d.recommendations) ? `
+      <h2 style="font-size:1.05rem;margin:24px 0 10px;color:#12273d;border-bottom:1px solid #e3ddd0;padding-bottom:6px">💡 평가 의견 및 권장 사항</h2>
+      
+      ${d.strengths ? `
+        <div style="background:#e6f6ec;border-left:4px solid #2e7d32;border-radius:6px;padding:12px;margin-bottom:10px">
+          <div style="font-size:.85rem;font-weight:700;color:#2e7d32;margin-bottom:4px">✅ 강점</div>
+          <div style="font-size:.88rem;white-space:pre-wrap;color:#12273d">${escapeHtml(d.strengths)}</div>
+        </div>
+      ` : ""}
+      
+      ${d.weaknesses ? `
+        <div style="background:#fbe9e7;border-left:4px solid #d4351c;border-radius:6px;padding:12px;margin-bottom:10px">
+          <div style="font-size:.85rem;font-weight:700;color:#d4351c;margin-bottom:4px">⚠️ 개선점</div>
+          <div style="font-size:.88rem;white-space:pre-wrap;color:#12273d">${escapeHtml(d.weaknesses)}</div>
+        </div>
+      ` : ""}
+      
+      ${d.recommendations ? `
+        <div style="background:#fff7e6;border-left:4px solid #c98a1f;border-radius:6px;padding:12px;margin-bottom:10px">
+          <div style="font-size:.85rem;font-weight:700;color:#c98a1f;margin-bottom:4px">🎯 학습 권장 사항</div>
+          <div style="font-size:.88rem;white-space:pre-wrap;color:#12273d">${escapeHtml(d.recommendations)}</div>
+        </div>
+      ` : ""}
+    ` : ""}
+    
+    ${d.recommended_textbook ? `
+      <h2 style="font-size:1.05rem;margin:24px 0 10px;color:#12273d;border-bottom:1px solid #e3ddd0;padding-bottom:6px">📖 추천 교재</h2>
+      <div style="background:#f9f7f2;border:1px solid #e3ddd0;border-radius:6px;padding:12px;font-size:.9rem;white-space:pre-wrap">${escapeHtml(d.recommended_textbook)}</div>
+    ` : ""}
+    
+    <!-- 푸터 -->
+    <div style="margin-top:32px;padding-top:14px;border-top:1px solid #e3ddd0;text-align:center;font-size:.78rem;color:#6b7785">
+      <div><b style="color:#12273d">ONTACT English</b> · 원어민 1:1 화상 영어</div>
+      <div style="margin-top:3px">발급일: ${new Date().toLocaleDateString("ko-KR")}</div>
+    </div>
+  `;
+}
+
+function escapeHtml(s){
+  return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+window.downloadLevelResultPDF = function(){
+  if(!CURRENT_LTR){ alert("결과가 없습니다."); return; }
+  
+  const sheet = $("ltr-sheet");
+  const studentName = (PROFILE.full_name || PROFILE.email || "student").replace(/[^\w가-힣]/g, "_");
+  const dateStr = CURRENT_LTR.test_date.replace(/-/g, "");
+  const fileName = `레벨테스트결과_${studentName}_${dateStr}.pdf`;
+  
+  const opt = {
+    margin: [10, 10, 10, 10],
+    filename: fileName,
+    image: { type: "jpeg", quality: 0.95 },
+    html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+    jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+    pagebreak: { mode: ["css", "legacy"] }
+  };
+  
+  // PDF 생성 중 표시
+  const btn = document.querySelector('button[onclick="downloadLevelResultPDF()"]');
+  const origText = btn ? btn.textContent : "";
+  if(btn){ btn.textContent = "⏳ 생성 중…"; btn.disabled = true; }
+  
+  html2pdf().set(opt).from(sheet).save().then(() => {
+    if(btn){ btn.textContent = origText; btn.disabled = false; }
+  }).catch(err => {
+    alert("PDF 생성 실패: " + (err.message || "알 수 없는 오류"));
+    if(btn){ btn.textContent = origText; btn.disabled = false; }
+  });
+};
+
+// 모달 바깥 클릭 시 닫기
+$("ltr-modal") && ($("ltr-modal").addEventListener("click", (e) => {
+  if(e.target === $("ltr-modal")) closeLevelResultModal();
+}));
+
 async function renderLevelTestBanner(){
   const b=$("lt-banner");
   b.innerHTML = ""; // 기본 안 보임
 
-  // 이미 완료한 경우 → 작은 배지 표시
+  // 이미 완료한 경우 → 결과 보기 버튼 포함
   if(PROFILE.level_test_done){
     b.innerHTML = `<div class="lt-box lt-done" style="margin-bottom:14px">
-      <div>
+      <div style="flex:1">
         <h3>✅ 레벨테스트 완료</h3>
         <p>강사가 학생의 수준을 미리 파악했습니다. 본 수업이 더 효율적으로 진행됩니다. ${PROFILE.level_result?`현재 레벨: <b>${PROFILE.level_result}</b>`:""}</p>
+        <button onclick="openLevelResultModal()" style="background:var(--ink);color:#fff;border:0;padding:8px 18px;border-radius:8px;cursor:pointer;font-weight:700;font-size:.85rem;margin-top:8px">📊 레벨테스트 결과지 보기</button>
       </div>
       ${PROFILE.level_result?`<span class="badge">Lv. ${PROFILE.level_result}</span>`:""}
     </div>`;

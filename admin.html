@@ -770,7 +770,7 @@ async function loadDashboard(){
 
 // ──────── PEOPLE LOAD + TABLE ────────
 async function loadPeople(){
-  const{data}=await sb.from("profiles").select("id,full_name,email,role,age,gender,phone,country,timezone,tags,payment_overdue,created_at").order("created_at",{ascending:false});
+  const{data}=await sb.from("profiles").select("id,full_name,email,role,age,gender,phone,country,timezone,tags,payment_overdue,level_result,level_test_done,current_textbook,created_at").order("created_at",{ascending:false});
   PEOPLE=data||[];
   renderPeople();
   // 강사 추가 폼의 회원 선택
@@ -881,6 +881,11 @@ async function togglePersonDetail(tr, personId){
         <div class="detail-box"><div class="lab">다음 수업</div><div class="val">${nextLesson ? new Date(nextLesson.start_at).toLocaleString("ko-KR",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit",weekday:"short"}) : "—"}</div><div class="extra">${nextLesson?nextLesson.teacher||"":""}</div></div>
         <div class="detail-box"><div class="lab">진행률</div><div class="val">${doneBookings}/${totalBookings} (${progress}%)</div><div class="extra">완료 / 전체</div></div>
         <div class="detail-box"><div class="lab">출석률</div><div class="val">${attendanceRate}%</div><div class="extra">${attendedBookings}/${doneBookings} 출석</div></div>
+        <div class="detail-box" style="background:${m.level_result?'#fff7e6':'#fff'};border-color:${m.level_result?'#c98a1f':'var(--line)'}">
+          <div class="lab">🎓 레벨 / 교재</div>
+          <div class="val">${m.level_result || "미평가"}</div>
+          <div class="extra" style="font-size:.78rem">${m.current_textbook || (m.level_test_done ? "(교재 미지정)" : "레벨테스트 필요")}</div>
+        </div>
       </div>
 
       <h3 style="font-size:.95rem;margin:14px 0 6px">📚 수강 등록 (${(enrolls||[]).length}건)</h3>
