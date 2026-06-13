@@ -308,9 +308,11 @@
       
       <!-- 학생 선택 -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
-        <div>
+        <div style="position:relative">
           <label data-t="ltr_student_l" style="display:block;margin-bottom:4px;font-size:.85rem;font-weight:600">Student</label>
-          <select id="ltr-student" style="width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:6px;font-size:.88rem"></select>
+          <input type="text" id="ltr-student-search" data-t-ph="ltr_search_ph" placeholder="🔍 학생 이름 검색 또는 클릭…" autocomplete="off" style="width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:6px;font-size:.88rem;box-sizing:border-box;cursor:pointer">
+          <input type="hidden" id="ltr-student">
+          <div id="ltr-student-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--line);border-radius:6px;box-shadow:0 6px 20px rgba(0,0,0,.12);max-height:340px;overflow-y:auto;z-index:50;margin-top:2px"></div>
         </div>
         <div>
           <label data-t="ltr_date_l" style="display:block;margin-bottom:4px;font-size:.85rem;font-weight:600">Test Date</label>
@@ -691,6 +693,7 @@ const I18N = {
     ltr_entry_h:"📋 Level Test Result — Enter / Update",
     ltr_entry_sub:"After conducting a 1:1 level test, fill in this result sheet. Students can view their results and download as PDF.",
     ltr_student_l:"Student",
+    ltr_search_ph:"🔍 Search by name or click…",
     ltr_date_l:"Test Date",
     ltr_history_h:"📚 Previous Results",
     ltr_overall_h:"🎯 Overall Assessment",
@@ -849,6 +852,7 @@ const I18N = {
     ltr_entry_h:"📋 레벨테스트 결과지 — 입력 / 수정",
     ltr_entry_sub:"학생과 1:1 레벨테스트 진행 후 결과지를 작성하세요. 학생은 본인 페이지에서 결과를 보고 PDF로 다운받을 수 있습니다.",
     ltr_student_l:"학생",
+    ltr_search_ph:"🔍 학생 이름 검색 또는 클릭…",
     ltr_date_l:"시험 날짜",
     ltr_history_h:"📚 이전 결과 기록",
     ltr_overall_h:"🎯 종합 평가",
@@ -1528,28 +1532,85 @@ window.addMgrTeacherNote = async function(tid){
 async function loadLeveltest(){
   const{data:slots}=await sb.from("leveltest_slots")
     .select("id,start_at,duration_min,status,manager_id")
-    .order("start_at",{ascending:true}).limit(80);
+    .order("start_at",{ascending:true}).limit(500);
   const{data:bookings}=await sb.from("leveltest_bookings")
     .select("id,slot_id,start_at,zoom_join_url,level_result,student_id,profiles(full_name,email)");
   const bkBySlot = {}; (bookings||[]).forEach(b=>bkBySlot[b.slot_id]=b);
 
   const box = $("lt-list");
   if(!slots || slots.length===0){ box.innerHTML = `<div class="empty">${t("waiting")}</div>`; return; }
-  box.innerHTML = slots.map(s=>{
-    const bk = bkBySlot[s.id];
-    const isBooked = !!bk;
-    const stuName = bk ? (bk.profiles ? (bk.profiles.full_name||bk.profiles.email) : t("student")) : null;
-    return `<div class="lt-slot ${isBooked?'booked':''}">
-      <div>
-        <div class="when">${fmtTime(s.start_at)} · ${dayHeader(s.start_at)}</div>
-        <div class="meta">${s.duration_min} ${t("min")} · ${isBooked ? `👤 ${stuName}` : `<span class="badge b-on_time">${t("lt_open")}</span>`}${bk && bk.level_result ? ` · <b>Lv. ${bk.level_result}</b>` : ""}</div>
+  
+  // ── 슬롯 요약 (전체 슬롯 통계) ──
+  const total = slots.length;
+  const booked = slots.filter(s => bkBySlot[s.id]).length;
+  const available = total - booked;
+  
+  // 슬롯 날짜 범위
+  const dates = slots.map(s => s.start_at.split("T")[0]).sort();
+  const firstDate = dates[0];
+  const lastDate = dates[dates.length - 1];
+  
+  // 요일 분포
+  const weekdaysSet = new Set();
+  slots.forEach(s => weekdaysSet.add(new Date(s.start_at).getDay()));
+  const wdNames = LANG === "kr" 
+    ? ["일","월","화","수","목","금","토"]
+    : ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  const weekdayList = Array.from(weekdaysSet).sort().map(d => wdNames[d]).join("·");
+  
+  // 시간 범위
+  const times = slots.map(s => {
+    const dt = new Date(s.start_at);
+    return dt.getHours() * 60 + dt.getMinutes();
+  });
+  const minTime = Math.min(...times);
+  const maxTime = Math.max(...times) + 20; // 20분 슬롯
+  const fmtMin = (m) => `${String(Math.floor(m/60)).padStart(2,"0")}:${String(m%60).padStart(2,"0")}`;
+  
+  // 예약된 슬롯만 필터링
+  const bookedSlots = slots.filter(s => bkBySlot[s.id]);
+  
+  // ── 요약 헤더 ──
+  let html = `<div style="background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:14px;font-size:.88rem">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">
+      <div style="font-weight:700;color:var(--ink)">📅 ${LANG === "kr" ? "설정된 시간대" : "Configured Schedule"}</div>
+      <div style="font-size:.82rem;color:var(--muted)">
+        ${LANG === "kr" 
+          ? `총 ${total}개 슬롯 · 예약 ${booked} · 빈 슬롯 ${available}` 
+          : `${total} slots · ${booked} booked · ${available} open`}
       </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap">
-        ${bk && bk.zoom_join_url ? `<a href="${bk.zoom_join_url}" target="_blank" class="btn btn-sm" style="text-decoration:none;background:var(--ink)">🎥 ${t("view_zoom")}</a>` : ""}
-        ${bk ? `<button class="btn btn-sm" data-bk="${bk.id}" data-sid="${bk.student_id}" data-stu="${stuName.replace(/"/g,'')}">${t("set_level")}</button>` : ""}
-      </div>
+    </div>
+    <div style="color:var(--ink);font-size:.92rem">
+      📆 ${firstDate} ~ ${lastDate} · <b>${weekdayList}</b> · ⏰ <b>${fmtMin(minTime)} ~ ${fmtMin(maxTime)}</b>
+    </div>
+  </div>`;
+  
+  // ── 예약된 슬롯만 표시 ──
+  if(bookedSlots.length === 0){
+    html += `<div class="empty" style="padding:20px;text-align:center;background:#fff;border:1px dashed var(--line);border-radius:8px">
+      ${LANG === "kr" ? "🎯 아직 예약된 레벨테스트가 없습니다." : "🎯 No level test bookings yet."}
     </div>`;
-  }).join("");
+  } else {
+    html += `<div style="font-size:.88rem;font-weight:700;margin-bottom:8px;color:var(--ink)">
+      🎯 ${LANG === "kr" ? "예약된 레벨테스트" : "Booked Level Tests"} (${bookedSlots.length})
+    </div>`;
+    html += bookedSlots.map(s => {
+      const bk = bkBySlot[s.id];
+      const stuName = bk.profiles ? (bk.profiles.full_name || bk.profiles.email) : t("student");
+      return `<div class="lt-slot booked">
+        <div>
+          <div class="when">${fmtTime(s.start_at)} · ${dayHeader(s.start_at)}</div>
+          <div class="meta">${s.duration_min} ${t("min")} · 👤 ${escapeM(stuName)}${bk.level_result ? ` · <b>Lv. ${bk.level_result}</b>` : ""}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          ${bk.zoom_join_url ? `<a href="${bk.zoom_join_url}" target="_blank" class="btn btn-sm" style="text-decoration:none;background:var(--ink)">🎥 ${t("view_zoom")}</a>` : ""}
+          <button class="btn btn-sm" data-bk="${bk.id}" data-sid="${bk.student_id}" data-stu="${escapeM(stuName).replace(/"/g,'&quot;')}">${t("set_level")}</button>
+        </div>
+      </div>`;
+    }).join("");
+  }
+  
+  box.innerHTML = html;
   box.querySelectorAll("button[data-bk]").forEach(btn=>{ btn.onclick = ()=> openLevel(btn.dataset); });
 }
 
@@ -2343,18 +2404,140 @@ function hoverStar(el, val){
   });
 }
 
-// 학생 목록 로드 (드롭다운)
+let LTR_STUDENTS_ALL = [];        // 전체 학생
+let LTR_STUDENTS_BOOKED = new Set(); // 레벨테스트 예약한 학생 IDs
+
+// 학생 목록 로드 (전체 + 레벨테스트 예약자)
 async function loadLtrStudents(){
-  const { data } = await sb.from("profiles")
-    .select("id, full_name, email")
+  // 전체 학생
+  const { data: students } = await sb.from("profiles")
+    .select("id, full_name, email, level_result, level_test_done")
     .eq("role", "student")
     .order("full_name");
   
-  const sel = $("ltr-student");
-  sel.innerHTML = `<option value="">— ${LANG === "kr" ? "학생 선택" : "Select student"} —</option>` +
-    (data || []).map(s => 
-      `<option value="${s.id}">${escapeM(s.full_name || s.email)}</option>`
-    ).join("");
+  LTR_STUDENTS_ALL = students || [];
+  
+  // 레벨테스트 예약한 학생 ID 모음 (미래 + 최근 1개월)
+  const oneMonthAgo = new Date();
+  oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+  
+  const { data: ltBookings } = await sb.from("leveltest_bookings")
+    .select("student_id, start_at")
+    .gte("start_at", oneMonthAgo.toISOString());
+  
+  LTR_STUDENTS_BOOKED = new Set((ltBookings || []).map(b => b.student_id));
+  
+  renderStudentDropdown("");
+}
+
+function renderStudentDropdown(filter){
+  const dropdown = $("ltr-student-dropdown");
+  if(!dropdown) return;
+  
+  const filterLower = (filter || "").toLowerCase().trim();
+  
+  // 필터 적용
+  let filtered = LTR_STUDENTS_ALL;
+  if(filterLower){
+    filtered = filtered.filter(s => {
+      const name = (s.full_name || "").toLowerCase();
+      const email = (s.email || "").toLowerCase();
+      return name.includes(filterLower) || email.includes(filterLower);
+    });
+  }
+  
+  // 분류: 레벨테스트 예약자 우선, 그 다음 기타
+  const booked = filtered.filter(s => LTR_STUDENTS_BOOKED.has(s.id));
+  const others = filtered.filter(s => !LTR_STUDENTS_BOOKED.has(s.id));
+  
+  let html = "";
+  
+  if(booked.length > 0){
+    html += `<div style="padding:8px 12px;background:#fff7e6;border-bottom:1px solid var(--line);font-size:.78rem;font-weight:700;color:#c98a1f">
+      🎯 ${LANG === "kr" ? "레벨테스트 예약자" : "Level Test Booked"} (${booked.length})
+    </div>`;
+    html += booked.map(s => renderStudentItem(s, true)).join("");
+  }
+  
+  if(others.length > 0){
+    html += `<div style="padding:8px 12px;background:var(--paper);border-bottom:1px solid var(--line);font-size:.78rem;font-weight:700;color:var(--muted)">
+      📒 ${LANG === "kr" ? "전체 학생" : "All Students"} (${others.length})
+    </div>`;
+    html += others.map(s => renderStudentItem(s, false)).join("");
+  }
+  
+  if(booked.length === 0 && others.length === 0){
+    html = `<div style="padding:20px;text-align:center;color:var(--muted);font-size:.85rem">
+      ${LANG === "kr" ? "검색 결과가 없습니다." : "No students found."}
+    </div>`;
+  }
+  
+  dropdown.innerHTML = html;
+}
+
+function renderStudentItem(s, isBooked){
+  const name = s.full_name || s.email;
+  const levelBadge = s.level_test_done && s.level_result 
+    ? `<span style="background:#e6f6ec;color:#2e7d32;padding:2px 8px;border-radius:5px;font-size:.72rem;font-weight:700;margin-left:6px">${s.level_result}</span>` 
+    : "";
+  
+  return `<div class="ltr-stu-item" data-id="${s.id}" data-name="${escapeM(name).replace(/"/g,'&quot;')}" style="padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--paper);display:flex;justify-content:space-between;align-items:center;gap:8px" onmouseenter="this.style.background='var(--paper)'" onmouseleave="this.style.background=''">
+    <div style="flex:1;min-width:0">
+      <div style="font-weight:600;color:var(--ink);font-size:.88rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+        ${isBooked ? "🎯 " : ""}${escapeM(name)}${levelBadge}
+      </div>
+      <div style="font-size:.75rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeM(s.email || "")}</div>
+    </div>
+  </div>`;
+}
+
+// 검색 박스 이벤트
+function setupLtrStudentPicker(){
+  const searchInput = $("ltr-student-search");
+  const dropdown = $("ltr-student-dropdown");
+  const hiddenInput = $("ltr-student");
+  
+  if(!searchInput) return;
+  
+  // 클릭 → 드롭다운 열기
+  searchInput.onclick = () => {
+    dropdown.style.display = "block";
+    renderStudentDropdown(searchInput.value);
+  };
+  
+  searchInput.onfocus = () => {
+    dropdown.style.display = "block";
+    renderStudentDropdown(searchInput.value);
+  };
+  
+  // 타이핑 → 필터
+  searchInput.oninput = () => {
+    dropdown.style.display = "block";
+    renderStudentDropdown(searchInput.value);
+  };
+  
+  // 항목 클릭 → 선택
+  dropdown.addEventListener("click", (e) => {
+    const item = e.target.closest(".ltr-stu-item");
+    if(!item) return;
+    
+    const id = item.dataset.id;
+    const name = item.dataset.name;
+    
+    searchInput.value = name;
+    hiddenInput.value = id;
+    dropdown.style.display = "none";
+    
+    // change 이벤트 수동 발생 → 기존 로직 트리거
+    hiddenInput.dispatchEvent(new Event("change"));
+  });
+  
+  // 외부 클릭 시 닫기
+  document.addEventListener("click", (e) => {
+    if(!e.target.closest("#ltr-student-search") && !e.target.closest("#ltr-student-dropdown")){
+      dropdown.style.display = "none";
+    }
+  });
 }
 
 // 레벨 선택 시 설명 자동 채우기
@@ -2440,6 +2623,8 @@ window.loadLtrResult = async function(resultId){
 };
 
 function clearLtrForm(){
+  $("ltr-student-search").value = "";
+  $("ltr-student").value = "";
   $("ltr-level").value = "";
   $("ltr-textbook").value = "";
   $("ltr-level-desc").value = "";
@@ -2450,6 +2635,7 @@ function clearLtrForm(){
   $("ltr-strengths").value = "";
   $("ltr-weaknesses").value = "";
   $("ltr-recommendations").value = "";
+  $("ltr-history").style.display = "none";
   LTR_CURRENT_RESULT_ID = null;
   initStars();
 }
@@ -2538,6 +2724,7 @@ document.querySelector('[data-tab="leveltest"]')?.addEventListener("click", () =
   setTimeout(() => {
     loadLtrStudents();
     initStars();
+    setupLtrStudentPicker();
   }, 100);
 });
 
