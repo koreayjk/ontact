@@ -300,6 +300,126 @@
       </div>
       <div id="lt-list"><div class="empty" data-t="loading">Loading…</div></div>
     </div>
+
+    <!-- 📋 레벨테스트 결과지 작성 -->
+    <div class="step" id="ltr-entry-step">
+      <h2 data-t="ltr_entry_h">📋 Level Test Result — Enter / Update</h2>
+      <p class="sub" data-t="ltr_entry_sub">After conducting a 1:1 level test, fill in this result sheet. Students can view their results and download as PDF.</p>
+      
+      <!-- 학생 선택 -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+        <div>
+          <label data-t="ltr_student_l" style="display:block;margin-bottom:4px;font-size:.85rem;font-weight:600">Student</label>
+          <select id="ltr-student" style="width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:6px;font-size:.88rem"></select>
+        </div>
+        <div>
+          <label data-t="ltr_date_l" style="display:block;margin-bottom:4px;font-size:.85rem;font-weight:600">Test Date</label>
+          <input id="ltr-date" type="date" style="width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:6px;font-size:.88rem;box-sizing:border-box">
+        </div>
+      </div>
+
+      <!-- 기존 결과 표시 -->
+      <div id="ltr-history" style="background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:14px;display:none">
+        <div data-t="ltr_history_h" style="font-size:.85rem;font-weight:700;margin-bottom:6px">📚 Previous Results</div>
+        <div id="ltr-history-list" style="font-size:.82rem;color:var(--muted)"></div>
+      </div>
+
+      <!-- 종합 평가 -->
+      <div style="background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px">
+        <h3 data-t="ltr_overall_h" style="font-size:.95rem;font-weight:700;margin-bottom:10px">🎯 Overall Assessment</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+          <div>
+            <label data-t="ltr_level_l" style="display:block;margin-bottom:4px;font-size:.82rem">CEFR Level</label>
+            <select id="ltr-level" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:.88rem;box-sizing:border-box">
+              <option value="">— Select —</option>
+              <option value="Pre-A1">Pre-A1 (Beginner / 미만)</option>
+              <option value="A1">A1 (Beginner / 입문)</option>
+              <option value="A2">A2 (Elementary / 초급)</option>
+              <option value="B1">B1 (Intermediate / 중급)</option>
+              <option value="B2">B2 (Upper Intermediate / 중상급)</option>
+              <option value="C1">C1 (Advanced / 고급)</option>
+              <option value="C2">C2 (Mastery / 숙달)</option>
+            </select>
+          </div>
+          <div>
+            <label data-t="ltr_textbook_l" style="display:block;margin-bottom:4px;font-size:.82rem">Recommended Textbook</label>
+            <input id="ltr-textbook" type="text" data-t-ph="ltr_textbook_ph" placeholder="e.g. Speak English Like an American" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:.88rem;box-sizing:border-box">
+          </div>
+        </div>
+        <div>
+          <label data-t="ltr_level_desc_l" style="display:block;margin-bottom:4px;font-size:.82rem">Level Description (auto-filled, editable)</label>
+          <textarea id="ltr-level-desc" rows="2" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:.88rem;box-sizing:border-box;resize:vertical;font-family:inherit"></textarea>
+        </div>
+      </div>
+
+      <!-- 5대 평가 항목 -->
+      <div style="background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px">
+        <h3 data-t="ltr_skills_h" style="font-size:.95rem;font-weight:700;margin-bottom:10px">📊 Five Skills Assessment (1~5 points each)</h3>
+        
+        <div id="ltr-skill-vocab" class="ltr-skill-row" data-skill="vocab" style="border-bottom:1px solid var(--paper);padding:8px 0">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <label style="font-weight:600;font-size:.88rem">📚 <span data-t="ltr_vocab">Vocabulary</span></label>
+            <div class="ltr-stars" data-field="vocab"></div>
+          </div>
+          <input type="text" id="ltr-vocab-note" data-t-ph="ltr_note_ph" placeholder="Note (e.g. Uses wide everyday vocabulary, limited in academic words)" style="width:100%;padding:7px;border:1px solid var(--line);border-radius:5px;font-size:.85rem;box-sizing:border-box">
+        </div>
+        
+        <div id="ltr-skill-grammar" class="ltr-skill-row" data-skill="grammar" style="border-bottom:1px solid var(--paper);padding:8px 0">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <label style="font-weight:600;font-size:.88rem">✏️ <span data-t="ltr_grammar">Grammar</span></label>
+            <div class="ltr-stars" data-field="grammar"></div>
+          </div>
+          <input type="text" id="ltr-grammar-note" data-t-ph="ltr_note_ph" placeholder="Note" style="width:100%;padding:7px;border:1px solid var(--line);border-radius:5px;font-size:.85rem;box-sizing:border-box">
+        </div>
+        
+        <div id="ltr-skill-fluency" class="ltr-skill-row" data-skill="fluency" style="border-bottom:1px solid var(--paper);padding:8px 0">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <label style="font-weight:600;font-size:.88rem">🗣️ <span data-t="ltr_fluency">Fluency</span></label>
+            <div class="ltr-stars" data-field="fluency"></div>
+          </div>
+          <input type="text" id="ltr-fluency-note" data-t-ph="ltr_note_ph" placeholder="Note" style="width:100%;padding:7px;border:1px solid var(--line);border-radius:5px;font-size:.85rem;box-sizing:border-box">
+        </div>
+        
+        <div id="ltr-skill-pronunciation" class="ltr-skill-row" data-skill="pronunciation" style="border-bottom:1px solid var(--paper);padding:8px 0">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <label style="font-weight:600;font-size:.88rem">🔊 <span data-t="ltr_pronunciation">Pronunciation</span></label>
+            <div class="ltr-stars" data-field="pronunciation"></div>
+          </div>
+          <input type="text" id="ltr-pronunciation-note" data-t-ph="ltr_note_ph" placeholder="Note" style="width:100%;padding:7px;border:1px solid var(--line);border-radius:5px;font-size:.85rem;box-sizing:border-box">
+        </div>
+        
+        <div id="ltr-skill-interaction" class="ltr-skill-row" data-skill="interaction" style="padding:8px 0">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <label style="font-weight:600;font-size:.88rem">🤝 <span data-t="ltr_interaction">Interaction</span></label>
+            <div class="ltr-stars" data-field="interaction"></div>
+          </div>
+          <input type="text" id="ltr-interaction-note" data-t-ph="ltr_note_ph" placeholder="Note" style="width:100%;padding:7px;border:1px solid var(--line);border-radius:5px;font-size:.85rem;box-sizing:border-box">
+        </div>
+      </div>
+
+      <!-- 강점 / 개선점 / 추천 -->
+      <div style="background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px">
+        <h3 data-t="ltr_feedback_h" style="font-size:.95rem;font-weight:700;margin-bottom:10px">💡 Feedback &amp; Recommendations</h3>
+        <div style="margin-bottom:10px">
+          <label data-t="ltr_strengths_l" style="display:block;margin-bottom:4px;font-size:.82rem;color:#2e7d32;font-weight:600">✅ Strengths</label>
+          <textarea id="ltr-strengths" rows="2" data-t-ph="ltr_strengths_ph" placeholder="What the student does well" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:.85rem;box-sizing:border-box;resize:vertical;font-family:inherit"></textarea>
+        </div>
+        <div style="margin-bottom:10px">
+          <label data-t="ltr_weaknesses_l" style="display:block;margin-bottom:4px;font-size:.82rem;color:#d4351c;font-weight:600">⚠️ Areas to Improve</label>
+          <textarea id="ltr-weaknesses" rows="2" data-t-ph="ltr_weaknesses_ph" placeholder="What needs work" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:.85rem;box-sizing:border-box;resize:vertical;font-family:inherit"></textarea>
+        </div>
+        <div>
+          <label data-t="ltr_recommendations_l" style="display:block;margin-bottom:4px;font-size:.82rem;color:#c98a1f;font-weight:600">🎯 Recommendations</label>
+          <textarea id="ltr-recommendations" rows="2" data-t-ph="ltr_rec_ph" placeholder="Recommended study plan" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:.85rem;box-sizing:border-box;resize:vertical;font-family:inherit"></textarea>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <button id="ltr-save-btn" data-t="ltr_save_btn" style="background:var(--ink);color:#fff;border:0;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:700;font-size:.9rem">💾 Save Result</button>
+        <button id="ltr-clear-btn" data-t="ltr_clear_btn" style="background:#fff;border:1px solid var(--line);padding:10px 16px;border-radius:8px;cursor:pointer;font-weight:600;font-size:.85rem">Clear</button>
+        <span id="ltr-save-msg" style="font-size:.85rem"></span>
+      </div>
+    </div>
   </div>
 
   <!-- 수강생 명부 -->
@@ -567,6 +687,33 @@ const I18N = {
     mtg_create_failed:"Create failed: ",
     mtg_delete_confirm:"Delete meeting \"{title}\"?\nAll action items and comments will also be deleted.\n\nContinue?",
     mtg_admin_badge:"👑",
+    // ── Level Test Result Entry ──
+    ltr_entry_h:"📋 Level Test Result — Enter / Update",
+    ltr_entry_sub:"After conducting a 1:1 level test, fill in this result sheet. Students can view their results and download as PDF.",
+    ltr_student_l:"Student",
+    ltr_date_l:"Test Date",
+    ltr_history_h:"📚 Previous Results",
+    ltr_overall_h:"🎯 Overall Assessment",
+    ltr_level_l:"CEFR Level",
+    ltr_textbook_l:"Recommended Textbook",
+    ltr_textbook_ph:"e.g. Speak English Like an American",
+    ltr_level_desc_l:"Level Description (auto-filled, editable)",
+    ltr_skills_h:"📊 Five Skills Assessment (1~5 points each)",
+    ltr_vocab:"Vocabulary",
+    ltr_grammar:"Grammar",
+    ltr_fluency:"Fluency",
+    ltr_pronunciation:"Pronunciation",
+    ltr_interaction:"Interaction",
+    ltr_note_ph:"Note (optional)",
+    ltr_feedback_h:"💡 Feedback & Recommendations",
+    ltr_strengths_l:"✅ Strengths",
+    ltr_strengths_ph:"What the student does well",
+    ltr_weaknesses_l:"⚠️ Areas to Improve",
+    ltr_weaknesses_ph:"What needs work",
+    ltr_recommendations_l:"🎯 Recommendations",
+    ltr_rec_ph:"Recommended study plan",
+    ltr_save_btn:"💾 Save Result",
+    ltr_clear_btn:"Clear",
   },
   kr:{
     title:"매니저 대시보드", logout:"로그아웃", admin_link:"총관리자",
@@ -698,6 +845,33 @@ const I18N = {
     mtg_create_failed:"생성 실패: ",
     mtg_delete_confirm:"회의록 \"{title}\"을(를) 삭제합니다.\n모든 안건과 코멘트가 함께 삭제됩니다.\n\n진행할까요?",
     mtg_admin_badge:"👑",
+    // ── 레벨테스트 결과지 입력 ──
+    ltr_entry_h:"📋 레벨테스트 결과지 — 입력 / 수정",
+    ltr_entry_sub:"학생과 1:1 레벨테스트 진행 후 결과지를 작성하세요. 학생은 본인 페이지에서 결과를 보고 PDF로 다운받을 수 있습니다.",
+    ltr_student_l:"학생",
+    ltr_date_l:"시험 날짜",
+    ltr_history_h:"📚 이전 결과 기록",
+    ltr_overall_h:"🎯 종합 평가",
+    ltr_level_l:"CEFR 레벨",
+    ltr_textbook_l:"추천 교재",
+    ltr_textbook_ph:"예: Speak English Like an American",
+    ltr_level_desc_l:"레벨 설명 (자동 입력, 편집 가능)",
+    ltr_skills_h:"📊 5대 평가 항목 (각 1~5점)",
+    ltr_vocab:"어휘",
+    ltr_grammar:"문법",
+    ltr_fluency:"유창성",
+    ltr_pronunciation:"발음",
+    ltr_interaction:"상호작용",
+    ltr_note_ph:"메모 (선택)",
+    ltr_feedback_h:"💡 평가 의견 및 권장 사항",
+    ltr_strengths_l:"✅ 강점",
+    ltr_strengths_ph:"학생이 잘하는 점",
+    ltr_weaknesses_l:"⚠️ 개선점",
+    ltr_weaknesses_ph:"보완해야 할 부분",
+    ltr_recommendations_l:"🎯 학습 권장 사항",
+    ltr_rec_ph:"추천 학습 방향",
+    ltr_save_btn:"💾 결과 저장",
+    ltr_clear_btn:"초기화",
   }
 };
 let LANG = localStorage.getItem("ontact_lang") || "en";
@@ -2079,6 +2253,292 @@ window.deleteMeeting = async function(meetingId, title){
 // 탭 클릭 시 회의록 로드
 document.querySelector('[data-tab="meetings"]').addEventListener("click", () => {
   setTimeout(loadMeetings, 100);
+});
+
+// ══════════════════════════════════════════
+// 📋 레벨테스트 결과지 입력
+// ══════════════════════════════════════════
+
+const CEFR_DESC = {
+  "Pre-A1": {
+    en: "Below beginner — Knows only a few words. Cannot form simple sentences.",
+    kr: "입문 이하 — 몇 단어만 알고 있고, 간단한 문장도 만들기 어렵습니다."
+  },
+  "A1": {
+    en: "Beginner — Can introduce themselves and answer simple personal questions. Uses very basic phrases.",
+    kr: "입문 — 자기소개와 간단한 개인 질문에 답할 수 있습니다. 매우 기초적인 표현을 사용합니다."
+  },
+  "A2": {
+    en: "Elementary — Can communicate about familiar topics, daily routines, personal information, and basic needs.",
+    kr: "초급 — 익숙한 주제, 일상, 개인 정보, 기본적인 필요에 대해 의사소통할 수 있습니다."
+  },
+  "B1": {
+    en: "Intermediate — Can describe experiences, express opinions, understand main ideas, and communicate in everyday situations.",
+    kr: "중급 — 경험을 묘사하고, 의견을 표현하며, 주요 내용을 이해하고 일상적인 상황에서 의사소통할 수 있습니다."
+  },
+  "B2": {
+    en: "Upper Intermediate — Can discuss complex topics, explain viewpoints, understand detailed texts, and communicate fluently.",
+    kr: "중상급 — 복잡한 주제에 대해 토론하고, 관점을 설명하며, 상세한 글을 이해하고 유창하게 의사소통할 수 있습니다."
+  },
+  "C1": {
+    en: "Advanced — Can use English flexibly and effectively for academic, professional, and social purposes.",
+    kr: "고급 — 학술, 직업, 사회적 목적으로 영어를 유연하고 효과적으로 사용할 수 있습니다."
+  },
+  "C2": {
+    en: "Mastery — Near-native proficiency. Can understand virtually everything heard or read.",
+    kr: "숙달 — 원어민에 가까운 수준. 듣거나 읽은 거의 모든 것을 이해할 수 있습니다."
+  },
+};
+
+let LTR_CURRENT_STUDENT = null;
+let LTR_CURRENT_RESULT_ID = null; // 기존 결과 수정 모드일 때
+let LTR_SCORES = { vocab: 0, grammar: 0, fluency: 0, pronunciation: 0, interaction: 0 };
+
+// 별점 UI 초기화
+function initStars(){
+  document.querySelectorAll(".ltr-stars").forEach(el => {
+    const field = el.dataset.field;
+    el.innerHTML = "";
+    for(let i = 1; i <= 5; i++){
+      const star = document.createElement("span");
+      star.textContent = "☆";
+      star.style.cssText = "font-size:1.5rem;cursor:pointer;color:#ccc;padding:0 2px;user-select:none";
+      star.dataset.value = i;
+      star.onclick = () => setStar(field, i);
+      star.onmouseenter = () => hoverStar(el, i);
+      star.onmouseleave = () => renderStars(el, LTR_SCORES[field]);
+      el.appendChild(star);
+    }
+    renderStars(el, LTR_SCORES[field]);
+  });
+}
+
+function setStar(field, val){
+  LTR_SCORES[field] = val;
+  const el = document.querySelector(`.ltr-stars[data-field="${field}"]`);
+  if(el) renderStars(el, val);
+}
+
+function renderStars(el, score){
+  el.querySelectorAll("span").forEach((s, idx) => {
+    if(idx < score){
+      s.textContent = "★";
+      s.style.color = "#c98a1f";
+    } else {
+      s.textContent = "☆";
+      s.style.color = "#ccc";
+    }
+  });
+}
+
+function hoverStar(el, val){
+  el.querySelectorAll("span").forEach((s, idx) => {
+    if(idx < val){
+      s.textContent = "★";
+      s.style.color = "#e3a447";
+    } else {
+      s.textContent = "☆";
+      s.style.color = "#ccc";
+    }
+  });
+}
+
+// 학생 목록 로드 (드롭다운)
+async function loadLtrStudents(){
+  const { data } = await sb.from("profiles")
+    .select("id, full_name, email")
+    .eq("role", "student")
+    .order("full_name");
+  
+  const sel = $("ltr-student");
+  sel.innerHTML = `<option value="">— ${LANG === "kr" ? "학생 선택" : "Select student"} —</option>` +
+    (data || []).map(s => 
+      `<option value="${s.id}">${escapeM(s.full_name || s.email)}</option>`
+    ).join("");
+}
+
+// 레벨 선택 시 설명 자동 채우기
+$("ltr-level") && ($("ltr-level").onchange = () => {
+  const lvl = $("ltr-level").value;
+  if(lvl && CEFR_DESC[lvl]){
+    $("ltr-level-desc").value = CEFR_DESC[lvl][LANG] || CEFR_DESC[lvl].en;
+  }
+});
+
+// 학생 선택 시 → 기존 결과 표시
+$("ltr-student") && ($("ltr-student").onchange = async () => {
+  const sid = $("ltr-student").value;
+  LTR_CURRENT_STUDENT = sid;
+  LTR_CURRENT_RESULT_ID = null;
+  
+  if(!sid){
+    $("ltr-history").style.display = "none";
+    clearLtrForm();
+    return;
+  }
+  
+  // 기존 결과 조회
+  const { data } = await sb.from("level_test_results")
+    .select("*")
+    .eq("student_id", sid)
+    .order("test_date", { ascending: false });
+  
+  if(!data || data.length === 0){
+    $("ltr-history").style.display = "none";
+    clearLtrForm();
+    // 오늘 날짜 기본 설정
+    $("ltr-date").value = new Date().toISOString().split("T")[0];
+    return;
+  }
+  
+  // 기존 결과 목록 표시
+  $("ltr-history").style.display = "block";
+  $("ltr-history-list").innerHTML = data.map(r => 
+    `<div style="padding:5px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center">
+      <div>📅 ${r.test_date} · <b style="color:var(--ink)">${r.overall_level}</b> · ${r.conducted_by_name || "—"}</div>
+      <button onclick="loadLtrResult(${r.id})" style="background:#fff;border:1px solid var(--line);padding:3px 10px;border-radius:5px;cursor:pointer;font-size:.78rem">✏️ ${LANG === "kr" ? "수정" : "Edit"}</button>
+    </div>`
+  ).join("");
+  
+  // 가장 최신 결과 자동 로드
+  await loadLtrResult(data[0].id);
+});
+
+// 기존 결과 로드 (수정 모드)
+window.loadLtrResult = async function(resultId){
+  const { data } = await sb.from("level_test_results")
+    .select("*")
+    .eq("id", resultId)
+    .single();
+  
+  if(!data) return;
+  
+  LTR_CURRENT_RESULT_ID = resultId;
+  
+  $("ltr-date").value = data.test_date || "";
+  $("ltr-level").value = data.overall_level || "";
+  $("ltr-textbook").value = data.recommended_textbook || "";
+  $("ltr-level-desc").value = data.level_description || "";
+  
+  LTR_SCORES.vocab = data.vocab_score || 0;
+  LTR_SCORES.grammar = data.grammar_score || 0;
+  LTR_SCORES.fluency = data.fluency_score || 0;
+  LTR_SCORES.pronunciation = data.pronunciation_score || 0;
+  LTR_SCORES.interaction = data.interaction_score || 0;
+  
+  $("ltr-vocab-note").value = data.vocab_note || "";
+  $("ltr-grammar-note").value = data.grammar_note || "";
+  $("ltr-fluency-note").value = data.fluency_note || "";
+  $("ltr-pronunciation-note").value = data.pronunciation_note || "";
+  $("ltr-interaction-note").value = data.interaction_note || "";
+  
+  $("ltr-strengths").value = data.strengths || "";
+  $("ltr-weaknesses").value = data.weaknesses || "";
+  $("ltr-recommendations").value = data.recommendations || "";
+  
+  initStars();
+};
+
+function clearLtrForm(){
+  $("ltr-level").value = "";
+  $("ltr-textbook").value = "";
+  $("ltr-level-desc").value = "";
+  LTR_SCORES = { vocab: 0, grammar: 0, fluency: 0, pronunciation: 0, interaction: 0 };
+  ["vocab","grammar","fluency","pronunciation","interaction"].forEach(f => {
+    $(`ltr-${f}-note`).value = "";
+  });
+  $("ltr-strengths").value = "";
+  $("ltr-weaknesses").value = "";
+  $("ltr-recommendations").value = "";
+  LTR_CURRENT_RESULT_ID = null;
+  initStars();
+}
+
+// 저장
+$("ltr-save-btn") && ($("ltr-save-btn").onclick = async () => {
+  const sid = $("ltr-student").value;
+  const date = $("ltr-date").value;
+  const level = $("ltr-level").value;
+  
+  if(!sid){ showLtrMsg(LANG === "kr" ? "학생을 선택하세요." : "Please select a student.", false); return; }
+  if(!date){ showLtrMsg(LANG === "kr" ? "시험 날짜를 선택하세요." : "Please select a test date.", false); return; }
+  if(!level){ showLtrMsg(LANG === "kr" ? "CEFR 레벨을 선택하세요." : "Please select a CEFR level.", false); return; }
+  
+  const payload = {
+    student_id: sid,
+    conducted_by: USER.id,
+    conducted_by_name: PROFILE.full_name || PROFILE.email,
+    test_date: date,
+    overall_level: level,
+    level_description: $("ltr-level-desc").value || null,
+    vocab_score: LTR_SCORES.vocab || null,
+    vocab_note: $("ltr-vocab-note").value || null,
+    grammar_score: LTR_SCORES.grammar || null,
+    grammar_note: $("ltr-grammar-note").value || null,
+    fluency_score: LTR_SCORES.fluency || null,
+    fluency_note: $("ltr-fluency-note").value || null,
+    pronunciation_score: LTR_SCORES.pronunciation || null,
+    pronunciation_note: $("ltr-pronunciation-note").value || null,
+    interaction_score: LTR_SCORES.interaction || null,
+    interaction_note: $("ltr-interaction-note").value || null,
+    strengths: $("ltr-strengths").value || null,
+    weaknesses: $("ltr-weaknesses").value || null,
+    recommendations: $("ltr-recommendations").value || null,
+    recommended_textbook: $("ltr-textbook").value || null,
+    updated_at: new Date().toISOString(),
+  };
+  
+  $("ltr-save-btn").disabled = true;
+  
+  let error;
+  if(LTR_CURRENT_RESULT_ID){
+    // 수정
+    const r = await sb.from("level_test_results").update(payload).eq("id", LTR_CURRENT_RESULT_ID);
+    error = r.error;
+  } else {
+    // 신규
+    const r = await sb.from("level_test_results").insert(payload);
+    error = r.error;
+  }
+  
+  // profile의 level_result, current_textbook 자동 동기화 (최신 결과 반영)
+  if(!error){
+    await sb.from("profiles").update({
+      level_result: level,
+      level_test_done: true,
+      current_textbook: $("ltr-textbook").value || null,
+    }).eq("id", sid);
+  }
+  
+  $("ltr-save-btn").disabled = false;
+  
+  if(error){ showLtrMsg(LANG === "kr" ? "저장 실패: " : "Save failed: " + error.message, false); return; }
+  
+  showLtrMsg(LANG === "kr" ? "✅ 저장 완료" : "✅ Saved", true);
+  
+  // 학생 선택 이벤트 다시 트리거 → 히스토리 갱신
+  $("ltr-student").dispatchEvent(new Event("change"));
+});
+
+// 초기화 버튼
+$("ltr-clear-btn") && ($("ltr-clear-btn").onclick = () => {
+  if(!confirm(LANG === "kr" ? "입력 내용을 모두 지우시겠어요?" : "Clear all entries?")) return;
+  clearLtrForm();
+});
+
+function showLtrMsg(msg, ok){
+  const el = $("ltr-save-msg");
+  el.textContent = msg;
+  el.style.color = ok ? "#2e7d32" : "#d4351c";
+  setTimeout(() => { el.textContent = ""; }, 3000);
+}
+
+// Level Test 탭 클릭 시 학생 목록 + 별점 초기화
+document.querySelector('[data-tab="leveltest"]')?.addEventListener("click", () => {
+  setTimeout(() => {
+    loadLtrStudents();
+    initStars();
+  }, 100);
 });
 
 gate();
