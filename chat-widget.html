@@ -711,7 +711,16 @@
   }
 
   // ─── 시작 ───
-  // window.sb가 늦게 초기화될 수 있으므로 약간 대기
-  setTimeout(init, 300);
+  // window.sb가 늦게 초기화될 수 있으므로 polling으로 대기
+  function startWhenReady(attempts){
+    attempts = attempts || 0;
+    if(!window.sb){
+      if(attempts > 30){ console.warn("[chat] window.sb not ready after 6s, giving up"); return; }
+      setTimeout(() => startWhenReady(attempts + 1), 200);
+      return;
+    }
+    init().catch(err => console.error("[chat] init failed:", err));
+  }
+  startWhenReady();
 })();
 </script>
