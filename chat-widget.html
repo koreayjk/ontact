@@ -300,6 +300,37 @@
 
   /* 비로그인 시 숨김 */
   .chat-dock.hidden { display: none; }
+
+  /* 온라인 상태 표시 */
+  .online-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #2e7d32;
+    box-shadow: 0 0 0 2px #fff;
+    margin-left: 4px;
+    flex-shrink: 0;
+  }
+  .offline-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #d4d4d4;
+    margin-left: 4px;
+    flex-shrink: 0;
+  }
+  .chat-room .head .online-dot,
+  .chat-room .head .offline-dot {
+    box-shadow: 0 0 0 2px #12273d;
+    margin-left: 6px;
+  }
+  .conv-row .who b {
+    display: flex !important;
+    align-items: center;
+    gap: 4px;
+  }
 </style>
 
 <div class="chat-dock hidden" id="chat-dock">
@@ -355,6 +386,8 @@
   let _messages = [];    // current room messages
   let _possibleContacts = []; // 채팅 가능한 사람들
   let _realtimeChannel = null;
+  let _presenceChannel = null;
+  let _onlineUsers = new Set(); // 온라인 사용자 id들
 
   // 라벨
   const ROLE_LABEL_KR = { student:"학생", teacher:"강사", manager:"매니저", admin:"총관리자" };
@@ -374,6 +407,7 @@
     await loadPossibleContacts();
     renderChatList();
     setupRealtime();
+    setupPresence();
     setupSearchHandler();
     setupInputHandler();
   }
@@ -493,9 +527,13 @@
   function convRowHTML(other, preview, unread, convId){
     const roleText = ROLE_LABEL_KR[other.role] || other.role;
     const previewText = preview ? escapeHtml(preview) : "<i style='color:#b8c4d3'>대화를 시작해보세요</i>";
+    const isOnline = _onlineUsers.has(other.id);
+    const dot = isOnline 
+      ? `<span class="online-dot" title="온라인"></span>`
+      : `<span class="offline-dot" title="오프라인"></span>`;
     return `<div class="conv-row" data-other-id="${other.id}" data-conv-id="${convId || 'null'}">
       <div class="who">
-        <b>${escapeHtml(other.full_name || other.email || "—")}<span class="role-tag">${roleText}</span></b>
+        <b>${escapeHtml(other.full_name || other.email || "—")}${dot}<span class="role-tag">${roleText}</span></b>
         <div class="preview">${previewText}</div>
       </div>
       ${unread > 0 ? `<span class="unread">${unread}</span>` : ""}
@@ -521,6 +559,18 @@
     const other = conv ? conv.other : _possibleContacts.find(p => p.id === otherUserId);
     document.getElementById("chat-room-name").textContent = other?.full_name || other?.email || "—";
     document.getElementById("chat-room-role").textContent = ROLE_LABEL_KR[other?.role] || other?.role || "";
+
+    // 온라인 상태 점 표시
+    if(other){
+      const isOnline = _onlineUsers.has(other.id);
+      const roleEl = document.getElementById("chat-room-role");
+      const oldDot = roleEl.parentElement.querySelector(".online-dot, .offline-dot");
+      if(oldDot) oldDot.remove();
+      const dot = document.createElement("span");
+      dot.className = isOnline ? "online-dot" : "offline-dot";
+      dot.title = isOnline ? "온라인" : "오프라인";
+      roleEl.parentElement.appendChild(dot);
+    }
 
     await loadMessages(convId);
     await markAsRead(convId);
@@ -666,6 +716,64 @@
         }
       })
       .subscribe();
+  }
+
+  // ─── Presence — 온라인 상태 추적 ───
+  function setupPresence(){
+    if(_presenceChannel) _sb.removeChannel(_presenceChannel);
+
+    _presenceChannel = _sb.channel("online-users", {
+      config: { presence: { key: _me.id } }
+    });
+
+    _presenceChannel
+      .on("presence", { event: "sync" }, () => {
+        const state = _presenceChannel.presenceState();
+        _onlineUsers = new Set(Object.keys(state));
+        // 본인은 제외
+        _onlineUsers.delete(_me.id);
+        // UI 갱신
+        renderChatList();
+        updateChatRoomOnlineStatus();
+      })
+      .on("presence", { event: "join" }, ({ key }) => {
+        if(key !== _me.id){
+          _onlineUsers.add(key);
+          renderChatList();
+          updateChatRoomOnlineStatus();
+        }
+      })
+      .on("presence", { event: "leave" }, ({ key }) => {
+        _onlineUsers.delete(key);
+        renderChatList();
+        updateChatRoomOnlineStatus();
+      })
+      .subscribe(async (status) => {
+        if(status === "SUBSCRIBED"){
+          await _presenceChannel.track({
+            user_id: _me.id,
+            online_at: new Date().toISOString(),
+          });
+        }
+      });
+  }
+
+  // 채팅방 헤더의 온라인 상태 갱신
+  function updateChatRoomOnlineStatus(){
+    if(!_activeConvId) return;
+    const conv = _conversations.find(c => c.id === _activeConvId);
+    if(!conv) return;
+    const otherId = conv.other.id;
+    const roleEl = document.getElementById("chat-room-role");
+    if(!roleEl) return;
+    const isOnline = _onlineUsers.has(otherId);
+    // 기존 점 제거 후 새로 추가
+    const oldDot = roleEl.parentElement.querySelector(".online-dot, .offline-dot");
+    if(oldDot) oldDot.remove();
+    const dot = document.createElement("span");
+    dot.className = isOnline ? "online-dot" : "offline-dot";
+    dot.title = isOnline ? "온라인" : "오프라인";
+    roleEl.parentElement.appendChild(dot);
   }
 
   // ─── UI 핸들러 ───
