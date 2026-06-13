@@ -203,7 +203,7 @@
 
 <!-- 내 정보 수정 모달 -->
 <div id="profile-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;align-items:center;justify-content:center;padding:20px">
-  <div style="background:#fff;border-radius:14px;padding:24px;max-width:440px;width:100%;max-height:85vh;overflow-y:auto;font-family:'Pretendard',sans-serif">
+  <div style="background:#fff;border-radius:14px;padding:24px;max-width:480px;width:100%;max-height:88vh;overflow-y:auto;font-family:'Pretendard',sans-serif">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
       <h2 style="font-size:1.15rem;margin:0;color:#12273d">✏️ 내 정보 수정</h2>
       <button onclick="closeProfileModal()" style="background:none;border:0;font-size:1.4rem;cursor:pointer;color:#6b7785">✕</button>
@@ -215,20 +215,44 @@
     </div>
     
     <div style="margin-bottom:14px">
+      <label style="display:block;font-size:.85rem;color:#6b7785;font-weight:600;margin-bottom:4px">이메일 <span style="color:#aaa;font-weight:400">(수정 불가)</span></label>
+      <input type="email" id="pm-email" disabled style="width:100%;padding:9px 12px;border:1px solid #e3ddd0;border-radius:8px;font-size:.9rem;box-sizing:border-box;background:#f9f7f2;color:#6b7785">
+    </div>
+    
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+      <div>
+        <label style="display:block;font-size:.85rem;color:#12273d;font-weight:600;margin-bottom:4px">나이</label>
+        <input type="number" id="pm-age" min="5" max="100" placeholder="예: 28" style="width:100%;padding:9px 12px;border:1px solid #e3ddd0;border-radius:8px;font-size:.9rem;box-sizing:border-box">
+      </div>
+      <div>
+        <label style="display:block;font-size:.85rem;color:#12273d;font-weight:600;margin-bottom:4px">성별</label>
+        <select id="pm-gender" style="width:100%;padding:9px 12px;border:1px solid #e3ddd0;border-radius:8px;font-size:.9rem;box-sizing:border-box;background:#fff">
+          <option value="">선택…</option>
+          <option value="male">남성</option>
+          <option value="female">여성</option>
+          <option value="other">기타</option>
+        </select>
+      </div>
+    </div>
+    
+    <div style="margin-bottom:14px">
       <label style="display:block;font-size:.85rem;color:#12273d;font-weight:600;margin-bottom:4px">전화번호</label>
       <input type="tel" id="pm-phone" placeholder="010-1234-5678" style="width:100%;padding:9px 12px;border:1px solid #e3ddd0;border-radius:8px;font-size:.9rem;box-sizing:border-box">
     </div>
     
-    <div style="margin-bottom:18px">
-      <label style="display:block;font-size:.85rem;color:#12273d;font-weight:600;margin-bottom:4px">시간대</label>
-      <div id="pm-tz-current" style="background:#f9f7f2;border:1px solid #e3ddd0;padding:10px;border-radius:8px;font-size:.85rem;margin-bottom:6px">
-        <div style="color:#6b7785;font-size:.78rem;margin-bottom:2px">현재 설정</div>
-        <b id="pm-tz-now" style="color:#12273d">—</b>
-      </div>
-      <div id="pm-tz-detected" style="display:none;background:#fff7e6;border:1px solid #c98a1f;padding:10px;border-radius:8px;font-size:.85rem">
-        <div style="color:#6b7785;font-size:.78rem;margin-bottom:2px">🌐 브라우저 감지</div>
-        <b id="pm-tz-browser" style="color:#c98a1f">—</b>
-        <button onclick="useDetectedTimezone()" style="margin-left:8px;background:#c98a1f;color:#fff;border:0;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:.78rem;font-weight:600">이걸로 변경</button>
+    <div style="margin-bottom:14px">
+      <label style="display:block;font-size:.85rem;color:#12273d;font-weight:600;margin-bottom:4px">국가 / 시간대</label>
+      <select id="pm-tz-select" style="width:100%;padding:9px 12px;border:1px solid #e3ddd0;border-radius:8px;font-size:.9rem;box-sizing:border-box;background:#fff">
+        <option value="Asia/Seoul|KR">대한민국 (Asia/Seoul)</option>
+        <option value="Asia/Manila|PH">필리핀 (Asia/Manila)</option>
+        <option value="Asia/Vientiane|LA">라오스 (Asia/Vientiane)</option>
+        <option value="America/Chicago|US">미국 중부 (America/Chicago)</option>
+        <option value="America/New_York|US">미국 동부 (America/New_York)</option>
+        <option value="America/Los_Angeles|US">미국 서부 (America/Los_Angeles)</option>
+      </select>
+      <div id="pm-tz-detected" style="display:none;background:#fff7e6;border:1px solid #c98a1f;padding:9px;border-radius:8px;font-size:.82rem;margin-top:6px">
+        🌐 브라우저 감지 시간대: <b id="pm-tz-browser" style="color:#c98a1f"></b>
+        <button onclick="useDetectedTimezone()" style="margin-left:6px;background:#c98a1f;color:#fff;border:0;padding:3px 9px;border-radius:5px;cursor:pointer;font-size:.75rem;font-weight:600">이걸로 변경</button>
       </div>
     </div>
     
@@ -429,7 +453,7 @@ async function gate(){
   const{data:{user}}=await sb.auth.getUser();
   if(!user){ location.href="login.html"; return; }
   USER=user;
-  const{data:profile}=await sb.from("profiles").select("role,full_name,email,timezone,level_test_done,level_result").eq("id",user.id).single();
+  const{data:profile}=await sb.from("profiles").select("role,full_name,email,timezone,country,age,gender,phone,level_test_done,level_result").eq("id",user.id).single();
   if(!profile){ location.href="login.html"; return; }
   if(profile.role!=="student"){
     const map={teacher:"teacher.html",manager:"manager.html",admin:"admin.html"};
@@ -444,9 +468,35 @@ async function gate(){
 // ──────── 내 정보 수정 모달 ────────
 window.openProfileModal = function(){
   const modal = $("profile-modal");
+  
+  // 기본 정보
   $("pm-name").value = PROFILE.full_name || "";
+  $("pm-email").value = PROFILE.email || "";
+  $("pm-age").value = PROFILE.age || "";
+  $("pm-gender").value = PROFILE.gender || "";
   $("pm-phone").value = PROFILE.phone || "";
-  $("pm-tz-now").textContent = PROFILE.timezone || "(설정 안 됨)";
+  
+  // 국가/시간대 — 현재 값에 매치되는 옵션 선택
+  const tzSelect = $("pm-tz-select");
+  const currentValue = `${PROFILE.timezone || "Asia/Seoul"}|${PROFILE.country || "KR"}`;
+  let matched = false;
+  for(let i = 0; i < tzSelect.options.length; i++){
+    if(tzSelect.options[i].value === currentValue){
+      tzSelect.selectedIndex = i;
+      matched = true;
+      break;
+    }
+  }
+  // 못 찾으면 timezone만 매치 시도
+  if(!matched){
+    for(let i = 0; i < tzSelect.options.length; i++){
+      if(tzSelect.options[i].value.startsWith(PROFILE.timezone + "|")){
+        tzSelect.selectedIndex = i;
+        break;
+      }
+    }
+  }
+  
   $("pm-msg").style.display = "none";
   
   // 브라우저 시간대 자동 감지
@@ -471,27 +521,51 @@ window.closeProfileModal = function(){
 
 window.useDetectedTimezone = function(){
   const detected = $("pm-tz-browser").textContent;
-  $("pm-tz-now").textContent = detected + " (변경 예정)";
-  $("pm-tz-now").style.color = "#c98a1f";
-  // 임시 저장 — 저장 버튼 누를 때 적용
-  $("pm-tz-now").dataset.newValue = detected;
+  // 감지된 시간대가 select 옵션에 있는지 확인
+  const tzSelect = $("pm-tz-select");
+  let found = false;
+  for(let i = 0; i < tzSelect.options.length; i++){
+    if(tzSelect.options[i].value.startsWith(detected + "|")){
+      tzSelect.selectedIndex = i;
+      found = true;
+      break;
+    }
+  }
+  if(!found){
+    // 옵션에 없으면 새 옵션 추가
+    const opt = document.createElement("option");
+    opt.value = detected + "|XX";
+    opt.textContent = detected + " (감지)";
+    opt.selected = true;
+    tzSelect.appendChild(opt);
+  }
+  $("pm-tz-detected").style.display = "none";
 };
 
 window.saveProfile = async function(){
   const newName = $("pm-name").value.trim();
+  const newAge = $("pm-age").value ? Number($("pm-age").value) : null;
+  const newGender = $("pm-gender").value || null;
   const newPhone = $("pm-phone").value.trim();
-  const newTz = $("pm-tz-now").dataset.newValue || null; // 변경 안 했으면 null
+  const [newTz, newCountry] = $("pm-tz-select").value.split("|");
   
   if(!newName){
     showProfileMsg("이름을 입력하세요.", false);
     return;
   }
+  if(newAge && (newAge < 5 || newAge > 100)){
+    showProfileMsg("나이는 5~100 사이여야 합니다.", false);
+    return;
+  }
   
   const updates = {
     full_name: newName,
+    age: newAge,
+    gender: newGender,
     phone: newPhone || null,
+    timezone: newTz,
+    country: newCountry,
   };
-  if(newTz) updates.timezone = newTz;
   
   $("pm-save").disabled = true;
   $("pm-save").textContent = "저장 중…";
@@ -508,8 +582,11 @@ window.saveProfile = async function(){
   
   // PROFILE 객체 업데이트
   PROFILE.full_name = newName;
+  PROFILE.age = newAge;
+  PROFILE.gender = newGender;
   PROFILE.phone = newPhone || null;
-  if(newTz) PROFILE.timezone = newTz;
+  PROFILE.timezone = newTz;
+  PROFILE.country = newCountry;
   
   // 헤더 업데이트
   $("who").textContent = (PROFILE.full_name || PROFILE.email) + " · " + (PROFILE.timezone || "");
