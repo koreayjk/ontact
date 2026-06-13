@@ -1403,6 +1403,26 @@ loadGroupClasses();
 </script>
 <!-- Chat widget -->
 <script>window.sb = sb;</script>
-<script>fetch("chat-widget.html").then(r=>r.text()).then(h=>document.body.insertAdjacentHTML("beforeend",h));</script>
+<script>
+fetch("chat-widget.html").then(r => r.text()).then(html => {
+  // 임시 컨테이너에 파싱
+  const temp = document.createElement("div");
+  temp.innerHTML = html;
+  // style/HTML 요소들은 그대로 옮김
+  while(temp.firstChild){
+    const node = temp.firstChild;
+    if(node.tagName === "SCRIPT"){
+      // script는 새로 만들어 추가해야 실행됨
+      const newScript = document.createElement("script");
+      if(node.src) newScript.src = node.src;
+      else newScript.textContent = node.textContent;
+      document.body.appendChild(newScript);
+      temp.removeChild(node);
+    } else {
+      document.body.appendChild(node);
+    }
+  }
+});
+</script>
 </body>
 </html>
