@@ -1,0 +1,752 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>무료 영어 레벨 진단 · ONTACT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700;9..144,800&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  :root{
+    --ink:#12273d; --paper:#f6f4ef; --line:#e3ddd0; --coral:#ef6a48; --teal:#2c7a73;
+    --muted:#6b7785; --gold:#c98a1f; --green:#2e7d32; --red:#d4351c;
+  }
+  body{
+    font-family:Pretendard,sans-serif;
+    background:var(--paper);
+    color:var(--ink);
+    min-height:100vh;
+    margin:0;
+    line-height:1.5;
+  }
+  header{
+    background:var(--ink);
+    color:#fff;
+    padding:14px 24px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+  }
+  header b{font-size:1.1rem;font-family:'Fraunces',serif}
+  header .home{color:#fff;text-decoration:none;font-size:.85rem;opacity:.85}
+  
+  .container{max-width:720px;margin:0 auto;padding:30px 20px}
+  
+  /* ════════ 인트로 화면 ════════ */
+  .intro-card{
+    background:#fff;
+    border:2px solid var(--line);
+    border-radius:18px;
+    padding:36px 28px;
+    text-align:center;
+  }
+  .intro-card h1{
+    font-family:'Fraunces',serif;
+    font-size:1.7rem;
+    font-weight:800;
+    margin:0 0 8px;
+    color:var(--ink);
+  }
+  .intro-card .subtitle{
+    color:var(--muted);
+    font-size:.95rem;
+    margin-bottom:24px;
+  }
+  .intro-stats{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:12px;
+    margin:24px 0;
+  }
+  .intro-stat{
+    background:var(--paper);
+    border-radius:10px;
+    padding:14px;
+  }
+  .intro-stat .n{
+    font-family:'Fraunces',serif;
+    font-size:1.6rem;
+    font-weight:800;
+    color:var(--coral);
+  }
+  .intro-stat .l{
+    font-size:.78rem;
+    color:var(--muted);
+    margin-top:2px;
+  }
+  .intro-notes{
+    text-align:left;
+    background:#fff7e6;
+    border:1px solid var(--gold);
+    border-radius:10px;
+    padding:14px;
+    font-size:.85rem;
+    margin:18px 0;
+  }
+  .intro-notes ul{margin:6px 0 0;padding-left:22px}
+  .intro-notes li{margin:3px 0}
+  
+  .btn-primary{
+    background:var(--coral);
+    color:#fff;
+    border:0;
+    padding:14px 32px;
+    border-radius:12px;
+    font-weight:700;
+    font-size:1rem;
+    cursor:pointer;
+    font-family:inherit;
+    margin-top:8px;
+  }
+  .btn-primary:hover{background:#d85a3a}
+  .btn-primary:disabled{background:#aaa;cursor:not-allowed}
+  
+  /* ════════ 진단 진행 화면 ════════ */
+  .progress-bar{
+    height:8px;
+    background:var(--line);
+    border-radius:99px;
+    overflow:hidden;
+    margin-bottom:24px;
+  }
+  .progress-fill{
+    height:100%;
+    background:linear-gradient(90deg,var(--coral) 0%,var(--gold) 100%);
+    transition:width .3s;
+  }
+  .progress-info{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:16px;
+    font-size:.88rem;
+  }
+  .progress-info .qnum{
+    color:var(--ink);
+    font-weight:700;
+  }
+  .progress-info .ltime{
+    color:var(--muted);
+  }
+  
+  .question-card{
+    background:#fff;
+    border:2px solid var(--line);
+    border-radius:18px;
+    padding:32px 28px;
+  }
+  .question-text{
+    font-size:1.25rem;
+    line-height:1.5;
+    margin-bottom:24px;
+    color:var(--ink);
+    font-weight:600;
+  }
+  .options{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .option{
+    background:#fff;
+    border:2px solid var(--line);
+    border-radius:10px;
+    padding:14px 18px;
+    cursor:pointer;
+    font-size:.95rem;
+    color:var(--ink);
+    text-align:left;
+    font-family:inherit;
+    transition:.15s;
+  }
+  .option:hover{border-color:var(--coral);background:#fef6ef}
+  .option.selected{
+    border-color:var(--coral);
+    background:#fef6ef;
+    font-weight:700;
+  }
+  .option .letter{
+    display:inline-block;
+    width:26px;
+    height:26px;
+    border-radius:50%;
+    background:var(--line);
+    color:var(--muted);
+    text-align:center;
+    font-weight:700;
+    font-size:.85rem;
+    line-height:26px;
+    margin-right:10px;
+  }
+  .option.selected .letter{
+    background:var(--coral);
+    color:#fff;
+  }
+  
+  .nav-row{
+    display:flex;
+    justify-content:space-between;
+    margin-top:24px;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .btn-secondary{
+    background:#fff;
+    border:1.5px solid var(--ink);
+    color:var(--ink);
+    padding:11px 20px;
+    border-radius:10px;
+    font-weight:600;
+    cursor:pointer;
+    font-family:inherit;
+    font-size:.9rem;
+  }
+  .btn-secondary:disabled{
+    border-color:var(--line);
+    color:#bbb;
+    cursor:not-allowed;
+  }
+  .btn-skip{
+    background:transparent;
+    border:0;
+    color:var(--muted);
+    font-size:.85rem;
+    cursor:pointer;
+    text-decoration:underline;
+    font-family:inherit;
+  }
+  
+  /* ════════ 결과 화면 ════════ */
+  .result-hero{
+    background:linear-gradient(135deg,#fff 0%,#fef6ef 100%);
+    border:2px solid var(--coral);
+    border-radius:18px;
+    padding:36px 28px;
+    text-align:center;
+    margin-bottom:18px;
+  }
+  .result-hero .tag{
+    background:var(--coral);
+    color:#fff;
+    display:inline-block;
+    padding:4px 14px;
+    border-radius:99px;
+    font-size:.78rem;
+    font-weight:700;
+    margin-bottom:10px;
+  }
+  .result-hero h1{
+    font-family:'Fraunces',serif;
+    font-size:1.4rem;
+    margin:0 0 8px;
+    color:var(--ink);
+  }
+  .result-level-big{
+    font-family:'Fraunces',serif;
+    font-size:5rem;
+    font-weight:800;
+    color:var(--coral);
+    line-height:1;
+    margin:18px 0 10px;
+  }
+  .result-level-label{
+    font-size:1.1rem;
+    color:var(--ink);
+    font-weight:700;
+  }
+  .result-desc{
+    color:var(--muted);
+    font-size:.92rem;
+    line-height:1.6;
+    margin:14px 0;
+    max-width:480px;
+    margin-left:auto;
+    margin-right:auto;
+  }
+  .result-score{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:14px;
+    display:inline-block;
+    margin:8px 0;
+    font-weight:700;
+  }
+  
+  .breakdown{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:22px;
+    margin-bottom:18px;
+  }
+  .breakdown h3{
+    font-size:1rem;
+    margin:0 0 14px;
+  }
+  .bd-row{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin-bottom:10px;
+  }
+  .bd-label{
+    width:50px;
+    font-weight:700;
+    font-size:.9rem;
+  }
+  .bd-bar-wrap{
+    flex:1;
+    background:var(--line);
+    height:18px;
+    border-radius:9px;
+    overflow:hidden;
+    position:relative;
+  }
+  .bd-bar{
+    background:var(--coral);
+    height:100%;
+    border-radius:9px;
+  }
+  .bd-score{
+    font-size:.85rem;
+    color:var(--muted);
+    min-width:34px;
+    text-align:right;
+    font-weight:600;
+  }
+  
+  .cta-card{
+    background:linear-gradient(135deg,var(--ink) 0%,#1f3a5b 100%);
+    color:#fff;
+    border-radius:18px;
+    padding:28px 24px;
+    text-align:center;
+    margin-bottom:18px;
+  }
+  .cta-card h2{
+    font-family:'Fraunces',serif;
+    font-size:1.3rem;
+    margin:0 0 8px;
+  }
+  .cta-card p{
+    font-size:.9rem;
+    opacity:.85;
+    margin:0 0 18px;
+    line-height:1.6;
+  }
+  .btn-cta{
+    background:var(--coral);
+    color:#fff;
+    border:0;
+    padding:16px 36px;
+    border-radius:14px;
+    font-weight:800;
+    font-size:1.05rem;
+    cursor:pointer;
+    font-family:inherit;
+    text-decoration:none;
+    display:inline-block;
+    box-shadow:0 8px 20px -8px rgba(239,106,72,.6);
+  }
+  .btn-cta:hover{background:#d85a3a}
+  
+  .footer-note{
+    text-align:center;
+    color:var(--muted);
+    font-size:.82rem;
+    margin-top:18px;
+  }
+  
+  .loading{
+    text-align:center;
+    padding:60px 20px;
+    color:var(--muted);
+  }
+  
+  /* ════════ 이미 응시한 경우 ════════ */
+  .already-card{
+    background:#fff;
+    border:2px solid var(--line);
+    border-radius:18px;
+    padding:36px 28px;
+    text-align:center;
+  }
+  .already-card h2{
+    font-family:'Fraunces',serif;
+    font-size:1.3rem;
+    margin:0 0 10px;
+  }
+  
+  @media (max-width:520px){
+    .container{padding:20px 14px}
+    .intro-card,.question-card,.result-hero{padding:24px 18px}
+    .result-level-big{font-size:4rem}
+    .intro-stats{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<header>
+  <b>📝 무료 영어 레벨 진단</b>
+  <a href="student.html" class="home">← 학생 페이지</a>
+</header>
+
+<div class="container">
+  <!-- 로딩 -->
+  <div id="loading" class="loading">불러오는 중…</div>
+  
+  <!-- 인트로 화면 -->
+  <div id="intro-screen" style="display:none">
+    <div class="intro-card">
+      <div style="font-size:3rem;margin-bottom:8px">🎯</div>
+      <h1>나의 영어 레벨이 궁금하다면</h1>
+      <p class="subtitle">CEFR 국제 표준 기준 객관식 25문항 무료 진단</p>
+      
+      <div class="intro-stats">
+        <div class="intro-stat">
+          <div class="n">25</div>
+          <div class="l">객관식 문항</div>
+        </div>
+        <div class="intro-stat">
+          <div class="n">15분</div>
+          <div class="l">예상 소요</div>
+        </div>
+        <div class="intro-stat">
+          <div class="n">즉시</div>
+          <div class="l">결과 확인</div>
+        </div>
+      </div>
+      
+      <div class="intro-notes">
+        <div style="font-weight:700;color:var(--gold)">📌 진단 안내</div>
+        <ul>
+          <li>난이도별 5문항씩 총 25문항 (A1·A2·B1·B2·C1)</li>
+          <li>모르는 문제는 건너뛰기 가능 (틀린 것으로 처리)</li>
+          <li>결과는 한 번만 받을 수 있어요</li>
+          <li>진단 후 정확한 회화 레벨테스트는 수강신청 시 무료 1:1 진단으로 받을 수 있어요</li>
+        </ul>
+      </div>
+      
+      <button class="btn-primary" id="start-btn">🚀 진단 시작하기</button>
+    </div>
+  </div>
+  
+  <!-- 이미 응시한 경우 -->
+  <div id="already-screen" style="display:none">
+    <div class="already-card">
+      <div style="font-size:3rem;margin-bottom:8px">✅</div>
+      <h2>이미 무료 진단을 완료하셨어요</h2>
+      <p style="color:var(--muted);margin:10px 0 20px">진단은 한 번만 받을 수 있습니다.<br>아래에서 이전 결과를 다시 확인하실 수 있어요.</p>
+      <button class="btn-primary" id="view-result-btn">📊 이전 결과 보기</button>
+    </div>
+  </div>
+  
+  <!-- 진단 진행 화면 -->
+  <div id="quiz-screen" style="display:none">
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+    <div class="progress-info">
+      <div class="qnum">문제 <span id="qnum-cur">1</span> / <span id="qnum-total">25</span></div>
+      <div class="ltime"><span id="qlevel">A1</span> 단계</div>
+    </div>
+    
+    <div class="question-card">
+      <div class="question-text" id="question-text">불러오는 중…</div>
+      <div class="options" id="options-list"></div>
+      
+      <div class="nav-row">
+        <button class="btn-secondary" id="prev-btn" disabled>← 이전</button>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn-skip" id="skip-btn">건너뛰기</button>
+          <button class="btn-primary" id="next-btn" style="padding:11px 22px;font-size:.92rem">다음 →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 결과 화면 -->
+  <div id="result-screen" style="display:none">
+    <div class="result-hero">
+      <div class="tag">🎉 진단 완료</div>
+      <h1>당신의 예상 영어 레벨은</h1>
+      <div class="result-level-big" id="r-level">B1</div>
+      <div class="result-level-label" id="r-level-label">중급</div>
+      <div class="result-desc" id="r-desc">—</div>
+      <div class="result-score"><span id="r-score">0</span> / 25 정답</div>
+    </div>
+    
+    <div class="breakdown">
+      <h3>📊 단계별 정답률</h3>
+      <div id="breakdown-list"></div>
+    </div>
+    
+    <div class="cta-card">
+      <h2>🎓 정확한 레벨 진단은 1:1 회화 테스트로</h2>
+      <p>서면 진단은 문법·어휘 위주의 간단한 추정이에요.<br>회화·발음·유창성을 포함한 정확한 진단은 원어민 강사 1:1 무료 레벨테스트에서.<br><b style="color:#ffc99c">수강신청 시 무료로 제공</b>됩니다.</p>
+      <a href="student.html" class="btn-cta">🎓 수강신청 하러 가기 →</a>
+    </div>
+    
+    <div class="footer-note">
+      결과는 student.html에서 언제든 다시 확인할 수 있어요.
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL="https://nhydhyolgrhsykdcqfzb.supabase.co";
+const SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5oeWRoeW9sZ3Joc3lrZGNxZnpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MTk1OTAsImV4cCI6MjA5NTk5NTU5MH0.s3qPFFN-4zMLAt-dtkOwzakCj-pkglKgbhyUR9uu4xs";
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+const $=(id)=>document.getElementById(id);
+
+let USER=null, PROFILE=null;
+let QUESTIONS=[];
+let ANSWERS=[]; // 각 문항의 선택 (null=건너뛰기)
+let CUR_IDX=0;
+let RESULT=null;
+
+const CEFR_INFO = {
+  "Pre-A1": { label:"입문 이하", desc:"매우 기초적인 단계입니다. A1 입문 학습을 추천드려요.", color:"#6b7785" },
+  "A1":     { label:"입문 (Beginner)", desc:"자기소개와 간단한 개인 질문에 답할 수 있는 수준입니다.", color:"#6b7785" },
+  "A2":     { label:"초급 (Elementary)", desc:"익숙한 주제와 일상에 대해 의사소통할 수 있는 수준입니다.", color:"#c98a1f" },
+  "B1":     { label:"중급 (Intermediate)", desc:"경험을 묘사하고 의견을 표현하며 일상적인 상황에서 의사소통할 수 있는 수준입니다.", color:"#ef6a48" },
+  "B2":     { label:"중상급 (Upper Intermediate)", desc:"복잡한 주제에 대해 토론하고 관점을 설명할 수 있는 유창한 수준입니다.", color:"#2c7a73" },
+  "C1+":    { label:"고급 이상 (Advanced+)", desc:"학술·직업적 목적으로 영어를 유연하고 효과적으로 사용할 수 있는 수준입니다.", color:"#2e7d32" },
+};
+
+// 레벨 산출 (총 점수 기반)
+function calcLevel(total){
+  if(total <= 3) return "Pre-A1";
+  if(total <= 9) return "A1";
+  if(total <= 14) return "A2";
+  if(total <= 19) return "B1";
+  if(total <= 23) return "B2";
+  return "C1+";
+}
+
+// ──────── 진입 시 게이트 ────────
+async function gate(){
+  const{data:{user}}=await sb.auth.getUser();
+  if(!user){ location.href="login.html?next=placement.html"; return; }
+  USER = user;
+  
+  const{data:profile}=await sb.from("profiles").select("role,full_name,email").eq("id",user.id).single();
+  if(!profile){ location.href="login.html"; return; }
+  PROFILE = profile;
+  
+  // 학생만 응시 가능
+  if(profile.role !== "student"){
+    $("loading").innerHTML = `<p>이 진단은 학생만 응시할 수 있습니다.</p><a href="${profile.role==='admin'?'admin.html':profile.role==='manager'?'manager.html':profile.role==='teacher'?'teacher.html':'/'}">돌아가기 →</a>`;
+    return;
+  }
+  
+  // 이미 응시했는가?
+  const{data:existing}=await sb.from("placement_tests")
+    .select("id, overall_level, total_score, max_score, a1_score, a2_score, b1_score, b2_score, c1_score")
+    .eq("student_id", user.id)
+    .maybeSingle();
+  
+  if(existing){
+    RESULT = existing;
+    showAlready();
+    return;
+  }
+  
+  showIntro();
+}
+
+function showIntro(){
+  $("loading").style.display = "none";
+  $("intro-screen").style.display = "block";
+}
+
+function showAlready(){
+  $("loading").style.display = "none";
+  $("already-screen").style.display = "block";
+}
+
+// ──────── 진단 시작 ────────
+$("start-btn").onclick = async () => {
+  $("start-btn").disabled = true;
+  $("start-btn").textContent = "불러오는 중…";
+  
+  // 문제 불러오기
+  const{data, error}=await sb.from("placement_questions")
+    .select("id, level, question_order, question_text, options, correct_answer")
+    .order("question_order", { ascending: true });
+  
+  if(error || !data || data.length === 0){
+    alert("문제를 불러올 수 없습니다: " + (error?.message || "데이터 없음"));
+    $("start-btn").disabled = false;
+    $("start-btn").textContent = "🚀 진단 시작하기";
+    return;
+  }
+  
+  QUESTIONS = data;
+  ANSWERS = new Array(QUESTIONS.length).fill(null);
+  CUR_IDX = 0;
+  
+  $("intro-screen").style.display = "none";
+  $("quiz-screen").style.display = "block";
+  $("qnum-total").textContent = QUESTIONS.length;
+  
+  renderQuestion();
+};
+
+function renderQuestion(){
+  const q = QUESTIONS[CUR_IDX];
+  if(!q){ finishQuiz(); return; }
+  
+  const progress = ((CUR_IDX) / QUESTIONS.length) * 100;
+  $("progress-fill").style.width = progress + "%";
+  $("qnum-cur").textContent = CUR_IDX + 1;
+  $("qlevel").textContent = q.level;
+  
+  $("question-text").textContent = q.question_text;
+  
+  const opts = Array.isArray(q.options) ? q.options : JSON.parse(q.options);
+  const letters = ["A", "B", "C", "D"];
+  const selectedIdx = ANSWERS[CUR_IDX];
+  
+  $("options-list").innerHTML = opts.map((opt, idx) => `
+    <button class="option ${selectedIdx === idx ? 'selected' : ''}" data-idx="${idx}">
+      <span class="letter">${letters[idx]}</span>${escapeH(opt)}
+    </button>
+  `).join("");
+  
+  // 옵션 클릭 이벤트
+  $("options-list").querySelectorAll(".option").forEach(btn => {
+    btn.onclick = () => {
+      const idx = parseInt(btn.dataset.idx);
+      ANSWERS[CUR_IDX] = idx;
+      // 시각적으로 선택 표시
+      $("options-list").querySelectorAll(".option").forEach(b => b.classList.remove("selected"));
+      btn.classList.add("selected");
+    };
+  });
+  
+  // 버튼 상태
+  $("prev-btn").disabled = CUR_IDX === 0;
+  $("next-btn").textContent = CUR_IDX === QUESTIONS.length - 1 ? "결과 보기 →" : "다음 →";
+}
+
+function escapeH(s){
+  return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+$("prev-btn").onclick = () => {
+  if(CUR_IDX > 0){ CUR_IDX--; renderQuestion(); }
+};
+
+$("next-btn").onclick = () => {
+  // 마지막 문제 → 결과 화면
+  if(CUR_IDX === QUESTIONS.length - 1){
+    finishQuiz();
+  } else {
+    CUR_IDX++;
+    renderQuestion();
+  }
+};
+
+$("skip-btn").onclick = () => {
+  ANSWERS[CUR_IDX] = null;
+  if(CUR_IDX === QUESTIONS.length - 1){
+    finishQuiz();
+  } else {
+    CUR_IDX++;
+    renderQuestion();
+  }
+};
+
+// ──────── 채점 + 결과 저장 ────────
+async function finishQuiz(){
+  // 채점
+  let total = 0;
+  const byLevel = { A1:0, A2:0, B1:0, B2:0, C1:0 };
+  const answerDetail = [];
+  
+  QUESTIONS.forEach((q, i) => {
+    const ans = ANSWERS[i];
+    const correct = (ans !== null && ans === q.correct_answer);
+    if(correct){
+      total++;
+      byLevel[q.level]++;
+    }
+    answerDetail.push({
+      question_id: q.id,
+      level: q.level,
+      selected: ans,
+      correct_answer: q.correct_answer,
+      is_correct: correct
+    });
+  });
+  
+  const overallLevel = calcLevel(total);
+  
+  // DB 저장
+  const{ data: saved, error } = await sb.from("placement_tests").insert({
+    student_id: USER.id,
+    overall_level: overallLevel,
+    total_score: total,
+    max_score: QUESTIONS.length,
+    a1_score: byLevel.A1,
+    a2_score: byLevel.A2,
+    b1_score: byLevel.B1,
+    b2_score: byLevel.B2,
+    c1_score: byLevel.C1,
+    answers: answerDetail,
+  }).select().single();
+  
+  if(error){
+    alert("결과 저장 중 오류: " + error.message);
+    return;
+  }
+  
+  RESULT = saved;
+  showResult();
+}
+
+// ──────── 결과 화면 ────────
+function showResult(){
+  $("quiz-screen").style.display = "none";
+  $("intro-screen").style.display = "none";
+  $("already-screen").style.display = "none";
+  $("result-screen").style.display = "block";
+  
+  const info = CEFR_INFO[RESULT.overall_level] || CEFR_INFO["A1"];
+  
+  $("r-level").textContent = RESULT.overall_level;
+  $("r-level").style.color = info.color;
+  $("r-level-label").textContent = info.label;
+  $("r-desc").textContent = info.desc;
+  $("r-score").textContent = RESULT.total_score;
+  
+  // 단계별 정답률
+  const levels = [
+    { k:"A1", n:"A1 (기초)", sc: RESULT.a1_score },
+    { k:"A2", n:"A2 (초급)", sc: RESULT.a2_score },
+    { k:"B1", n:"B1 (중급)", sc: RESULT.b1_score },
+    { k:"B2", n:"B2 (중상급)", sc: RESULT.b2_score },
+    { k:"C1", n:"C1 (고급)", sc: RESULT.c1_score },
+  ];
+  
+  $("breakdown-list").innerHTML = levels.map(L => {
+    const pct = (L.sc / 5) * 100;
+    return `<div class="bd-row">
+      <div class="bd-label">${L.k}</div>
+      <div class="bd-bar-wrap"><div class="bd-bar" style="width:${pct}%;background:${info.color}"></div></div>
+      <div class="bd-score">${L.sc}/5</div>
+    </div>`;
+  }).join("");
+}
+
+$("view-result-btn").onclick = showResult;
+
+// 시작
+gate();
+</script>
+</body>
+</html>

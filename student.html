@@ -190,6 +190,15 @@
   }
 
   @media(max-width:760px){.tabs button{font-size:.85rem;padding:.5em 1em}.step{padding:20px}}
+
+  /* 무료 진단 배너 - 큰 깜빡임 */
+  @keyframes pt-blink{
+    0%,100%{box-shadow:0 0 0 0 rgba(239,106,72,.55),0 10px 30px -10px rgba(239,106,72,.5);transform:scale(1)}
+    50%{box-shadow:0 0 0 14px rgba(239,106,72,0),0 10px 30px -10px rgba(239,106,72,.7);transform:scale(1.02)}
+  }
+  .pt-btn-blink{
+    animation:pt-blink 1.6s ease-in-out infinite;
+  }
 </style>
 </head>
 <body>
@@ -293,6 +302,9 @@
 
   <!-- 수강신청 -->
   <div class="panel on" id="p-signup">
+    
+    <!-- 무료 서면 진단 배너 -->
+    <div id="pt-banner"></div>
 
     <div class="step">
       <h2><span class="step-no">1</span>강사 선택</h2>
@@ -482,6 +494,7 @@ async function gate(){
   PROFILE=profile;
   $("who").textContent=(profile.full_name||profile.email)+" · "+(profile.timezone||"");
   renderLevelTestBanner();
+  renderPlacementBanner();
   init();
 }
 
@@ -982,6 +995,48 @@ async function renderLevelTestBanner(){
   </div>`;
   const btn = document.getElementById("lt-apply");
   if(btn) btn.onclick = openLtPicker;
+}
+
+// ════════════════════════════════════════
+// 무료 서면 진단 배너 (수강신청 탭 맨 위)
+// ════════════════════════════════════════
+async function renderPlacementBanner(){
+  const b = $("pt-banner");
+  if(!b) return;
+  b.innerHTML = "";
+  
+  // 이미 응시했는지 확인
+  const{ data: existing } = await sb.from("placement_tests")
+    .select("id, overall_level, total_score, max_score, taken_at")
+    .eq("student_id", USER.id)
+    .maybeSingle();
+  
+  if(existing){
+    // 완료한 경우 → 결과 확인하기 박스
+    const dateStr = new Date(existing.taken_at).toLocaleDateString("ko-KR");
+    b.innerHTML = `<div style="background:linear-gradient(135deg,#e6f6ec 0%,#cce8d4 100%);border:2px solid #2e7d32;border-radius:18px;padding:22px 26px;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap">
+      <div style="flex:1;min-width:220px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;flex-wrap:wrap">
+          <span style="background:#2e7d32;color:#fff;padding:2px 10px;border-radius:99px;font-size:.72rem;font-weight:700">✅ 완료</span>
+          <h3 style="font-family:'Fraunces',serif;font-size:1.1rem;margin:0;color:#12273d">무료 서면 진단 결과</h3>
+        </div>
+        <p style="margin:6px 0 0;color:#12273d;font-size:.92rem">예상 레벨 <b style="color:#2e7d32;font-size:1.05rem">${existing.overall_level}</b> · ${existing.total_score}/${existing.max_score} 정답 · ${dateStr} 응시</p>
+      </div>
+      <a href="placement.html" style="background:#2e7d32;color:#fff;text-decoration:none;padding:11px 22px;border-radius:10px;font-weight:700;font-size:.92rem;white-space:nowrap">📊 결과 확인하기 →</a>
+    </div>`;
+    return;
+  }
+  
+  // 아직 응시 안 함 → 큰 깜빡이는 안내
+  b.innerHTML = `<div style="background:linear-gradient(135deg,#fff7e6 0%,#ffe9c7 100%);border:2px solid #ef6a48;border-radius:18px;padding:26px 28px;margin-bottom:18px;text-align:center;position:relative;overflow:hidden">
+    <div style="position:absolute;top:-10px;right:-10px;background:#ef6a48;color:#fff;padding:6px 18px;transform:rotate(45deg);font-size:.72rem;font-weight:800;width:140px;text-align:center;box-shadow:0 4px 8px rgba(0,0,0,.15)">100% 무료</div>
+    <div style="font-size:2.5rem;margin-bottom:6px">🎁</div>
+    <h3 style="font-family:'Fraunces',serif;font-size:1.35rem;font-weight:800;color:#12273d;margin:0 0 6px">지금 바로! 무료 서면 진단 받기</h3>
+    <p style="color:#6b7785;font-size:.92rem;margin:0 0 16px">객관식 25문항 · 15분 · CEFR 국제 표준</p>
+    <p style="font-size:.88rem;color:#12273d;margin:0 0 18px;line-height:1.5">수강신청 전에 본인의 영어 레벨을 미리 확인하세요.<br>레벨에 맞는 강사와 교재를 추천받을 수 있어요.</p>
+    <a href="placement.html" class="pt-btn-blink" style="display:inline-block;background:#ef6a48;color:#fff;text-decoration:none;padding:14px 36px;border-radius:14px;font-weight:800;font-size:1.05rem;font-family:inherit">🎯 무료 진단 시작하기 →</a>
+    <p style="font-size:.78rem;color:#6b7785;margin-top:12px;margin-bottom:0">⏱ 한 번만 응시 가능 · 결과는 언제든 다시 확인</p>
+  </div>`;
 }
 $("logout").onclick=async(e)=>{ e.preventDefault(); await sb.auth.signOut(); location.href="login.html"; };
 

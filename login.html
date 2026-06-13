@@ -100,10 +100,27 @@ const $=(id)=>document.getElementById(id);
 
 const ROLE_PAGE={student:"student.html",teacher:"teacher.html",manager:"manager.html",admin:"admin.html"};
 
+// URL의 ?next= 파라미터 처리 (예: 무료 진단에서 회원가입 후 돌아오기)
+function getNextPage(){
+  const params = new URLSearchParams(location.search);
+  const next = params.get("next");
+  // 안전한 페이지만 허용
+  if(next && /^[a-z0-9_-]+\.html$/i.test(next)) return next;
+  return null;
+}
+
 async function routeIfLoggedIn(){
   const{data:{user}}=await sb.auth.getUser();
   if(!user){ $("loading").style.display="none"; $("forms").style.display="block"; return; }
   const{data:profile}=await sb.from("profiles").select("role").eq("id",user.id).single();
+  
+  // next 파라미터가 있으면 우선
+  const nextPage = getNextPage();
+  if(nextPage && profile?.role === "student"){
+    location.href = nextPage;
+    return;
+  }
+  
   const target=ROLE_PAGE[profile?.role]||"student.html";
   location.href=target;
 }

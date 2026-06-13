@@ -326,6 +326,12 @@
         <div id="ltr-history-list" style="font-size:.82rem;color:var(--muted)"></div>
       </div>
 
+      <!-- 학생의 서면 진단 결과 (참고용) -->
+      <div id="ltr-placement-ref" style="background:#fff7e6;border:1px solid #c98a1f;border-radius:8px;padding:12px;margin-bottom:14px;display:none">
+        <div style="font-size:.85rem;font-weight:700;margin-bottom:6px;color:#c98a1f">📝 학생의 서면 진단 결과 (참고)</div>
+        <div id="ltr-placement-content" style="font-size:.82rem;color:#12273d"></div>
+      </div>
+
       <!-- 종합 평가 -->
       <div style="background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px">
         <h3 data-t="ltr_overall_h" style="font-size:.95rem;font-weight:700;margin-bottom:10px">🎯 Overall Assessment</h3>
@@ -1545,12 +1551,10 @@ async function loadLeveltest(){
   const booked = slots.filter(s => bkBySlot[s.id]).length;
   const available = total - booked;
   
-  // 슬롯 날짜 범위
   const dates = slots.map(s => s.start_at.split("T")[0]).sort();
   const firstDate = dates[0];
   const lastDate = dates[dates.length - 1];
   
-  // 요일 분포
   const weekdaysSet = new Set();
   slots.forEach(s => weekdaysSet.add(new Date(s.start_at).getDay()));
   const wdNames = LANG === "kr" 
@@ -1558,17 +1562,25 @@ async function loadLeveltest(){
     : ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
   const weekdayList = Array.from(weekdaysSet).sort().map(d => wdNames[d]).join("·");
   
-  // 시간 범위
   const times = slots.map(s => {
     const dt = new Date(s.start_at);
     return dt.getHours() * 60 + dt.getMinutes();
   });
   const minTime = Math.min(...times);
-  const maxTime = Math.max(...times) + 20; // 20분 슬롯
+  const maxTime = Math.max(...times) + 20;
   const fmtMin = (m) => `${String(Math.floor(m/60)).padStart(2,"0")}:${String(m%60).padStart(2,"0")}`;
   
-  // 예약된 슬롯만 필터링
   const bookedSlots = slots.filter(s => bkBySlot[s.id]);
+  
+  // ── 예약된 학생들의 서면 진단 결과 미리 조회 ──
+  const bookedStudentIds = bookedSlots.map(s => bkBySlot[s.id].student_id);
+  let placementByStudent = {};
+  if(bookedStudentIds.length > 0){
+    const { data: pts } = await sb.from("placement_tests")
+      .select("student_id, overall_level, total_score, max_score, a1_score, a2_score, b1_score, b2_score, c1_score, taken_at")
+      .in("student_id", bookedStudentIds);
+    (pts || []).forEach(p => placementByStudent[p.student_id] = p);
+  }
   
   // ── 요약 헤더 ──
   let html = `<div style="background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:14px;font-size:.88rem">
@@ -1585,7 +1597,6 @@ async function loadLeveltest(){
     </div>
   </div>`;
   
-  // ── 예약된 슬롯만 표시 ──
   if(bookedSlots.length === 0){
     html += `<div class="empty" style="padding:20px;text-align:center;background:#fff;border:1px dashed var(--line);border-radius:8px">
       ${LANG === "kr" ? "🎯 아직 예약된 레벨테스트가 없습니다." : "🎯 No level test bookings yet."}
@@ -1597,13 +1608,22 @@ async function loadLeveltest(){
     html += bookedSlots.map(s => {
       const bk = bkBySlot[s.id];
       const stuName = bk.profiles ? (bk.profiles.full_name || bk.profiles.email) : t("student");
+      const pt = placementByStudent[bk.student_id];
+      const ptColor = pt && (pt.overall_level === "C1+" ? "#2e7d32" : pt.overall_level === "B2" ? "#2c7a73" : pt.overall_level === "B1" ? "#ef6a48" : pt.overall_level === "A2" ? "#c98a1f" : "#6b7785");
+      const placementBadge = pt 
+        ? ` · <span style="background:${ptColor};color:#fff;padding:1px 7px;border-radius:5px;font-size:.72rem;font-weight:700">📝 ${pt.overall_level}</span>` 
+        : "";
+      const placementBtn = pt 
+        ? `<button class="btn btn-sm" data-pt-sid="${bk.student_id}" data-pt-name="${escapeM(stuName).replace(/"/g,'&quot;')}" style="background:#c98a1f;color:#fff">📝 ${LANG === "kr" ? "서면결과" : "Placement"}</button>` 
+        : "";
       return `<div class="lt-slot booked">
         <div>
           <div class="when">${fmtTime(s.start_at)} · ${dayHeader(s.start_at)}</div>
-          <div class="meta">${s.duration_min} ${t("min")} · 👤 ${escapeM(stuName)}${bk.level_result ? ` · <b>Lv. ${bk.level_result}</b>` : ""}</div>
+          <div class="meta">${s.duration_min} ${t("min")} · 👤 ${escapeM(stuName)}${bk.level_result ? ` · <b>Lv. ${bk.level_result}</b>` : ""}${placementBadge}</div>
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap">
           ${bk.zoom_join_url ? `<a href="${bk.zoom_join_url}" target="_blank" class="btn btn-sm" style="text-decoration:none;background:var(--ink)">🎥 ${t("view_zoom")}</a>` : ""}
+          ${placementBtn}
           <button class="btn btn-sm" data-bk="${bk.id}" data-sid="${bk.student_id}" data-stu="${escapeM(stuName).replace(/"/g,'&quot;')}">${t("set_level")}</button>
         </div>
       </div>`;
@@ -1612,7 +1632,96 @@ async function loadLeveltest(){
   
   box.innerHTML = html;
   box.querySelectorAll("button[data-bk]").forEach(btn=>{ btn.onclick = ()=> openLevel(btn.dataset); });
+  box.querySelectorAll("button[data-pt-sid]").forEach(btn=>{ 
+    btn.onclick = ()=> openPlacementModal(btn.dataset["ptSid"], btn.dataset["ptName"]); 
+  });
 }
+
+// 서면 진단 결과 모달
+window.openPlacementModal = async function(studentId, studentName){
+  const { data: pt } = await sb.from("placement_tests")
+    .select("*")
+    .eq("student_id", studentId)
+    .maybeSingle();
+  
+  if(!pt){
+    alert(LANG === "kr" ? "서면 진단 결과가 없습니다." : "No placement test result.");
+    return;
+  }
+  
+  const dateStr = new Date(pt.taken_at).toLocaleDateString(localeOf(), { 
+    year:"numeric", month:"long", day:"numeric", weekday:"short" 
+  });
+  const ptColor = pt.overall_level === "C1+" ? "#2e7d32" : pt.overall_level === "B2" ? "#2c7a73" : pt.overall_level === "B1" ? "#ef6a48" : pt.overall_level === "A2" ? "#c98a1f" : "#6b7785";
+  
+  // 답안 분석
+  const answers = pt.answers || [];
+  const byLevel = { A1: [], A2: [], B1: [], B2: [], C1: [] };
+  answers.forEach(a => {
+    if(byLevel[a.level]) byLevel[a.level].push(a);
+  });
+  
+  const renderLevelDetail = (lvl, items) => {
+    const correctCount = items.filter(a => a.is_correct).length;
+    const pctColor = correctCount === 5 ? "#2e7d32" : correctCount >= 3 ? "#c98a1f" : "#d4351c";
+    return `
+      <div style="margin-bottom:10px;padding:10px;background:#fff;border-radius:8px;border-left:4px solid ${pctColor}">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <b style="font-size:.95rem">${lvl} 단계</b>
+          <span style="color:${pctColor};font-weight:700">${correctCount}/5</span>
+        </div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap">
+          ${items.map((a, i) => 
+            `<span style="background:${a.is_correct ? '#e6f6ec' : '#fbe9e7'};color:${a.is_correct ? '#2e7d32' : '#d4351c'};padding:2px 8px;border-radius:4px;font-size:.75rem;font-weight:700">Q${i+1} ${a.is_correct ? '✓' : '✗'}</span>`
+          ).join("")}
+        </div>
+      </div>
+    `;
+  };
+  
+  const modal = document.createElement("div");
+  modal.id = "placement-result-modal";
+  modal.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px";
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:14px;max-width:580px;width:100%;max-height:90vh;overflow-y:auto;font-family:'Pretendard',sans-serif">
+      <div style="position:sticky;top:0;background:#fff;border-bottom:1px solid var(--line);padding:14px 22px;display:flex;justify-content:space-between;align-items:center">
+        <h2 style="font-size:1.1rem;margin:0;color:var(--ink)">📝 서면 진단 결과</h2>
+        <button onclick="document.getElementById('placement-result-modal').remove()" style="background:none;border:0;font-size:1.4rem;cursor:pointer;color:var(--muted)">✕</button>
+      </div>
+      
+      <div style="padding:22px">
+        <!-- 학생 정보 -->
+        <div style="margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--paper)">
+          <div style="font-weight:700;font-size:1rem;color:var(--ink)">${escapeM(studentName)}</div>
+          <div style="font-size:.82rem;color:var(--muted);margin-top:2px">📅 ${dateStr} 응시</div>
+        </div>
+        
+        <!-- 종합 결과 -->
+        <div style="background:linear-gradient(135deg,#f9f7f2 0%,#fff 100%);border:2px solid ${ptColor};border-radius:12px;padding:18px;margin-bottom:14px;text-align:center">
+          <div style="font-size:.85rem;color:var(--muted);margin-bottom:4px">${LANG === "kr" ? "예상 레벨" : "Estimated Level"}</div>
+          <div style="font-family:'Fraunces',serif;font-size:3rem;font-weight:800;color:${ptColor};line-height:1">${pt.overall_level}</div>
+          <div style="font-size:1rem;font-weight:700;color:var(--ink);margin-top:8px">${pt.total_score} / ${pt.max_score} ${LANG === "kr" ? "정답" : "correct"}</div>
+        </div>
+        
+        <!-- 단계별 상세 -->
+        <h3 style="font-size:.95rem;font-weight:700;margin:14px 0 8px;color:var(--ink)">📊 ${LANG === "kr" ? "단계별 결과" : "By Level"}</h3>
+        ${renderLevelDetail("A1", byLevel.A1)}
+        ${renderLevelDetail("A2", byLevel.A2)}
+        ${renderLevelDetail("B1", byLevel.B1)}
+        ${renderLevelDetail("B2", byLevel.B2)}
+        ${renderLevelDetail("C1", byLevel.C1)}
+        
+        <!-- 안내 -->
+        <div style="background:#fff7e6;border:1px solid #c98a1f;border-radius:8px;padding:10px;margin-top:14px;font-size:.82rem;color:#12273d">
+          💡 ${LANG === "kr" 
+            ? "이 결과는 객관식 서면 진단입니다. 1:1 회화 테스트로 실제 회화 능력을 정확히 평가하세요." 
+            : "This is a written objective test. Conduct the 1:1 speaking test for accurate assessment."}
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+};
 
 // ─── 레벨테스트 슬롯 일괄 생성 ───
 // 시작일~종료일 사이의 선택 요일에, 시작시각~종료시각 사이 30분 간격으로 20분 슬롯 생성
@@ -1822,6 +1931,13 @@ async function loadRoster(){
     if(!ratBy[f.student_id]) ratBy[f.student_id]={sum:0,n:0};
     ratBy[f.student_id].sum += f.rating; ratBy[f.student_id].n += 1;
   });
+  
+  // 서면 진단 결과 조회
+  const{data:pts}=await sb.from("placement_tests")
+    .select("student_id,overall_level,total_score,max_score,taken_at")
+    .in("student_id", sids);
+  const ptBy = {}; (pts||[]).forEach(p=> ptBy[p.student_id] = p);
+  
   tbody.innerHTML = students.map(s=>{
     const sbks = bkBy[s.student_id] || [];
     const total = sbks.length;
@@ -1833,7 +1949,21 @@ async function loadRoster(){
     const teachersList = [...s.teachers].filter(x=>x).join(", ");
     const r = ratBy[s.student_id];
     const ratingHtml = r ? `<span class="star">★</span> ${(r.sum/r.n).toFixed(1)} <span style="color:var(--muted);font-size:.78rem">(${r.n})</span>` : `<span style="color:var(--muted);font-size:.78rem">–</span>`;
-    const levelHtml = s.level_done && s.level ? `<b>${s.level}</b>` : `<span style="color:var(--muted);font-size:.78rem">${t("not_set")}</span>`;
+    
+    // 레벨 표시 — 1:1 결과 + 서면 진단 둘 다
+    const pt = ptBy[s.student_id];
+    let levelHtml = "";
+    if(s.level_done && s.level){
+      levelHtml += `<div><b style="color:#2e7d32">${s.level}</b> <span style="color:var(--muted);font-size:.7rem">1:1</span></div>`;
+    }
+    if(pt){
+      const ptColor = pt.overall_level === "C1+" ? "#2e7d32" : pt.overall_level === "B2" ? "#2c7a73" : pt.overall_level === "B1" ? "#ef6a48" : pt.overall_level === "A2" ? "#c98a1f" : "#6b7785";
+      levelHtml += `<div style="margin-top:2px"><span style="background:${ptColor};color:#fff;padding:1px 6px;border-radius:4px;font-size:.7rem;font-weight:700">${pt.overall_level}</span> <span style="color:var(--muted);font-size:.7rem">서면 ${pt.total_score}/${pt.max_score}</span></div>`;
+    }
+    if(!levelHtml){
+      levelHtml = `<span style="color:var(--muted);font-size:.78rem">${t("not_set")}</span>`;
+    }
+    
     return `<tr>
       <td><b>${s.name}</b><br><span style="font-size:.75rem;color:var(--muted)">${s.email}</span></td>
       <td>${teachersList}</td>
@@ -2548,7 +2678,7 @@ $("ltr-level") && ($("ltr-level").onchange = () => {
   }
 });
 
-// 학생 선택 시 → 기존 결과 표시
+// 학생 선택 시 → 기존 결과 + 서면 진단 결과 표시
 $("ltr-student") && ($("ltr-student").onchange = async () => {
   const sid = $("ltr-student").value;
   LTR_CURRENT_STUDENT = sid;
@@ -2556,11 +2686,15 @@ $("ltr-student") && ($("ltr-student").onchange = async () => {
   
   if(!sid){
     $("ltr-history").style.display = "none";
+    $("ltr-placement-ref").style.display = "none";
     clearLtrForm();
     return;
   }
   
-  // 기존 결과 조회
+  // 서면 진단 결과 조회 (참고용)
+  await loadPlacementReference(sid);
+  
+  // 기존 1:1 결과 조회
   const { data } = await sb.from("level_test_results")
     .select("*")
     .eq("student_id", sid)
@@ -2586,6 +2720,41 @@ $("ltr-student") && ($("ltr-student").onchange = async () => {
   // 가장 최신 결과 자동 로드
   await loadLtrResult(data[0].id);
 });
+
+// 학생의 서면 진단 결과 (참고용)
+async function loadPlacementReference(studentId){
+  const { data: pt } = await sb.from("placement_tests")
+    .select("overall_level, total_score, max_score, a1_score, a2_score, b1_score, b2_score, c1_score, taken_at")
+    .eq("student_id", studentId)
+    .maybeSingle();
+  
+  if(!pt){
+    $("ltr-placement-ref").style.display = "none";
+    return;
+  }
+  
+  const dateStr = new Date(pt.taken_at).toLocaleDateString(localeOf());
+  const levelColor = pt.overall_level === "C1+" ? "#2e7d32" : pt.overall_level === "B2" ? "#2c7a73" : pt.overall_level === "B1" ? "#ef6a48" : pt.overall_level === "A2" ? "#c98a1f" : "#6b7785";
+  
+  $("ltr-placement-content").innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+      <div>
+        예상 레벨: <span style="background:${levelColor};color:#fff;padding:2px 10px;border-radius:99px;font-weight:700;font-size:.85rem">${pt.overall_level}</span>
+        · 총 ${pt.total_score}/${pt.max_score} 정답
+      </div>
+      <div style="font-size:.75rem;color:#6b7785">📅 ${dateStr} 응시</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;font-size:.78rem;text-align:center">
+      <div><b>A1</b><br>${pt.a1_score}/5</div>
+      <div><b>A2</b><br>${pt.a2_score}/5</div>
+      <div><b>B1</b><br>${pt.b1_score}/5</div>
+      <div><b>B2</b><br>${pt.b2_score}/5</div>
+      <div><b>C1</b><br>${pt.c1_score}/5</div>
+    </div>
+    <div style="font-size:.75rem;color:#6b7785;margin-top:8px;font-style:italic">※ 서면 객관식 진단입니다. 실제 회화 능력은 1:1 테스트에서 정확히 평가됩니다.</div>
+  `;
+  $("ltr-placement-ref").style.display = "block";
+}
 
 // 기존 결과 로드 (수정 모드)
 window.loadLtrResult = async function(resultId){
@@ -2636,6 +2805,7 @@ function clearLtrForm(){
   $("ltr-weaknesses").value = "";
   $("ltr-recommendations").value = "";
   $("ltr-history").style.display = "none";
+  $("ltr-placement-ref").style.display = "none";
   LTR_CURRENT_RESULT_ID = null;
   initStars();
 }
