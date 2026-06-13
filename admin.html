@@ -2,157 +2,1407 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>온택 로그인 · ONTACT</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>온택 — 총관리자</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700;900&family=Hanken+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
-  :root{--ink:#12273d;--paper:#f6f4ef;--line:#e3ddd0;--coral:#ef6a48;--muted:#6b7785}
-  *{margin:0;padding:0;box-sizing:border-box}
-  body{font-family:Pretendard,sans-serif;background:var(--paper);color:var(--ink);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
-  .card{max-width:440px;width:100%;background:#fff;border:1px solid var(--line);border-radius:18px;padding:40px 32px}
-  h1{font-size:1.4rem;margin-bottom:6px;text-align:center}
-  .sub{font-size:.9rem;color:var(--muted);text-align:center;margin-bottom:28px}
-  .tabs{display:flex;background:var(--paper);border-radius:999px;padding:4px;margin-bottom:20px}
-  .tabs button{flex:1;padding:.7em;border:none;background:transparent;border-radius:999px;font-weight:700;cursor:pointer;color:var(--muted);font-family:inherit}
-  .tabs button.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.05)}
-  label{display:block;font-size:.78rem;font-weight:700;color:var(--muted);margin:14px 0 4px}
-  input,select{width:100%;padding:.85em 1em;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:.95rem}
-  input:focus,select:focus{outline:none;border-color:var(--coral)}
-  .btn{width:100%;padding:.95em;margin-top:18px;border:none;border-radius:999px;background:var(--coral);color:#fff;font-weight:800;cursor:pointer;font-size:.95rem;font-family:inherit}
+  :root{
+    --ink:#12273d; --paper:#f6f4ef; --coral:#ef6a48; --coral-deep:#d4512c;
+    --teal:#2c7a73; --gold:#c98a1f; --muted:#6b7785; --line:#e3ddd0;
+    --alert:#d4351c; --warn:#c98a1f; --ok:#2e7d32; --bg:#f9f7f2;
+    --serif:'Fraunces',serif; --sans:'Hanken Grotesk',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    --shadow:0 8px 30px -10px rgba(18,39,61,.15);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1.55}
+  a{color:inherit;text-decoration:none}
+
+  /* HEADER */
+  .topbar{background:var(--ink);color:#fff;padding:18px 32px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+  .topbar h1{font-family:var(--serif);font-size:1.4rem;font-weight:800;letter-spacing:-.01em}
+  .topbar h1 em{color:var(--coral);font-style:normal}
+  .topbar .who{font-size:.85rem;color:#b8c4d3}
+  .topbar a.gobtn{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.2);padding:.4em 1em;border-radius:8px;font-size:.85rem;font-weight:600;transition:all .15s}
+  .topbar a.gobtn:hover{background:rgba(255,255,255,.22)}
+  .topbar a.logout{color:#b8c4d3;font-size:.85rem;margin-left:8px}
+
+  /* TABS */
+  .tabs{display:flex;gap:4px;padding:14px 32px 0;background:#fff;border-bottom:1px solid var(--line);overflow-x:auto}
+  .tabs button{background:transparent;border:0;padding:12px 20px;cursor:pointer;font:inherit;font-weight:700;color:var(--muted);border-bottom:3px solid transparent;white-space:nowrap;font-size:.95rem}
+  .tabs button.on{color:var(--ink);border-bottom-color:var(--coral)}
+  .tabs button:hover{color:var(--ink)}
+
+  /* CONTAINER */
+  .wrap{max-width:1400px;margin:0 auto;padding:24px 32px}
+  .panel{display:none}
+  .panel.on{display:block}
+
+  /* CARDS */
+  .card{background:#fff;border-radius:16px;padding:22px;margin-bottom:20px;box-shadow:var(--shadow)}
+  .card h2{font-family:var(--serif);font-size:1.2rem;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+  .card .sub{color:var(--muted);font-size:.88rem;margin-bottom:14px}
+  .card .note{background:var(--paper);border-left:3px solid var(--coral);padding:8px 12px;font-size:.85rem;color:var(--ink);border-radius:0 8px 8px 0;margin-bottom:14px}
+
+  /* DASHBOARD STATS */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+  .stat{background:#fff;border-radius:14px;padding:20px;border:1px solid var(--line);position:relative;overflow:hidden}
+  .stat .label{font-size:.78rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}
+  .stat .num{font-family:var(--serif);font-size:2.2rem;font-weight:800;color:var(--ink);line-height:1}
+  .stat .delta{font-size:.78rem;color:var(--muted);margin-top:4px}
+  .stat.warn{border-color:var(--warn);background:#fff9ec}
+  .stat.alert{border-color:var(--alert);background:#fef4f1}
+  .stat.alert .num,.stat.warn .num{color:var(--alert)}
+
+  /* QUICK ACTIONS */
+  .qactions{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+  .qaction{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;text-align:left;cursor:pointer;font:inherit;color:var(--ink);transition:all .2s;display:flex;align-items:center;gap:12px}
+  .qaction:hover{border-color:var(--ink);transform:translateY(-2px);box-shadow:var(--shadow)}
+  .qaction .icon{font-size:1.6rem;line-height:1}
+  .qaction .text{flex:1}
+  .qaction .text b{display:block;font-size:.92rem;font-weight:700}
+  .qaction .text .desc{font-size:.78rem;color:var(--muted);margin-top:2px}
+
+  /* HERO BUTTON */
+  .hero-btn{background:var(--ink);color:#fff;border-radius:16px;padding:22px 26px;display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px;cursor:pointer;transition:all .2s;box-shadow:var(--shadow)}
+  .hero-btn:hover{transform:translateY(-2px);box-shadow:0 12px 40px -10px rgba(18,39,61,.3)}
+  .hero-btn .title{font-family:var(--serif);font-size:1.3rem;font-weight:700;display:flex;align-items:center;gap:10px}
+  .hero-btn .desc{font-size:.85rem;color:#b8c4d3;margin-top:4px}
+  .hero-btn .arrow{font-size:1.4rem;color:#fff}
+
+  /* RECENT ACTIVITY */
+  .recent-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .recent{background:#fff;border-radius:14px;padding:18px;border:1px solid var(--line)}
+  .recent h3{font-size:.92rem;font-weight:700;margin-bottom:10px;color:var(--ink)}
+  .recent ul{list-style:none}
+  .recent li{padding:8px 0;border-bottom:1px solid var(--paper);font-size:.85rem;display:flex;justify-content:space-between;gap:8px}
+  .recent li:last-child{border-bottom:0}
+  .recent li .meta{color:var(--muted);font-size:.78rem;white-space:nowrap}
+  .recent .empty{color:var(--muted);font-size:.85rem;padding:10px 0}
+
+  /* TABLES */
+  table{width:100%;border-collapse:collapse;font-size:.9rem}
+  th{text-align:left;padding:10px 8px;border-bottom:2px solid var(--line);font-weight:700;color:var(--muted);font-size:.82rem;text-transform:uppercase;letter-spacing:.02em}
+  td{padding:10px 8px;border-bottom:1px solid var(--paper);vertical-align:middle}
+  tr.member-row{cursor:pointer;transition:background .15s}
+  tr.member-row:hover{background:var(--paper)}
+  tr.member-row.expanded{background:var(--paper)}
+  tr.detail-row td{background:#f9f7f2;padding:16px;border-bottom:1px solid var(--line)}
+
+  /* TOOLBAR */
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
+  .toolbar input,.toolbar select{padding:.55em .8em;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:.9rem;background:#fff}
+  .toolbar input[type="search"],.toolbar input[type="text"]{min-width:240px;flex:1}
+
+  /* BADGES */
+  .badge{display:inline-block;padding:.18em .65em;border-radius:6px;font-size:.72rem;font-weight:700;border:1px solid currentColor}
+  .b-student{color:var(--teal)}
+  .b-teacher{color:var(--coral-deep)}
+  .b-manager{color:var(--gold)}
+  .b-admin{color:var(--ink)}
+  .b-paid{color:var(--ok)}
+  .b-pending{color:var(--warn)}
+  .b-refund{color:var(--alert)}
+
+  /* FORMS */
+  label{display:block;font-size:.85rem;font-weight:600;color:var(--ink);margin-bottom:4px;margin-top:8px}
+  input,select,textarea{width:100%;padding:.6em .8em;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:.92rem;background:#fff}
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:8px}
+  .form-row.three{grid-template-columns:1fr 1fr 1fr}
+  .form-row.full{grid-template-columns:1fr}
+  textarea{resize:vertical;font-family:inherit}
+  .btn{background:var(--coral);color:#fff;border:0;padding:.7em 1.4em;border-radius:9px;font:inherit;font-weight:700;font-size:.93rem;cursor:pointer;transition:all .15s;margin-top:10px}
+  .btn:hover{background:var(--coral-deep)}
   .btn:disabled{opacity:.5;cursor:not-allowed}
-  .msg{font-size:.85rem;margin-top:12px;text-align:center;min-height:1.2em}
-  .home{display:block;text-align:center;margin-top:18px;font-size:.85rem;color:var(--muted);text-decoration:none}
-  .pane{display:none}.pane.on{display:block}
-  .loading{text-align:center;padding:40px;color:var(--muted)}
+  .btn-secondary{background:#fff;color:var(--ink);border:1.5px solid var(--ink)}
+  .btn-secondary:hover{background:var(--ink);color:#fff}
+  .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--line)}
+  .btn-ghost:hover{color:var(--ink);border-color:var(--ink)}
+  .btn-danger{background:#fff;color:var(--alert);border:1.5px solid var(--alert)}
+  .btn-danger:hover{background:var(--alert);color:#fff}
+  .msg{margin-top:8px;font-size:.85rem;min-height:1.2em}
+  .empty{text-align:center;color:var(--muted);padding:30px 0;font-size:.92rem}
+
+  /* DETAIL PANEL (when row is expanded) */
+  .detail-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px}
+  .detail-box{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px}
+  .detail-box .lab{font-size:.72rem;color:var(--muted);text-transform:uppercase;font-weight:600;letter-spacing:.04em;margin-bottom:4px}
+  .detail-box .val{font-size:.95rem;font-weight:700;color:var(--ink)}
+  .detail-box .extra{font-size:.78rem;color:var(--muted);margin-top:2px}
+
+  /* STUDENT TAGS */
+  .stu-tag{display:inline-flex;align-items:center;background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:.25em .75em;font-size:.8rem;font-weight:600}
+  .tag-VIP{background:#fff7e6;border-color:var(--gold);color:var(--gold)}
+  .tag-요주의{background:#fef4f1;border-color:var(--alert);color:var(--alert)}
+  .tag-장기수강{background:#f0fdf4;border-color:var(--ok);color:var(--ok)}
+  .tag-단체학생{background:#eef2ff;border-color:#5566b5;color:#5566b5}
+  .tag-재등록\ 권유{background:#fff9ec;border-color:var(--warn);color:var(--warn)}
+
+  /* SECTION TITLE */
+  .sec-title{font-family:var(--serif);font-size:1.4rem;font-weight:800;margin-bottom:6px;color:var(--ink)}
+  .sec-sub{color:var(--muted);font-size:.92rem;margin-bottom:16px}
+
+  /* RESPONSIVE */
+  @media(max-width:880px){
+    .topbar{padding:14px 16px}
+    .wrap{padding:18px 14px}
+    .tabs{padding:10px 14px 0}
+    .stats,.qactions,.recent-grid,.detail-grid{grid-template-columns:1fr 1fr}
+    .form-row,.form-row.three{grid-template-columns:1fr}
+  }
+  @media(max-width:540px){
+    .stats,.qactions,.recent-grid,.detail-grid{grid-template-columns:1fr}
+  }
 </style>
 </head>
 <body>
-<div class="card">
-  <div id="loading" class="loading">로그인 확인 중…</div>
 
-  <div id="forms" style="display:none">
-    <h1>온택 영어</h1>
-    <p class="sub">로그인하시면 역할별 페이지로 이동합니다.</p>
+<!-- HEADER -->
+<div class="topbar">
+  <h1>온택 <em>총관리자</em></h1>
+  <div style="display:flex;align-items:center;gap:14px">
+    <a href="manager.html" class="gobtn">🎛 라이브 관제실</a>
+    <span class="who" id="who"></span>
+    <a href="#" class="logout" id="logout">로그아웃</a>
+  </div>
+</div>
 
-    <div class="tabs">
-      <button id="tab-login" class="on">로그인</button>
-      <button id="tab-signup">회원가입</button>
-    </div>
+<!-- TABS -->
+<div class="tabs">
+  <button data-tab="home" class="on">🏠 대시보드</button>
+  <button data-tab="people">👥 사람 관리</button>
+  <button data-tab="payments">💰 결제</button>
+  <button data-tab="ops">📅 운영 도구</button>
+</div>
 
-    <!-- 로그인 -->
-    <div id="pane-login" class="pane on">
-      <label>이메일</label>
-      <input id="li-email" type="email" placeholder="email@example.com">
-      <label>비밀번호</label>
-      <input id="li-pw" type="password" placeholder="비밀번호">
-      <button class="btn" id="li-btn">로그인</button>
-      <div class="msg" id="li-msg"></div>
-    </div>
+<div class="wrap">
 
-    <!-- 회원가입 (학생만 가입. 교사·매니저는 관리자가 승격) -->
-    <div id="pane-signup" class="pane">
-      <label>이름</label>
-      <input id="su-name" placeholder="홍길동">
-      <label>이메일</label>
-      <input id="su-email" type="email" placeholder="email@example.com">
-      <label>비밀번호 (6자 이상)</label>
-      <input id="su-pw" type="password">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+  <!-- ============================================== -->
+  <!-- 🏠 대시보드 -->
+  <!-- ============================================== -->
+  <div class="panel on" id="p-home">
+
+    <!-- 라이브 관제실 큰 버튼 -->
+    <a href="manager.html" style="text-decoration:none">
+      <div class="hero-btn">
         <div>
-          <label>나이</label>
-          <input id="su-age" type="number" min="5" max="100" placeholder="예: 28">
+          <div class="title">🎛 라이브 관제실</div>
+          <div class="desc">실시간 수업 진행 · 강사 알람 · 출결 — 매니저 페이지로 이동</div>
         </div>
-        <div>
-          <label>성별</label>
-          <select id="su-gender">
-            <option value="">선택…</option>
-            <option value="male">남성</option>
-            <option value="female">여성</option>
-            <option value="other">기타</option>
-          </select>
-        </div>
+        <div class="arrow">→</div>
       </div>
-      <label>연락처 (전화번호)</label>
-      <input id="su-phone" type="tel" placeholder="010-1234-5678">
-      <label>국가 / 시간대</label>
-      <select id="su-tz">
-        <option value="Asia/Seoul|KR">대한민국 (Asia/Seoul)</option>
-        <option value="Asia/Manila|PH">필리핀 (Asia/Manila)</option>
-        <option value="Asia/Vientiane|LA">라오스 (Asia/Vientiane)</option>
-        <option value="America/Chicago|US">미국 중부 (America/Chicago)</option>
-        <option value="America/New_York|US">미국 동부 (America/New_York)</option>
-        <option value="America/Los_Angeles|US">미국 서부 (America/Los_Angeles)</option>
-      </select>
-      <button class="btn" id="su-btn">회원가입</button>
-      <div class="msg" id="su-msg"></div>
+    </a>
+
+    <!-- 핵심 숫자 -->
+    <div class="stats" style="grid-template-columns:repeat(5,1fr)">
+      <div class="stat"><div class="label">오늘 수업</div><div class="num" id="s-today">0</div><div class="delta" id="s-today-d">진행 중 0개</div></div>
+      <div class="stat"><div class="label">이번 주 신규 결제</div><div class="num" id="s-week-pay">0</div><div class="delta" id="s-week-pay-d">₩0</div></div>
+      <div class="stat" id="card-expiring" style="cursor:pointer" title="클릭하여 명단 보기"><div class="label">만료 임박 (7일 내)</div><div class="num" id="s-expiring">0</div><div class="delta">▼ 클릭하면 명단</div></div>
+      <div class="stat" id="card-alerts" style="cursor:pointer" title="클릭하여 명단 보기"><div class="label">처리 대기</div><div class="num" id="s-pending">0</div><div class="delta" id="s-pending-d">결석계 + 오늘 노쇼</div></div>
+      <div class="stat" id="card-noshow" style="cursor:pointer" title="클릭하여 명단 보기"><div class="label">노쇼 3회+ 학생</div><div class="num" id="s-noshow-pattern">0</div><div class="delta">▼ 케어 필요</div></div>
     </div>
 
-    <a class="home" href="index.html">← 홈으로</a>
+    <!-- 빠른 액션 -->
+    <div class="qactions">
+      <button class="qaction" data-go="people"><span class="icon">👤</span><span class="text"><b>회원 보기</b><span class="desc">학생·강사 검색</span></span></button>
+      <button class="qaction" onclick="document.querySelector('[data-tab=people]').click(); setTimeout(()=>document.getElementById('teacher-mgmt').scrollIntoView({behavior:'smooth'}),200)"><span class="icon">👨‍🏫</span><span class="text"><b>강사 추가</b><span class="desc">신규 강사 등록</span></span></button>
+      <button class="qaction" onclick="document.querySelector('[data-tab=ops]').click(); setTimeout(()=>document.getElementById('group-mgmt').scrollIntoView({behavior:'smooth'}),200)"><span class="icon">👥</span><span class="text"><b>단체수업</b><span class="desc">라오스·필리핀 등</span></span></button>
+      <button class="qaction" onclick="document.querySelector('[data-tab=ops]').click(); setTimeout(()=>document.getElementById('monthly-notice').scrollIntoView({behavior:'smooth'}),200)"><span class="icon">📅</span><span class="text"><b>월간 안내문</b><span class="desc">학생 공지 생성</span></span></button>
+    </div>
+
+    <!-- 최근 활동 -->
+    <div class="recent-grid">
+      <div class="recent">
+        <h3>💳 최근 결제</h3>
+        <ul id="recent-pay"><li class="empty">로딩 중…</li></ul>
+      </div>
+      <div class="recent">
+        <h3>📝 최근 결석계</h3>
+        <ul id="recent-abs"><li class="empty">로딩 중…</li></ul>
+      </div>
+      <div class="recent">
+        <h3>🆕 최근 가입자</h3>
+        <ul id="recent-signup"><li class="empty">로딩 중…</li></ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- 👥 사람 관리 -->
+  <!-- ============================================== -->
+  <div class="panel" id="p-people">
+
+    <h1 class="sec-title">👥 사람 관리</h1>
+    <p class="sec-sub">모든 회원(학생·강사·매니저)을 한 화면에서. 행을 클릭하면 자세히 보입니다.</p>
+
+    <div class="card">
+      <div class="toolbar">
+        <input type="search" id="people-search" placeholder="🔍 이름·이메일·전화로 검색">
+        <select id="people-role-filter">
+          <option value="">모든 역할</option>
+          <option value="student">학생</option>
+          <option value="teacher">강사</option>
+          <option value="manager">매니저</option>
+          <option value="admin">관리자</option>
+        </select>
+        <select id="people-tag-filter">
+          <option value="">🏷️ 태그 (전체)</option>
+          <option value="VIP">VIP</option>
+          <option value="장기수강">장기수강</option>
+          <option value="단체학생">단체학생</option>
+          <option value="요주의">요주의</option>
+          <option value="레벨업 임박">레벨업 임박</option>
+          <option value="재등록 권유">재등록 권유</option>
+          <option value="환불 검토">환불 검토</option>
+        </select>
+        <label style="display:flex;align-items:center;gap:5px;color:var(--alert);font-size:.85rem;font-weight:600;cursor:pointer"><input type="checkbox" id="people-overdue-filter" style="width:auto"> 💰 미납만</label>
+        <span style="margin-left:auto;color:var(--muted);font-size:.85rem" id="people-count">0명</span>
+      </div>
+
+      <div style="overflow-x:auto">
+        <table id="people-table">
+          <thead>
+            <tr>
+              <th>이름</th><th>역할</th><th>이메일</th><th>전화</th><th>나이/성별</th><th>상태</th><th></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 강사 관리 (별도 카드) -->
+    <div id="teacher-mgmt">
+      <h2 class="sec-title" style="font-size:1.2rem;margin-top:24px">강사 관리</h2>
+      <p class="sec-sub">강사 등록·프로필 수정·시간 범위·줌 키.</p>
+
+      <div class="card">
+        <h2>➕ 강사 등록</h2>
+        <p class="note">먼저 그 사람이 사이트에서 <b>회원가입</b>을 해야 합니다. 그 회원을 골라 강사로 지정하세요.</p>
+        <div class="form-row">
+          <div><label>회원 선택 (학생 중)</label><select id="add-member"></select></div>
+          <div><label>표시 이름</label><input id="add-name" placeholder="예: Tr. Grace"></div>
+        </div>
+        <div class="form-row">
+          <div><label>전문분야</label><input id="add-spec" placeholder="회화 · 비즈니스"></div>
+          <div><label>전화번호 (긴급 연락용)</label><input id="add-phone" placeholder="+82 10-... 또는 +63 917-..."></div>
+        </div>
+        <div class="form-row">
+          <div><label>📷 사진 업로드</label><input id="add-photo-file" type="file" accept="image/png,image/jpeg,image/webp"><div id="add-photo-preview" style="margin-top:6px"></div></div>
+          <div><label>또는 사진 URL</label><input id="add-photo-url" placeholder="https://..."></div>
+        </div>
+        <div class="form-row">
+          <div><label>🎬 자기소개 영상 URL</label><input id="add-video" placeholder="https://player.vimeo.com/video/..."></div>
+          <div><label>🏷️ 태그 (콤마 구분)</label><input id="add-tags" placeholder="회화, 비즈니스, 성인"></div>
+        </div>
+        <div class="form-row three">
+          <div><label>⭐ 별점 (4.0–5.0)</label><input id="add-rating" type="number" min="4.0" max="5.0" step="0.1" value="5.0"></div>
+          <div><label>🏆 배지</label><select id="add-badge"><option value="">없음</option><option value="베테랑">베테랑</option><option value="신규">신규</option><option value="추천">추천</option><option value="인기">인기</option></select></div>
+          <div><label>표시 순서 (낮을수록 먼저)</label><input id="add-sort" type="number" value="100"></div>
+        </div>
+        <div class="form-row full">
+          <div><label>📝 소개 글 (메인 페이지)</label><textarea id="add-bio" rows="3" placeholder="강사 소개 1~2문장"></textarea></div>
+        </div>
+        <div class="form-row full">
+          <div><label><input id="add-show-main" type="checkbox" checked style="width:auto;margin-right:6px"> 메인 페이지에 노출</label></div>
+        </div>
+        <button class="btn" id="add-btn">강사로 추가</button>
+        <div class="msg" id="add-msg"></div>
+      </div>
+
+      <div class="card">
+        <h2>✏️ 강사 프로필 수정</h2>
+        <p class="sub">사진·소개·영상·태그·별점을 수정합니다. 변경사항은 메인 페이지에 자동 반영됩니다.</p>
+        <div class="form-row">
+          <div><label>강사 선택</label><select id="edit-teacher"></select></div>
+          <div><label>표시 이름</label><input id="edit-name"></div>
+        </div>
+        <div class="form-row">
+          <div><label>전문분야</label><input id="edit-spec"></div>
+          <div><label>전화번호</label><input id="edit-phone"></div>
+        </div>
+        <div class="form-row">
+          <div><label>📷 새 사진 업로드</label><input id="edit-photo-file" type="file" accept="image/png,image/jpeg,image/webp"><div id="edit-photo-current" style="margin-top:6px"></div></div>
+          <div><label>사진 URL</label><input id="edit-photo-url"></div>
+        </div>
+        <div class="form-row">
+          <div><label>🎬 영상 URL</label><input id="edit-video"></div>
+          <div><label>🏷️ 태그</label><input id="edit-tags"></div>
+        </div>
+        <div class="form-row three">
+          <div><label>⭐ 별점</label><input id="edit-rating" type="number" min="4.0" max="5.0" step="0.1"></div>
+          <div><label>🏆 배지</label><select id="edit-badge"><option value="">없음</option><option value="베테랑">베테랑</option><option value="신규">신규</option><option value="추천">추천</option><option value="인기">인기</option></select></div>
+          <div><label>표시 순서</label><input id="edit-sort" type="number"></div>
+        </div>
+        <div class="form-row full">
+          <div><label>📝 소개</label><textarea id="edit-bio" rows="3"></textarea></div>
+        </div>
+        <div class="form-row">
+          <div><label><input id="edit-show-main" type="checkbox" style="width:auto;margin-right:6px"> 메인 노출</label></div>
+          <div><label><input id="edit-active" type="checkbox" style="width:auto;margin-right:6px"> 활성</label></div>
+        </div>
+        <button class="btn" id="edit-btn">변경사항 저장</button>
+        <div class="msg" id="edit-msg"></div>
+      </div>
+
+      <div class="card">
+        <h2>🕒 강사 가능 시간 범위</h2>
+        <p class="sub">학생이 이 강사를 신청할 때 보일 시간대. 한국 시간(KST) 기준.</p>
+        <div class="form-row three">
+          <div><label>강사</label><select id="hr-teacher"></select></div>
+          <div><label>시작</label><input id="hr-from" type="time" value="19:00"></div>
+          <div><label>종료</label><input id="hr-to" type="time" value="21:00"></div>
+        </div>
+        <button class="btn" id="hr-btn">시간 범위 저장</button>
+        <div class="msg" id="hr-msg"></div>
+      </div>
+
+      <div class="card">
+        <h2>🎥 강사 줌 키 등록</h2>
+        <p class="sub">강사 본인 줌으로 수업 진행 시 입력. 안 넣으면 공용 줌 사용.</p>
+        <div class="form-row">
+          <div><label>강사</label><select id="zk-teacher"></select></div>
+          <div><label>Account ID</label><input id="zk-acc"></div>
+        </div>
+        <div class="form-row">
+          <div><label>Client ID</label><input id="zk-cid"></div>
+          <div><label>Client Secret</label><input id="zk-sec" type="password"></div>
+        </div>
+        <button class="btn" id="zk-btn">줌 키 저장</button>
+        <div class="msg" id="zk-msg"></div>
+      </div>
+
+      <div class="card">
+        <h2>📓 강사 코칭 노트</h2>
+        <p class="sub">매니저·관리자가 함께 쓰는 강사 인사관리 메모. 강사 본인은 못 봅니다.</p>
+        <label>강사 선택</label>
+        <select id="tn-teacher"></select>
+        <div style="margin-top:10px;display:flex;gap:6px">
+          <textarea id="tn-input" rows="2" placeholder="이 강사에 대한 노트 (예: 발음 교정 보강 필요, 학생 응대 좋음 등)" style="flex:1;font-size:.9rem;padding:.5em .7em"></textarea>
+          <button class="btn" style="margin-top:0;align-self:stretch" onclick="addTeacherNote()">노트 추가</button>
+        </div>
+        <div id="tn-list" style="margin-top:10px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- 💰 결제 -->
+  <!-- ============================================== -->
+  <div class="panel" id="p-payments">
+    <h1 class="sec-title">💰 결제</h1>
+    <p class="sec-sub">결제 내역과 월별 정산 요약.</p>
+
+    <div class="stats" style="grid-template-columns:repeat(3,1fr)">
+      <div class="stat"><div class="label">이번 달 매출</div><div class="num" id="pm-this">₩0</div><div class="delta" id="pm-this-cnt">0건</div></div>
+      <div class="stat"><div class="label">지난 달 매출</div><div class="num" id="pm-last">₩0</div><div class="delta" id="pm-last-cnt">0건</div></div>
+      <div class="stat"><div class="label">전체 누적</div><div class="num" id="pm-all">₩0</div><div class="delta" id="pm-all-cnt">0건</div></div>
+    </div>
+
+    <div class="card">
+      <h2>결제 내역</h2>
+      <div class="toolbar">
+        <input type="search" id="pay-search" placeholder="🔍 학생 이름·이메일로 검색">
+        <select id="pay-status-filter">
+          <option value="">전체 상태</option>
+          <option value="paid">결제 완료</option>
+          <option value="pending">대기</option>
+          <option value="refund">환불</option>
+        </select>
+        <input type="month" id="pay-month-filter">
+      </div>
+      <div style="overflow-x:auto"><table id="t-payments"><thead><tr>
+        <th>결제일</th><th>학생</th><th>강사</th><th>기간</th><th>금액</th><th>방법</th><th>상태</th><th>거래ID</th><th>액션</th>
+      </tr></thead><tbody></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- 📅 운영 도구 -->
+  <!-- ============================================== -->
+  <div class="panel" id="p-ops">
+    <h1 class="sec-title">📅 운영 도구</h1>
+    <p class="sec-sub">월간 안내문, 단체수업 관리.</p>
+
+    <div class="card" id="monthly-notice">
+      <h2>📅 월간 일정 안내문</h2>
+      <p class="sub">학생에게 보낼 월별 안내 메시지 자동 생성. 카카오·이메일에 복사해 사용.</p>
+      <div class="form-row three">
+        <div><label>대상 월</label><input id="mn-month" type="month"></div>
+        <div><label>휴무일 (콤마 구분, YYYY-MM-DD)</label><input id="mn-holidays" placeholder="2026-06-15, 2026-06-19"></div>
+        <div><label>안내 사항 (선택)</label><input id="mn-notes" placeholder="예: 추석 연휴 휴강"></div>
+      </div>
+      <button class="btn" id="mn-gen">안내문 생성</button>
+      <button class="btn btn-secondary" id="mn-copy" style="display:none">📋 복사</button>
+      <div id="mn-out" style="margin-top:14px;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:14px;white-space:pre-wrap;font-size:.9rem;display:none"></div>
+    </div>
+
+    <div class="card" id="group-mgmt">
+      <h2>👥 단체수업</h2>
+      <p class="sub">라오스·필리핀 등 단체 학생용. 줌 자동 생성, 단체장에게 링크 전달.</p>
+      <div class="form-row three">
+        <div><label>단체 이름</label><input id="gc-name" placeholder="예: 라오스 학생 단체"></div>
+        <div><label>강사</label><select id="gc-teacher"></select></div>
+        <div><label>시작 시각</label><input id="gc-when" type="datetime-local"></div>
+      </div>
+      <div class="form-row">
+        <div><label>시간 (분)</label><input id="gc-dur" type="number" value="60" min="20" max="180"></div>
+        <div><label>참가자 수</label><input id="gc-pax" type="number" value="10" min="1" max="100"></div>
+      </div>
+      <button class="btn" id="gc-create">줌 자동 생성</button>
+      <div class="msg" id="gc-msg"></div>
+      <h3 style="font-size:1rem;margin-top:18px;margin-bottom:8px">최근 단체수업</h3>
+      <div id="gc-list" style="font-size:.85rem;color:var(--muted)">없음</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- LOGIN GATE -->
+<div id="gate" style="display:none;position:fixed;inset:0;background:rgba(18,39,61,.95);z-index:1000;color:#fff;padding:40px;text-align:center;font-family:var(--sans)">
+  <h2 style="font-family:var(--serif);margin-bottom:18px">로그인이 필요합니다</h2>
+  <a href="login.html" style="background:var(--coral);color:#fff;padding:.8em 2em;border-radius:8px;font-weight:700">로그인하기</a>
+</div>
+
+<!-- REFUND MODAL -->
+<div id="refund-modal" style="display:none;position:fixed;inset:0;background:rgba(18,39,61,.6);z-index:990;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)" onclick="if(event.target===this)this.style.display='none'">
+  <div style="background:#fff;border-radius:16px;max-width:480px;width:100%;padding:24px;position:relative;box-shadow:0 30px 70px rgba(0,0,0,.3)">
+    <button onclick="document.getElementById('refund-modal').style.display='none'" style="position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:50%;background:var(--paper);border:0;cursor:pointer;font-size:1rem;font-family:inherit">✕</button>
+    <h2 style="font-family:var(--serif);font-size:1.2rem;margin-bottom:6px">💸 환불 처리</h2>
+    <p id="refund-student" style="color:var(--muted);font-size:.88rem;margin-bottom:14px">—</p>
+    <label>환불 금액 (원)</label>
+    <input id="refund-amount" type="number" min="0">
+    <label>환불 사유</label>
+    <textarea id="refund-reason" rows="3" placeholder="예: 학생 요청, 시스템 오류, 강사 사유 등"></textarea>
+    <div style="background:#fef9eb;border-left:3px solid var(--warn);padding:8px 12px;border-radius:0 8px 8px 0;margin-top:14px;font-size:.82rem">
+      ⚠️ 이 작업은 시스템 기록만 남깁니다. 실제 카드/계좌 환불은 토스 대시보드 또는 은행에서 별도 처리해야 합니다.
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button class="btn btn-danger" id="refund-confirm" style="flex:1">환불 처리</button>
+      <button class="btn-ghost" onclick="document.getElementById('refund-modal').style.display='none'" style="padding:.7em 1.4em;background:#fff;border:1.5px solid var(--line);border-radius:9px;cursor:pointer;font-family:inherit">취소</button>
+    </div>
+    <div class="msg" id="refund-msg"></div>
+  </div>
+</div>
+<div id="list-modal" style="display:none;position:fixed;inset:0;background:rgba(18,39,61,.6);z-index:990;align-items:flex-start;justify-content:center;padding:60px 20px;overflow-y:auto;backdrop-filter:blur(4px)" onclick="if(event.target===this)this.style.display='none'">
+  <div style="background:#fff;border-radius:16px;max-width:680px;width:100%;padding:24px;position:relative;box-shadow:0 30px 70px rgba(0,0,0,.3)">
+    <button onclick="document.getElementById('list-modal').style.display='none'" style="position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:50%;background:var(--paper);border:0;cursor:pointer;font-size:1rem;font-family:inherit">✕</button>
+    <h2 id="list-modal-title" style="font-family:var(--serif);font-size:1.3rem;margin-bottom:14px"></h2>
+    <div id="list-modal-body" style="max-height:60vh;overflow-y:auto"></div>
   </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-const SUPABASE_URL="https://nhydhyolgrhsykdcqfzb.supabase.co";
-const SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5oeWRoeW9sZ3Joc3lrZGNxZnpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MTk1OTAsImV4cCI6MjA5NTk5NTU5MH0.s3qPFFN-4zMLAt-dtkOwzakCj-pkglKgbhyUR9uu4xs";
-const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-const $=(id)=>document.getElementById(id);
+const SB_URL="https://nhydhyolgrhsykdcqfzb.supabase.co";
+const SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5oeWRoeW9sZ3Joc3lrZGNxZnpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MTk1OTAsImV4cCI6MjA5NTk5NTU5MH0.s3qPFFN-4zMLAt-dtkOwzakCj-pkglKgbhyUR9uu4xs";
+const sb=supabase.createClient(SB_URL,SB_KEY);
+const $=id=>document.getElementById(id);
 
-const ROLE_PAGE={student:"student.html",teacher:"teacher.html",manager:"manager.html",admin:"admin.html"};
+let USER=null, PROFILE=null;
+let PEOPLE=[], TEACHERS=[], PAYMENTS=[], BOOKINGS=[];
+let EXPANDED_ROW=null;
+let EXPIRING_LIST=[], OVERDUE_LIST=[], NOSHOW_LIST=[];
 
-async function routeIfLoggedIn(){
+// ──────── INIT ────────
+(async()=>{
   const{data:{user}}=await sb.auth.getUser();
-  if(!user){ $("loading").style.display="none"; $("forms").style.display="block"; return; }
-  // 🚧 응급: 자동 라우팅 비활성화 — 수동으로 들어가도록
-  $("loading").style.display="none"; $("forms").style.display="block";
-  const{data:profile}=await sb.from("profiles").select("role,full_name,email").eq("id",user.id).single();
-  console.log("[login] 이미 로그인됨:", user.email, "role:", profile?.role);
-  // 안내 메시지 표시
-  const info = document.createElement("div");
-  info.style.cssText = "background:#fff9ec;border:1px solid #c98a1f;padding:14px;border-radius:10px;margin:14px 0;font-size:.9rem;text-align:center";
-  info.innerHTML = `이미 로그인됨: <b>${user.email}</b> (role: ${profile?.role||"unknown"})<br>
-    <a href="admin.html" style="display:inline-block;margin-top:8px;background:#12273d;color:#fff;padding:.5em 1em;border-radius:6px;text-decoration:none">관리자 페이지로</a>
-    <a href="student.html" style="display:inline-block;margin-top:8px;background:#2c7a73;color:#fff;padding:.5em 1em;border-radius:6px;text-decoration:none;margin-left:6px">학생 페이지</a>
-    <a href="#" onclick="event.preventDefault();sb.auth.signOut().then(()=>location.reload());" style="display:inline-block;margin-top:8px;background:#fff;color:#d4351c;border:1px solid #d4351c;padding:.5em 1em;border-radius:6px;text-decoration:none;margin-left:6px">로그아웃</a>`;
-  $("forms").prepend(info);
-}
-routeIfLoggedIn();
-
-// 탭 전환
-$("tab-login").onclick=()=>{ $("tab-login").classList.add("on"); $("tab-signup").classList.remove("on"); $("pane-login").classList.add("on"); $("pane-signup").classList.remove("on"); };
-$("tab-signup").onclick=()=>{ $("tab-signup").classList.add("on"); $("tab-login").classList.remove("on"); $("pane-signup").classList.add("on"); $("pane-login").classList.remove("on"); };
-
-// 로그인
-$("li-btn").onclick=async()=>{
-  $("li-msg").textContent=""; $("li-btn").disabled=true;
-  const email=$("li-email").value.trim(), password=$("li-pw").value;
-  const{error}=await sb.auth.signInWithPassword({email,password});
-  if(error){ $("li-msg").textContent="로그인 실패: "+error.message; $("li-msg").style.color="#d4512c"; $("li-btn").disabled=false; return; }
-  routeIfLoggedIn();
-};
-
-// 회원가입 (학생으로 가입)
-$("su-btn").onclick=async()=>{
-  $("su-msg").textContent=""; $("su-btn").disabled=true;
-  const name=$("su-name").value.trim(), email=$("su-email").value.trim(), pw=$("su-pw").value;
-  const age=$("su-age").value ? Number($("su-age").value) : null;
-  const gender=$("su-gender").value || null;
-  const phone=$("su-phone").value.trim() || null;
-  const[tz,country]=$("su-tz").value.split("|");
-  if(!name||!email||pw.length<6){ $("su-msg").textContent="이름·이메일·비밀번호(6자+)를 확인하세요."; $("su-msg").style.color="#d4512c"; $("su-btn").disabled=false; return; }
-  if(!phone){ $("su-msg").textContent="연락처(전화번호)를 입력해 주세요."; $("su-msg").style.color="#d4512c"; $("su-btn").disabled=false; return; }
-  const{data,error}=await sb.auth.signUp({email,password:pw,options:{data:{full_name:name}}});
-  if(error){ $("su-msg").textContent="가입 실패: "+error.message; $("su-msg").style.color="#d4512c"; $("su-btn").disabled=false; return; }
-  if(data?.user?.id){
-    await sb.from("profiles").update({
-      timezone:tz, country, full_name:name,
-      age, gender, phone
-    }).eq("id",data.user.id);
+  if(!user){ $("gate").style.display="block"; return; }
+  USER=user;
+  const{data:p, error:profileError}=await sb.from("profiles").select("*").eq("id",user.id).single();
+  if(profileError){
+    console.error("[admin] profile error:", profileError);
+    alert("Profile 로드 실패: " + (profileError.message||""));
+    return;
   }
-  $("su-msg").textContent="가입 완료! 로그인합니다…"; $("su-msg").style.color="#2c7a73";
-  await sb.auth.signInWithPassword({email,password:pw});
-  routeIfLoggedIn();
+  PROFILE=p;
+  if(p?.role!=="admin"){
+    alert("총관리자만 접근 가능합니다.");
+    location.href = "student.html";
+    return;
+  }
+  $("who").textContent = `${p.full_name||user.email}`;
+  $("logout").onclick = async e=>{ e.preventDefault(); await sb.auth.signOut(); location.href="login.html"; };
+  loadAll();
+  // 기본 월 셋팅
+  const now = new Date();
+  $("mn-month").value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
+})();
+
+// ──────── TABS ────────
+document.querySelectorAll(".tabs button").forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll(".tabs button").forEach(x=>x.classList.remove("on"));
+    document.querySelectorAll(".panel").forEach(x=>x.classList.remove("on"));
+    b.classList.add("on");
+    $("p-"+b.dataset.tab).classList.add("on");
+    if(b.dataset.tab==="payments") loadPayments();
+  };
+});
+
+// 빠른 액션의 data-go 처리
+document.querySelectorAll("[data-go]").forEach(el=>{
+  el.onclick = ()=> document.querySelector(`[data-tab="${el.dataset.go}"]`).click();
+});
+
+// 만료 임박 카드 클릭
+$("card-expiring").onclick = ()=>{
+  if(EXPIRING_LIST.length === 0){ alert("만료 임박 학생이 없습니다."); return; }
+  $("list-modal-title").textContent = `⏰ 만료 임박 학생 (7일 내) — ${EXPIRING_LIST.length}명`;
+  $("list-modal-body").innerHTML = EXPIRING_LIST.map(e=>{
+    const dt = new Date(e.last_at).toLocaleDateString("ko-KR",{month:"numeric",day:"numeric",weekday:"short"});
+    return `<div style="padding:10px 4px;border-bottom:1px solid var(--paper);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+      <div>
+        <b>${e.name}</b> · <span style="color:var(--muted);font-size:.85rem">${e.teacher}</span>
+        <div style="font-size:.78rem;color:var(--muted);margin-top:2px">마지막 수업: ${dt}</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        ${e.phone ? `<a href="tel:${e.phone.replace(/\s+/g,'')}" style="background:var(--teal);color:#fff;padding:.4em .85em;border-radius:6px;font-size:.82rem;font-weight:600">📞 ${e.phone}</a>` : ""}
+        <button onclick="document.querySelector('[data-tab=people]').click();document.getElementById('list-modal').style.display='none';setTimeout(()=>{const tr=document.querySelector('tr.member-row[data-id=\\'${e.student_id}\\']');if(tr){tr.scrollIntoView({behavior:'smooth'});tr.click();}},300)" style="background:#fff;border:1.5px solid var(--ink);color:var(--ink);padding:.4em .85em;border-radius:6px;font-size:.82rem;cursor:pointer;font-weight:600">상세보기</button>
+      </div>
+    </div>`;
+  }).join("");
+  $("list-modal").style.display = "flex";
 };
+
+$("card-noshow").onclick = ()=>{
+  if(NOSHOW_LIST.length === 0){ alert("최근 30일 노쇼 3회 이상인 학생이 없습니다."); return; }
+  $("list-modal-title").textContent = `🚨 노쇼 3회 이상 학생 (최근 30일) — ${NOSHOW_LIST.length}명`;
+  $("list-modal-body").innerHTML = NOSHOW_LIST.map(e=>{
+    const dt = new Date(e.last).toLocaleDateString("ko-KR",{month:"numeric",day:"numeric"});
+    return `<div style="padding:10px 4px;border-bottom:1px solid var(--paper);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+      <div>
+        <b>${e.name}</b> · <span style="color:var(--alert);font-weight:700;font-size:.92rem">${e.count}회 노쇼</span>
+        <div style="font-size:.78rem;color:var(--muted);margin-top:2px">${e.email} · 최근 ${dt}</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        ${e.phone ? `<a href="tel:${e.phone.replace(/\s+/g,'')}" style="background:var(--teal);color:#fff;padding:.4em .85em;border-radius:6px;font-size:.82rem;font-weight:600">📞 ${e.phone}</a>` : ""}
+        <button onclick="document.querySelector('[data-tab=people]').click();document.getElementById('list-modal').style.display='none';setTimeout(()=>{const tr=document.querySelector('tr.member-row[data-id=\\'${e.student_id}\\']');if(tr){tr.scrollIntoView({behavior:'smooth'});tr.click();}},300)" style="background:#fff;border:1.5px solid var(--ink);color:var(--ink);padding:.4em .85em;border-radius:6px;font-size:.82rem;cursor:pointer;font-weight:600">상세보기</button>
+      </div>
+    </div>`;
+  }).join("");
+  $("list-modal").style.display = "flex";
+};
+
+// 처리 대기 카드 클릭 → 결석계 + 미납 표시
+$("card-alerts").onclick = async ()=>{
+  $("list-modal-title").textContent = `⏳ 처리 대기 항목`;
+  // 결석계 pending
+  const{data:absPending}=await sb.from("absences").select("id,reason,requested_at,profiles!student_id(full_name,phone),bookings(start_at,teachers(display_name))").eq("status","pending").order("requested_at",{ascending:true});
+
+  let html = "";
+  if((absPending||[]).length > 0){
+    html += `<h3 style="font-size:.95rem;margin:8px 0">📝 결석계 대기 (${absPending.length}건)</h3>`;
+    html += absPending.map(a=>{
+      const stuName = a.profiles?.full_name || "—";
+      const phone = a.profiles?.phone || "";
+      const tname = a.bookings?.teachers?.display_name || "—";
+      const dt = a.bookings?.start_at ? new Date(a.bookings.start_at).toLocaleDateString("ko-KR",{month:"numeric",day:"numeric",weekday:"short",hour:"2-digit",minute:"2-digit"}) : "—";
+      return `<div style="padding:10px 4px;border-bottom:1px solid var(--paper)">
+        <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap">
+          <div><b>${stuName}</b> · <span style="color:var(--muted);font-size:.85rem">${tname} · ${dt}</span></div>
+          ${phone ? `<a href="tel:${phone.replace(/\s+/g,'')}" style="background:var(--teal);color:#fff;padding:.3em .75em;border-radius:6px;font-size:.78rem;font-weight:600">📞 ${phone}</a>` : ""}
+        </div>
+        <div style="font-size:.82rem;color:var(--ink);margin-top:4px">${(a.reason||"").substring(0,80)}${(a.reason||"").length>80?"…":""}</div>
+      </div>`;
+    }).join("");
+  }
+
+  if(OVERDUE_LIST.length > 0){
+    html += `<h3 style="font-size:.95rem;margin:12px 0 8px">💰 결제 미납 학생 (${OVERDUE_LIST.length}명)</h3>`;
+    html += OVERDUE_LIST.map(e=>`
+      <div style="padding:10px 4px;border-bottom:1px solid var(--paper);display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap">
+        <div><b>${e.name}</b><div style="font-size:.78rem;color:var(--muted)">${e.email||""}</div></div>
+        ${e.phone ? `<a href="tel:${e.phone.replace(/\s+/g,'')}" style="background:var(--alert);color:#fff;padding:.3em .75em;border-radius:6px;font-size:.78rem;font-weight:600">📞 ${e.phone}</a>` : ""}
+      </div>
+    `).join("");
+  }
+
+  if(!html) html = `<div style="color:var(--muted);padding:20px;text-align:center">처리 대기 항목이 없습니다.</div>`;
+  $("list-modal-body").innerHTML = html;
+  $("list-modal").style.display = "flex";
+};
+
+// ──────── LOAD ALL ────────
+async function loadAll(){
+  await loadPeople();
+  await loadTeachers();
+  await loadBookings();
+  await loadDashboard();
+  await loadEditTeachers();
+}
+
+// ──────── DASHBOARD ────────
+async function loadDashboard(){
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(),now.getMonth(),now.getDate()).toISOString();
+  const todayEnd = new Date(now.getFullYear(),now.getMonth(),now.getDate(),23,59,59).toISOString();
+  const weekStart = new Date(now.getTime() - 7*24*60*60000).toISOString();
+  const sevenDaysLater = new Date(now.getTime() + 7*24*60*60000).toISOString();
+
+  // 오늘 수업
+  const todayBookings = BOOKINGS.filter(b => b.start_at >= todayStart && b.start_at <= todayEnd && !b.is_cancelled);
+  const inProgress = todayBookings.filter(b => {
+    const t = new Date(b.start_at).getTime();
+    return t <= now.getTime() && t + 20*60000 > now.getTime();
+  });
+  $("s-today").textContent = todayBookings.length;
+  $("s-today-d").textContent = inProgress.length > 0 ? `진행 중 ${inProgress.length}개` : "진행 중 0개";
+
+  // 이번 주 신규 결제
+  const{data:weekPays}=await sb.from("payments").select("amount,paid_at,status").gte("paid_at",weekStart).eq("status","paid");
+  const sum = (weekPays||[]).reduce((s,p)=>s+(p.amount||0),0);
+  $("s-week-pay").textContent = (weekPays||[]).length;
+  $("s-week-pay-d").textContent = `₩${sum.toLocaleString()}`;
+
+  // 만료 임박 — enrollments where last booking start_at < 7일후
+  const{data:enrolls}=await sb.from("enrollments").select("id,student_id,profiles!student_id(full_name,email,phone),teachers(display_name),bookings(start_at)").eq("status","active");
+  let expiring = [];
+  let overdueIds = new Set();
+  for(const e of (enrolls||[])){
+    if(!e.bookings || e.bookings.length===0) continue;
+    const futureBookings = e.bookings.filter(b=>b.start_at > now.toISOString()).map(b=>b.start_at).sort();
+    if(futureBookings.length === 0) continue;
+    const last = futureBookings[futureBookings.length-1];
+    if(last <= sevenDaysLater){
+      expiring.push({
+        student_id: e.student_id,
+        name: e.profiles?.full_name || e.profiles?.email || "—",
+        phone: e.profiles?.phone || "",
+        teacher: e.teachers?.display_name || "—",
+        last_at: last,
+      });
+    }
+  }
+  $("s-expiring").textContent = expiring.length;
+  if(expiring.length > 0) $("card-expiring").classList.add("warn");
+  EXPIRING_LIST = expiring;
+
+  // 결제 미납 자동 감지: status='pending' 또는 결제 없는 active enrollment
+  const{data:pendingPays}=await sb.from("payments").select("student_id").eq("status","pending");
+  (pendingPays||[]).forEach(p=>overdueIds.add(p.student_id));
+  // profiles의 payment_overdue 자동 업데이트
+  if(overdueIds.size > 0){
+    await sb.from("profiles").update({payment_overdue:true}).in("id", Array.from(overdueIds));
+    // 미납 해제된 학생도 처리
+    const{data:allOverdue}=await sb.from("profiles").select("id").eq("payment_overdue",true);
+    const toClear = (allOverdue||[]).filter(p=>!overdueIds.has(p.id)).map(p=>p.id);
+    if(toClear.length > 0) await sb.from("profiles").update({payment_overdue:false}).in("id", toClear);
+  }
+  OVERDUE_LIST = Array.from(overdueIds).map(id=>{
+    const m = PEOPLE.find(p=>p.id===id);
+    return m ? {student_id:id, name:m.full_name||m.email, phone:m.phone||"", email:m.email} : null;
+  }).filter(Boolean);
+
+  // 처리 대기 (결석계 pending + 오늘 노쇼)
+  const{data:absPending,count:absCount}=await sb.from("absences").select("*",{count:"exact",head:true}).eq("status","pending");
+  const todayNoshow = BOOKINGS.filter(b => b.start_at >= todayStart && b.start_at <= todayEnd && (b.teacher_status==="no_show" || b.student_status==="no_show")).length;
+  const pending = (absCount||0) + todayNoshow;
+  $("s-pending").textContent = pending;
+  $("s-pending-d").textContent = `결석계 ${absCount||0}건 · 노쇼 ${todayNoshow}건`;
+  if(pending > 0) $("card-alerts").classList.add("alert");
+
+  // 노쇼 패턴 — 지난 30일 내 학생별 노쇼 횟수 집계
+  const thirtyDaysAgo = new Date(now.getTime() - 30*24*60*60000).toISOString();
+  const{data:noshowBks}=await sb.from("bookings").select("student_id,start_at,student_status,profiles!student_id(full_name,email,phone)").gte("start_at",thirtyDaysAgo).lte("start_at",now.toISOString()).eq("student_status","no_show").eq("is_cancelled",false);
+  const noshowCounts = {};
+  (noshowBks||[]).forEach(b=>{
+    if(!b.student_id) return;
+    if(!noshowCounts[b.student_id]) noshowCounts[b.student_id] = { count: 0, profile: b.profiles, last: b.start_at };
+    noshowCounts[b.student_id].count++;
+    if(b.start_at > noshowCounts[b.student_id].last) noshowCounts[b.student_id].last = b.start_at;
+  });
+  NOSHOW_LIST = Object.entries(noshowCounts).filter(([_,v])=>v.count >= 3).map(([sid,v])=>({
+    student_id: sid,
+    name: v.profile?.full_name || v.profile?.email || "—",
+    email: v.profile?.email || "",
+    phone: v.profile?.phone || "",
+    count: v.count,
+    last: v.last,
+  })).sort((a,b)=>b.count - a.count);
+  $("s-noshow-pattern").textContent = NOSHOW_LIST.length;
+  if(NOSHOW_LIST.length > 0) $("card-noshow").classList.add("alert");
+
+  // 최근 결제
+  const{data:recPay}=await sb.from("payments").select("amount,paid_at,profiles!student_id(full_name,email),teachers(display_name)").eq("status","paid").order("paid_at",{ascending:false}).limit(5);
+  $("recent-pay").innerHTML = (recPay||[]).map(p=>`
+    <li><span><b>${p.profiles?.full_name||p.profiles?.email||"–"}</b><br><span class="meta">${p.teachers?.display_name||""}</span></span>
+    <span style="text-align:right"><b style="color:var(--teal)">₩${(p.amount||0).toLocaleString()}</b><br><span class="meta">${p.paid_at?new Date(p.paid_at).toLocaleDateString("ko-KR"):""}</span></span></li>
+  `).join("") || `<li class="empty">결제 내역이 없습니다.</li>`;
+
+  // 최근 결석계
+  const{data:recAbs}=await sb.from("absences").select("requested_at,reason,status,profiles!student_id(full_name)").order("requested_at",{ascending:false}).limit(5);
+  const statusLabel = {pending:"⏳ 대기",approved:"✅ 승인",rejected:"❌ 거절"};
+  $("recent-abs").innerHTML = (recAbs||[]).map(a=>`
+    <li><span><b>${a.profiles?.full_name||"–"}</b><br><span class="meta">${(a.reason||"").substring(0,28)}${(a.reason||"").length>28?"…":""}</span></span>
+    <span style="text-align:right"><b>${statusLabel[a.status]||""}</b><br><span class="meta">${a.requested_at?new Date(a.requested_at).toLocaleDateString("ko-KR"):""}</span></span></li>
+  `).join("") || `<li class="empty">결석계가 없습니다.</li>`;
+
+  // 최근 가입자
+  const recSignups = PEOPLE.slice(0,5);
+  const roleLab = {student:"학생",teacher:"강사",manager:"매니저",admin:"관리자"};
+  $("recent-signup").innerHTML = recSignups.map(m=>`
+    <li><span><b>${m.full_name||"–"}</b><br><span class="meta">${m.email||""}</span></span>
+    <span style="text-align:right"><b>${roleLab[m.role]||m.role}</b><br><span class="meta">${m.created_at?new Date(m.created_at).toLocaleDateString("ko-KR"):""}</span></span></li>
+  `).join("") || `<li class="empty">회원이 없습니다.</li>`;
+}
+
+// ──────── PEOPLE LOAD + TABLE ────────
+async function loadPeople(){
+  const{data}=await sb.from("profiles").select("id,full_name,email,role,age,gender,phone,country,timezone,tags,payment_overdue,created_at").order("created_at",{ascending:false});
+  PEOPLE=data||[];
+  renderPeople();
+  // 강사 추가 폼의 회원 선택
+  $("add-member").innerHTML = PEOPLE.filter(m=>m.role==="student").map(m=>`<option value="${m.id}">${m.full_name||m.email}</option>`).join("") || `<option value="">(학생 없음)</option>`;
+}
+function renderPeople(){
+  const q = $("people-search").value.trim().toLowerCase();
+  const roleFilter = $("people-role-filter").value;
+  const tagFilter = $("people-tag-filter").value;
+  const overdueFilter = $("people-overdue-filter").checked;
+  const roleLab = {student:"학생",teacher:"강사",manager:"매니저",admin:"관리자"};
+  const roleBadge = {student:"b-student",teacher:"b-teacher",manager:"b-manager",admin:"b-admin"};
+  const genderLab = {male:"남",female:"여",other:"기타"};
+
+  const filtered = PEOPLE.filter(m=>{
+    if(roleFilter && m.role !== roleFilter) return false;
+    if(tagFilter && !(m.tags||[]).includes(tagFilter)) return false;
+    if(overdueFilter && !m.payment_overdue) return false;
+    if(q){
+      const s = `${m.full_name||""} ${m.email||""} ${m.phone||""}`.toLowerCase();
+      if(!s.includes(q)) return false;
+    }
+    return true;
+  });
+
+  $("people-count").textContent = `${filtered.length}명 / 총 ${PEOPLE.length}명`;
+
+  const tbody = $("people-table").querySelector("tbody");
+  if(filtered.length === 0){
+    tbody.innerHTML = `<tr><td colspan="7" class="empty">검색 결과가 없습니다.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(m=>{
+    const ageGender = m.age || m.gender ? `${m.age||"–"} / ${genderLab[m.gender]||"–"}` : "–";
+    const tagChips = (m.tags||[]).slice(0,3).map(tag=>`<span class="stu-tag" style="font-size:.7rem;padding:.15em .55em">${tag}</span>`).join(" ");
+    const more = (m.tags||[]).length > 3 ? `<span style="color:var(--muted);font-size:.72rem">+${m.tags.length-3}</span>` : "";
+    return `<tr class="member-row" data-id="${m.id}">
+      <td><b>${m.full_name||"–"}</b>${tagChips?`<div style="margin-top:3px;display:flex;flex-wrap:wrap;gap:3px">${tagChips}${more}</div>`:""}</td>
+      <td><span class="badge ${roleBadge[m.role]||""}">${roleLab[m.role]||m.role}</span></td>
+      <td class="muted" style="color:var(--muted)">${m.email||""}</td>
+      <td class="muted" style="color:var(--muted)">${m.phone||"–"}</td>
+      <td class="muted" style="color:var(--muted);font-size:.85rem">${ageGender}</td>
+      <td>${m.payment_overdue?'<span class="badge b-refund">💰 미납</span>':'<span style="color:var(--muted);font-size:.82rem">활성</span>'}</td>
+      <td style="text-align:right;color:var(--muted);font-size:.85rem">▼</td>
+    </tr>`;
+  }).join("");
+
+  tbody.querySelectorAll("tr.member-row").forEach(tr=>{
+    tr.onclick = ()=> togglePersonDetail(tr, tr.dataset.id);
+  });
+}
+
+async function togglePersonDetail(tr, personId){
+  // 같은 행 다시 클릭하면 닫기
+  if(EXPANDED_ROW === personId){
+    const next = tr.nextElementSibling;
+    if(next && next.classList.contains("detail-row")) next.remove();
+    tr.classList.remove("expanded");
+    EXPANDED_ROW = null;
+    return;
+  }
+  // 다른 행이 열려 있으면 닫기
+  document.querySelectorAll("tr.detail-row").forEach(r=>r.remove());
+  document.querySelectorAll("tr.member-row.expanded").forEach(r=>r.classList.remove("expanded"));
+  EXPANDED_ROW = personId;
+  tr.classList.add("expanded");
+
+  // 그 학생의 데이터 로드
+  const m = PEOPLE.find(p=>p.id===personId);
+  const isStudent = m.role === "student";
+  const isTeacher = m.role === "teacher";
+
+  let content = "";
+  if(isStudent){
+    // 학생 상세 — 활성 수강, 진행률, 다음 수업, 결제, 출석률
+    const{data:enrolls}=await sb.from("enrollments").select("id,months,start_date,slot_hm,price,status,payment_status,teachers(display_name),bookings(id,start_at,is_cancelled,teacher_status,student_status)").eq("student_id",personId).order("start_date",{ascending:false});
+    const{data:pays}=await sb.from("payments").select("amount,paid_at,status,method").eq("student_id",personId).order("paid_at",{ascending:false}).limit(5);
+    const{data:absences}=await sb.from("absences").select("requested_at,reason,status").eq("student_id",personId).order("requested_at",{ascending:false}).limit(5);
+    // 매니저 알람 메모가 있는 booking (학생 본인 관련)
+    const{data:alertNotes}=await sb.from("bookings").select("id,start_at,alert_note,alert_resolved_at,teacher_alert_note,teacher_alert_resolved_at,teachers(display_name)").eq("student_id",personId).or("alert_note.not.is.null,teacher_alert_note.not.is.null").order("start_at",{ascending:false}).limit(5);
+    // 학생 메모 일지
+    const{data:notes}=await sb.from("student_notes").select("id,content,author_name,created_at").eq("student_id",personId).order("created_at",{ascending:false}).limit(20);
+
+    const now = new Date().toISOString();
+    let nextLesson = null;
+    let totalBookings = 0, doneBookings = 0, attendedBookings = 0;
+    (enrolls||[]).forEach(e=>{
+      (e.bookings||[]).forEach(b=>{
+        if(b.is_cancelled) return;
+        totalBookings++;
+        if(b.start_at < now){
+          doneBookings++;
+          if(b.student_status === "on_time" || b.student_status === "late") attendedBookings++;
+        } else {
+          if(!nextLesson || b.start_at < nextLesson.start_at){
+            nextLesson = {start_at: b.start_at, teacher: e.teachers?.display_name};
+          }
+        }
+      });
+    });
+
+    const attendanceRate = doneBookings > 0 ? Math.round(attendedBookings / doneBookings * 100) : 0;
+    const progress = totalBookings > 0 ? Math.round(doneBookings / totalBookings * 100) : 0;
+
+    content = `
+      <div class="detail-grid">
+        <div class="detail-box"><div class="lab">다음 수업</div><div class="val">${nextLesson ? new Date(nextLesson.start_at).toLocaleString("ko-KR",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit",weekday:"short"}) : "—"}</div><div class="extra">${nextLesson?nextLesson.teacher||"":""}</div></div>
+        <div class="detail-box"><div class="lab">진행률</div><div class="val">${doneBookings}/${totalBookings} (${progress}%)</div><div class="extra">완료 / 전체</div></div>
+        <div class="detail-box"><div class="lab">출석률</div><div class="val">${attendanceRate}%</div><div class="extra">${attendedBookings}/${doneBookings} 출석</div></div>
+      </div>
+
+      <h3 style="font-size:.95rem;margin:14px 0 6px">📚 수강 등록 (${(enrolls||[]).length}건)</h3>
+      ${(enrolls||[]).length ? `<div style="background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden">${(enrolls||[]).map(e=>`
+        <div style="padding:10px 14px;border-bottom:1px solid var(--paper);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+          <div>
+            <b>${e.teachers?.display_name||"—"}</b> · ${e.months}개월 · ${e.slot_hm}
+            <div style="font-size:.78rem;color:var(--muted);margin-top:2px">시작 ${e.start_date} · ₩${(e.price||0).toLocaleString()} · ${e.payment_status==="paid"?"결제완료":"미결제"}</div>
+          </div>
+          <span class="badge ${e.status==="active"?"b-paid":"b-pending"}">${e.status}</span>
+        </div>
+      `).join("")}</div>` : `<div class="empty" style="padding:14px">수강 내역이 없습니다.</div>`}
+
+      <div class="detail-grid" style="grid-template-columns:1fr 1fr;margin-top:14px">
+        <div>
+          <h3 style="font-size:.95rem;margin-bottom:6px">💳 최근 결제</h3>
+          <div style="background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden">
+          ${(pays||[]).length ? (pays||[]).map(p=>`
+            <div style="padding:8px 12px;border-bottom:1px solid var(--paper);font-size:.85rem;display:flex;justify-content:space-between">
+              <span>${p.paid_at?new Date(p.paid_at).toLocaleDateString("ko-KR"):"-"} · ${p.method||"-"}</span>
+              <b>₩${(p.amount||0).toLocaleString()}</b>
+            </div>
+          `).join("") : `<div class="empty" style="padding:10px;font-size:.85rem">없음</div>`}
+          </div>
+        </div>
+        <div>
+          <h3 style="font-size:.95rem;margin-bottom:6px">📝 결석계 이력</h3>
+          <div style="background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden">
+          ${(absences||[]).length ? (absences||[]).map(a=>`
+            <div style="padding:8px 12px;border-bottom:1px solid var(--paper);font-size:.85rem">
+              <b>${a.status==="approved"?"✅":a.status==="rejected"?"❌":"⏳"}</b>
+              ${a.reason?.substring(0,30) || ""} · ${a.requested_at?new Date(a.requested_at).toLocaleDateString("ko-KR"):""}
+            </div>
+          `).join("") : `<div class="empty" style="padding:10px;font-size:.85rem">없음</div>`}
+          </div>
+        </div>
+      </div>
+
+      ${(alertNotes||[]).length ? `<h3 style="font-size:.95rem;margin:14px 0 6px">⚠️ 매니저 알람 기록</h3>
+      <div style="background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden">
+        ${(alertNotes||[]).map(n=>{
+          const dt = new Date(n.start_at).toLocaleString("ko-KR",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit",weekday:"short"});
+          const tname = n.teachers?.display_name || "—";
+          const notes = [];
+          if(n.teacher_alert_note) notes.push(`<div style="font-size:.78rem;color:var(--muted)">🚨 강사 미입장: <span style="color:var(--ink)">${n.teacher_alert_note}</span></div>`);
+          if(n.alert_note) notes.push(`<div style="font-size:.78rem;color:var(--muted)">⚠️ 중도 이탈: <span style="color:var(--ink)">${n.alert_note}</span></div>`);
+          return `<div style="padding:8px 12px;border-bottom:1px solid var(--paper);font-size:.85rem">
+            <b>${dt}</b> · ${tname}
+            ${notes.join("")}
+          </div>`;
+        }).join("")}
+      </div>` : ""}
+
+      <!-- 🏷️ 태그 -->
+      <h3 style="font-size:.95rem;margin:14px 0 6px">🏷️ 학생 태그</h3>
+      <div style="background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px">
+        <div id="tags-display-${personId}" style="margin-bottom:8px;display:flex;flex-wrap:wrap;gap:6px">
+          ${(m.tags||[]).map(tag=>`<span class="stu-tag">${tag} <button onclick="removeStudentTag('${personId}','${tag}')" style="background:none;border:0;color:inherit;cursor:pointer;margin-left:4px;font-weight:700">×</button></span>`).join("") || `<span style="color:var(--muted);font-size:.85rem">태그 없음</span>`}
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <select id="tag-preset-${personId}" style="padding:.4em .7em;font-size:.85rem;width:auto"><option value="">— 미리 정의된 태그 —</option><option>VIP</option><option>장기수강</option><option>단체학생</option><option>요주의</option><option>레벨업 임박</option><option>재등록 권유</option><option>환불 검토</option></select>
+          <input id="tag-input-${personId}" type="text" placeholder="또는 직접 입력" style="padding:.4em .7em;font-size:.85rem;width:auto;flex:1;min-width:140px">
+          <button class="btn" style="padding:.4em .9em;margin-top:0" onclick="addStudentTag('${personId}')">추가</button>
+        </div>
+      </div>
+
+      <!-- 📝 운영 메모 -->
+      <h3 style="font-size:.95rem;margin:14px 0 6px">📝 운영 메모 일지</h3>
+      <div style="background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px">
+        <div style="display:flex;gap:6px;margin-bottom:10px">
+          <textarea id="note-input-${personId}" rows="2" placeholder="이 학생에 대한 메모 (운영용, 학생은 볼 수 없음)" style="flex:1;font-size:.85rem;padding:.5em .7em"></textarea>
+          <button class="btn" style="margin-top:0;align-self:stretch" onclick="addStudentNote('${personId}')">메모 추가</button>
+        </div>
+        <div id="notes-list-${personId}">
+          ${(notes||[]).length ? (notes||[]).map(n=>`
+            <div style="padding:8px 12px;border-bottom:1px solid var(--paper);font-size:.85rem;display:flex;justify-content:space-between;gap:8px">
+              <div style="flex:1">
+                <div style="white-space:pre-wrap;color:var(--ink)">${n.content.replace(/</g,'&lt;')}</div>
+                <div style="font-size:.72rem;color:var(--muted);margin-top:4px">${n.author_name||"–"} · ${new Date(n.created_at).toLocaleString("ko-KR",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})}</div>
+              </div>
+              <button onclick="deleteStudentNote(${n.id},'${personId}')" style="background:none;border:0;color:var(--muted);cursor:pointer;font-size:.85rem;padding:0 4px">🗑️</button>
+            </div>
+          `).join("") : `<div class="empty" style="padding:10px;font-size:.85rem">메모가 없습니다.</div>`}
+        </div>
+      </div>
+    `;
+  } else if(isTeacher){
+    content = `<div class="detail-box"><div class="lab">강사 페이지에서 자세히 보세요</div><a href="manager.html" class="btn" style="display:inline-block;margin-top:8px">🎛 라이브 관제실로</a></div>`;
+  } else {
+    content = `<div style="color:var(--muted);font-size:.9rem">기본 정보: 가입일 ${m.created_at?new Date(m.created_at).toLocaleDateString("ko-KR"):"–"} · ${m.country||""}${m.timezone?" ("+m.timezone+")":""}</div>`;
+  }
+
+  const detailRow = document.createElement("tr");
+  detailRow.className = "detail-row";
+  detailRow.innerHTML = `<td colspan="7">${content}</td>`;
+  tr.parentNode.insertBefore(detailRow, tr.nextSibling);
+}
+
+$("people-search").oninput = renderPeople;
+$("people-role-filter").onchange = renderPeople;
+$("people-tag-filter").onchange = renderPeople;
+$("people-overdue-filter").onchange = renderPeople;
+
+// ──────── STUDENT NOTES & TAGS (window 함수로 — onclick에서 호출) ────────
+window.addStudentNote = async function(studentId){
+  const input = $(`note-input-${studentId}`);
+  const content = input.value.trim();
+  if(!content){ alert("메모 내용을 입력하세요."); return; }
+  const{error}=await sb.from("student_notes").insert({
+    student_id: studentId,
+    author_id: USER.id,
+    author_name: PROFILE.full_name || PROFILE.email,
+    content,
+  });
+  if(error){ alert("저장 실패: "+error.message); return; }
+  input.value = "";
+  refreshStudentNotes(studentId);
+};
+
+window.deleteStudentNote = async function(noteId, studentId){
+  if(!confirm("이 메모를 삭제할까요?")) return;
+  const{error}=await sb.from("student_notes").delete().eq("id", noteId);
+  if(error){ alert("삭제 실패: "+error.message); return; }
+  refreshStudentNotes(studentId);
+};
+
+async function refreshStudentNotes(studentId){
+  const{data:notes}=await sb.from("student_notes").select("id,content,author_name,created_at").eq("student_id",studentId).order("created_at",{ascending:false}).limit(20);
+  const wrap = $(`notes-list-${studentId}`);
+  if(!wrap) return;
+  wrap.innerHTML = (notes||[]).length ? (notes||[]).map(n=>`
+    <div style="padding:8px 12px;border-bottom:1px solid var(--paper);font-size:.85rem;display:flex;justify-content:space-between;gap:8px">
+      <div style="flex:1">
+        <div style="white-space:pre-wrap;color:var(--ink)">${n.content.replace(/</g,'&lt;')}</div>
+        <div style="font-size:.72rem;color:var(--muted);margin-top:4px">${n.author_name||"–"} · ${new Date(n.created_at).toLocaleString("ko-KR",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})}</div>
+      </div>
+      <button onclick="deleteStudentNote(${n.id},'${studentId}')" style="background:none;border:0;color:var(--muted);cursor:pointer;font-size:.85rem;padding:0 4px">🗑️</button>
+    </div>
+  `).join("") : `<div class="empty" style="padding:10px;font-size:.85rem">메모가 없습니다.</div>`;
+}
+
+window.addStudentTag = async function(studentId){
+  const preset = $(`tag-preset-${studentId}`).value;
+  const input = $(`tag-input-${studentId}`).value.trim();
+  const newTag = preset || input;
+  if(!newTag) return;
+  const m = PEOPLE.find(p=>p.id===studentId);
+  const tags = [...(m.tags||[]), newTag].filter((v,i,arr)=>arr.indexOf(v)===i); // dedup
+  const{error}=await sb.from("profiles").update({tags}).eq("id",studentId);
+  if(error){ alert("태그 저장 실패: "+error.message); return; }
+  m.tags = tags;
+  refreshStudentTags(studentId);
+  $(`tag-preset-${studentId}`).value = "";
+  $(`tag-input-${studentId}`).value = "";
+};
+
+window.removeStudentTag = async function(studentId, tagToRemove){
+  const m = PEOPLE.find(p=>p.id===studentId);
+  const tags = (m.tags||[]).filter(t=>t!==tagToRemove);
+  const{error}=await sb.from("profiles").update({tags}).eq("id",studentId);
+  if(error){ alert("태그 삭제 실패: "+error.message); return; }
+  m.tags = tags;
+  refreshStudentTags(studentId);
+  renderPeople(); // 표에도 반영
+};
+
+function refreshStudentTags(studentId){
+  const m = PEOPLE.find(p=>p.id===studentId);
+  const wrap = $(`tags-display-${studentId}`);
+  if(!wrap) return;
+  wrap.innerHTML = (m.tags||[]).map(tag=>`<span class="stu-tag tag-${tag.replace(/\s+/g,'\\ ')}">${tag} <button onclick="removeStudentTag('${studentId}','${tag}')" style="background:none;border:0;color:inherit;cursor:pointer;margin-left:4px;font-weight:700">×</button></span>`).join("") || `<span style="color:var(--muted);font-size:.85rem">태그 없음</span>`;
+}
+
+// ──────── TEACHERS LOAD ────────
+async function loadTeachers(){
+  const{data}=await sb.from("teachers").select("id,display_name,specialties,intro,is_active,photo_url,video_url,tags,bio,rating,badge,sort_order,show_on_main").order("sort_order",{ascending:true});
+  TEACHERS=data||[];
+  const opts = TEACHERS.map(t=>`<option value="${t.id}">${t.display_name}</option>`).join("") || `<option value="">(강사 없음)</option>`;
+  $("hr-teacher").innerHTML = opts;
+  $("zk-teacher").innerHTML = opts;
+  $("gc-teacher").innerHTML = opts;
+  $("tn-teacher").innerHTML = `<option value="">— 강사 선택 —</option>` + opts;
+}
+
+// ──────── TEACHER COACHING NOTES ────────
+$("tn-teacher").addEventListener("change", refreshTeacherNotes);
+
+async function refreshTeacherNotes(){
+  const tid = $("tn-teacher").value;
+  if(!tid){ $("tn-list").innerHTML = ""; return; }
+  const{data:notes}=await sb.from("teacher_notes").select("id,content,author_name,created_at").eq("teacher_id",tid).order("created_at",{ascending:false}).limit(30);
+  $("tn-list").innerHTML = `<div style="background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden;max-height:300px;overflow-y:auto">${
+    (notes||[]).length ? (notes||[]).map(n=>`
+      <div style="padding:8px 12px;border-bottom:1px solid var(--paper);font-size:.85rem;display:flex;justify-content:space-between;gap:8px">
+        <div style="flex:1">
+          <div style="white-space:pre-wrap;color:var(--ink)">${n.content.replace(/</g,'&lt;')}</div>
+          <div style="font-size:.72rem;color:var(--muted);margin-top:4px">${n.author_name||"–"} · ${new Date(n.created_at).toLocaleString("ko-KR",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})}</div>
+        </div>
+        <button onclick="deleteTeacherNote(${n.id})" style="background:none;border:0;color:var(--muted);cursor:pointer;font-size:.85rem;padding:0 4px">🗑️</button>
+      </div>
+    `).join("") : `<div class="empty" style="padding:14px;font-size:.85rem">노트가 없습니다.</div>`
+  }</div>`;
+}
+
+window.addTeacherNote = async function(){
+  const tid = $("tn-teacher").value;
+  const content = $("tn-input").value.trim();
+  if(!tid){ alert("강사를 선택하세요."); return; }
+  if(!content){ alert("노트 내용을 입력하세요."); return; }
+  const{error}=await sb.from("teacher_notes").insert({
+    teacher_id: tid,
+    author_id: USER.id,
+    author_name: PROFILE.full_name || PROFILE.email,
+    content,
+  });
+  if(error){ alert("저장 실패: "+error.message); return; }
+  $("tn-input").value = "";
+  refreshTeacherNotes();
+};
+window.deleteTeacherNote = async function(noteId){
+  if(!confirm("이 노트를 삭제할까요?")) return;
+  const{error}=await sb.from("teacher_notes").delete().eq("id", noteId);
+  if(error){ alert("삭제 실패: "+error.message); return; }
+  refreshTeacherNotes();
+};
+
+async function loadEditTeachers(){
+  const{data}=await sb.from("teachers").select("id,display_name").order("sort_order",{ascending:true});
+  $("edit-teacher").innerHTML = `<option value="">— 선택 —</option>` + (data||[]).map(t=>`<option value="${t.id}">${t.display_name}</option>`).join("");
+}
+
+// ──────── BOOKINGS LOAD (for dashboard) ────────
+async function loadBookings(){
+  const weekStart = new Date(Date.now() - 14*24*60*60000).toISOString();
+  const{data}=await sb.from("bookings").select("id,start_at,is_cancelled,student_status,teacher_status").gte("start_at",weekStart);
+  BOOKINGS=data||[];
+}
+
+// ──────── PHOTO UPLOAD HELPERS ────────
+async function uploadTeacherPhoto(fileInput, teacherId){
+  const file = fileInput.files[0];
+  if(!file) return null;
+  const ext = file.name.split(".").pop().toLowerCase();
+  const path = `${teacherId}-${Date.now()}.${ext}`;
+  const{error}=await sb.storage.from("teacher-photos").upload(path,file,{upsert:true,contentType:file.type});
+  if(error){ console.error("upload failed:",error); return null; }
+  const{data}=sb.storage.from("teacher-photos").getPublicUrl(path);
+  return data.publicUrl;
+}
+
+$("add-photo-file").addEventListener("change", e=>{
+  const f = e.target.files[0]; if(!f){ $("add-photo-preview").innerHTML=""; return; }
+  $("add-photo-preview").innerHTML = `<img src="${URL.createObjectURL(f)}" style="max-width:120px;border-radius:8px;border:1px solid var(--line)">`;
+});
+$("edit-photo-file").addEventListener("change", e=>{
+  const f = e.target.files[0]; if(!f) return;
+  $("edit-photo-current").innerHTML = `<div style="font-size:.78rem;color:var(--muted);margin-bottom:4px">새 사진 미리보기:</div><img src="${URL.createObjectURL(f)}" style="max-width:120px;border-radius:8px;border:1px solid var(--line)">`;
+});
+
+// ──────── ADD TEACHER ────────
+$("add-btn").onclick=async()=>{
+  const id=$("add-member").value, name=$("add-name").value.trim();
+  if(!id||!name){amsg("회원과 표시 이름을 입력하세요.",false);return;}
+  const phone=$("add-phone").value.trim();
+  const{error:e1}=await sb.from("profiles").update({role:"teacher", phone: phone||null}).eq("id",id);
+  if(e1){amsg("역할 변경 실패: "+e1.message,false);return;}
+
+  let photoUrl = $("add-photo-url").value.trim() || null;
+  if($("add-photo-file").files[0]){
+    amsg("사진 업로드 중…",true);
+    photoUrl = await uploadTeacherPhoto($("add-photo-file"), id) || photoUrl;
+  }
+  const tagsStr = $("add-tags").value.trim();
+  const tags = tagsStr ? tagsStr.split(",").map(s=>s.trim()).filter(Boolean) : null;
+
+  const{error:e2}=await sb.from("teachers").upsert({
+    id, display_name:name,
+    specialties:$("add-spec").value.trim()||null,
+    is_active:true,
+    photo_url: photoUrl,
+    video_url: $("add-video").value.trim()||null,
+    tags, bio: $("add-bio").value.trim()||null,
+    rating: Number($("add-rating").value)||5.0,
+    badge: $("add-badge").value||null,
+    sort_order: Number($("add-sort").value)||100,
+    show_on_main: $("add-show-main").checked,
+  });
+  if(e2){amsg("강사 등록 실패: "+e2.message,false);return;}
+
+  amsg("강사로 추가됐습니다. 메인 페이지에 자동 반영됩니다.",true);
+  ["add-name","add-spec","add-phone","add-photo-url","add-video","add-tags","add-bio"].forEach(k=>$(k).value="");
+  $("add-rating").value="5.0";$("add-badge").value="";$("add-sort").value="100";$("add-show-main").checked=true;
+  $("add-photo-file").value="";$("add-photo-preview").innerHTML="";
+  await loadPeople(); await loadTeachers(); await loadEditTeachers();
+};
+function amsg(t,ok){$("add-msg").textContent=t;$("add-msg").style.color=ok?"#2c7a73":"#d4512c";}
+
+// ──────── EDIT TEACHER ────────
+$("edit-teacher").addEventListener("change", async()=>{
+  const id = $("edit-teacher").value;
+  if(!id){
+    ["edit-name","edit-spec","edit-phone","edit-photo-url","edit-video","edit-tags","edit-bio"].forEach(k=>$(k).value="");
+    $("edit-photo-current").innerHTML=""; return;
+  }
+  const{data:t}=await sb.from("teachers").select("*").eq("id",id).single();
+  const{data:p}=await sb.from("profiles").select("phone").eq("id",id).single();
+  if(!t) return;
+  $("edit-name").value=t.display_name||"";
+  $("edit-spec").value=t.specialties||"";
+  $("edit-phone").value=p?.phone||"";
+  $("edit-photo-url").value=t.photo_url||"";
+  $("edit-video").value=t.video_url||"";
+  $("edit-tags").value=(t.tags||[]).join(", ");
+  $("edit-bio").value=t.bio||"";
+  $("edit-rating").value=t.rating||5.0;
+  $("edit-badge").value=t.badge||"";
+  $("edit-sort").value=t.sort_order||100;
+  $("edit-show-main").checked=!!t.show_on_main;
+  $("edit-active").checked=!!t.is_active;
+  $("edit-photo-current").innerHTML = t.photo_url
+    ? `<div style="font-size:.78rem;color:var(--muted);margin-bottom:4px">현재 사진:</div><img src="${t.photo_url}" style="max-width:120px;border-radius:8px;border:1px solid var(--line)">`
+    : `<div style="font-size:.78rem;color:var(--muted)">사진 없음</div>`;
+});
+
+$("edit-btn").onclick=async()=>{
+  const id=$("edit-teacher").value;
+  if(!id){emsg("강사를 선택하세요.",false);return;}
+  let photoUrl=$("edit-photo-url").value.trim()||null;
+  if($("edit-photo-file").files[0]){
+    emsg("사진 업로드 중…",true);
+    const u=await uploadTeacherPhoto($("edit-photo-file"),id);
+    if(u) photoUrl=u;
+  }
+  const tagsStr=$("edit-tags").value.trim();
+  const tags=tagsStr?tagsStr.split(",").map(s=>s.trim()).filter(Boolean):null;
+
+  const{error}=await sb.from("teachers").update({
+    display_name:$("edit-name").value.trim(),
+    specialties:$("edit-spec").value.trim()||null,
+    photo_url:photoUrl,
+    video_url:$("edit-video").value.trim()||null,
+    tags,bio:$("edit-bio").value.trim()||null,
+    rating:Number($("edit-rating").value)||5.0,
+    badge:$("edit-badge").value||null,
+    sort_order:Number($("edit-sort").value)||100,
+    show_on_main:$("edit-show-main").checked,
+    is_active:$("edit-active").checked,
+  }).eq("id",id);
+  if(error){emsg("저장 실패: "+error.message,false);return;}
+
+  await sb.from("profiles").update({phone:$("edit-phone").value.trim()||null}).eq("id",id);
+  emsg("저장됐습니다. 메인 페이지에 자동 반영됩니다.",true);
+  $("edit-photo-file").value="";
+  await loadTeachers(); await loadEditTeachers();
+};
+function emsg(t,ok){$("edit-msg").textContent=t;$("edit-msg").style.color=ok?"#2c7a73":"#d4512c";}
+
+// ──────── TEACHER HOURS ────────
+$("hr-btn").onclick=async()=>{
+  const tid=$("hr-teacher").value, from=$("hr-from").value, to=$("hr-to").value;
+  if(!tid||!from||!to){$("hr-msg").textContent="강사·시작·종료를 입력하세요.";$("hr-msg").style.color="#d4512c";return;}
+  const{error}=await sb.from("teacher_hours").upsert({teacher_id:tid,start_time:from,end_time:to,is_active:true},{onConflict:"teacher_id"});
+  $("hr-msg").textContent=error?"저장 실패: "+error.message:"✅ 저장됐습니다.";
+  $("hr-msg").style.color=error?"#d4512c":"#2c7a73";
+};
+
+// ──────── ZOOM KEYS ────────
+$("zk-btn").onclick=async()=>{
+  const tid=$("zk-teacher").value, acc=$("zk-acc").value.trim(), cid=$("zk-cid").value.trim(), sec=$("zk-sec").value.trim();
+  if(!tid||!acc||!cid||!sec){$("zk-msg").textContent="모든 항목을 입력하세요.";$("zk-msg").style.color="#d4512c";return;}
+  const{error}=await sb.from("teacher_zoom").upsert({teacher_id:tid,zoom_account_id:acc,zoom_client_id:cid,zoom_client_secret:sec},{onConflict:"teacher_id"});
+  $("zk-msg").textContent=error?"저장 실패: "+error.message:"✅ 저장됐습니다.";
+  $("zk-msg").style.color=error?"#d4512c":"#2c7a73";
+  if(!error){ $("zk-acc").value=$("zk-cid").value=$("zk-sec").value=""; }
+};
+
+// ──────── PAYMENTS ────────
+async function loadPayments(){
+  const{data:pays}=await sb.from("payments").select("id,amount,method,status,paid_at,pg_tid,enrollment_id,student_id,teacher_id,refund_reason,refunded_at,refund_amount,profiles!student_id(full_name,email),teachers(display_name),enrollments(months)").order("paid_at",{ascending:false,nullsFirst:false});
+  PAYMENTS=pays||[];
+  // 통계
+  const now=new Date();
+  const thisM = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
+  const lastDate = new Date(now.getFullYear(),now.getMonth()-1,1);
+  const lastM = `${lastDate.getFullYear()}-${String(lastDate.getMonth()+1).padStart(2,"0")}`;
+  let thisSum=0,thisCnt=0,lastSum=0,lastCnt=0,allSum=0,allCnt=0;
+  PAYMENTS.filter(p=>p.status==="paid").forEach(p=>{
+    allSum+=p.amount||0; allCnt++;
+    if(!p.paid_at) return;
+    if(p.paid_at.startsWith(thisM)){ thisSum+=p.amount||0; thisCnt++; }
+    if(p.paid_at.startsWith(lastM)){ lastSum+=p.amount||0; lastCnt++; }
+  });
+  $("pm-this").textContent="₩"+thisSum.toLocaleString(); $("pm-this-cnt").textContent=thisCnt+"건";
+  $("pm-last").textContent="₩"+lastSum.toLocaleString(); $("pm-last-cnt").textContent=lastCnt+"건";
+  $("pm-all").textContent="₩"+allSum.toLocaleString(); $("pm-all-cnt").textContent=allCnt+"건";
+  renderPayments();
+}
+function renderPayments(){
+  const q=$("pay-search").value.trim().toLowerCase();
+  const sf=$("pay-status-filter").value;
+  const mf=$("pay-month-filter").value;
+  const statusBadge={paid:"b-paid",pending:"b-pending",refund:"b-refund"};
+  const statusLab={paid:"완료",pending:"대기",refund:"환불"};
+  const filtered=PAYMENTS.filter(p=>{
+    if(sf && p.status!==sf) return false;
+    if(mf && p.paid_at && !p.paid_at.startsWith(mf)) return false;
+    if(q){
+      const s=`${p.profiles?.full_name||""} ${p.profiles?.email||""}`.toLowerCase();
+      if(!s.includes(q)) return false;
+    }
+    return true;
+  });
+  const tbody=$("t-payments").querySelector("tbody");
+  if(filtered.length===0){tbody.innerHTML=`<tr><td colspan="9" class="empty">결과가 없습니다.</td></tr>`;return;}
+  tbody.innerHTML=filtered.map(p=>{
+    const refundBtn = p.status==="paid"
+      ? `<button class="btn-ghost" style="padding:.3em .7em;font-size:.78rem;margin:0;border-radius:6px;cursor:pointer" onclick="openRefundModal(${p.id},${p.amount||0},'${(p.profiles?.full_name||p.profiles?.email||'').replace(/'/g,"\\'")}')">환불</button>`
+      : p.status==="refund"
+        ? `<span style="font-size:.78rem;color:var(--muted)">${p.refunded_at?new Date(p.refunded_at).toLocaleDateString("ko-KR"):"환불됨"}</span>`
+        : "–";
+    return `<tr>
+      <td>${p.paid_at?new Date(p.paid_at).toLocaleDateString("ko-KR"):"–"}</td>
+      <td><b>${p.profiles?.full_name||"–"}</b><div style="font-size:.78rem;color:var(--muted)">${p.profiles?.email||""}</div></td>
+      <td>${p.teachers?.display_name||"–"}</td>
+      <td>${p.enrollments?.months?p.enrollments.months+"개월":"–"}</td>
+      <td><b>₩${(p.amount||0).toLocaleString()}</b>${p.refund_amount?`<div style="font-size:.72rem;color:var(--alert)">−₩${p.refund_amount.toLocaleString()}</div>`:""}</td>
+      <td>${p.method||"–"}</td>
+      <td><span class="badge ${statusBadge[p.status]||""}">${statusLab[p.status]||p.status}</span>${p.refund_reason?`<div style="font-size:.72rem;color:var(--muted);margin-top:2px" title="${p.refund_reason}">사유: ${p.refund_reason.substring(0,20)}${p.refund_reason.length>20?"…":""}</div>`:""}</td>
+      <td style="font-size:.78rem;color:var(--muted)">${p.pg_tid||"–"}</td>
+      <td>${refundBtn}</td>
+    </tr>`;
+  }).join("");
+}
+$("pay-search").oninput=renderPayments;
+$("pay-status-filter").onchange=renderPayments;
+$("pay-month-filter").onchange=renderPayments;
+
+// ──────── REFUND ────────
+let REFUND_PAYMENT_ID = null;
+window.openRefundModal = function(paymentId, amount, studentName){
+  REFUND_PAYMENT_ID = paymentId;
+  $("refund-student").textContent = `${studentName} · 원 결제 ₩${amount.toLocaleString()}`;
+  $("refund-amount").value = amount;
+  $("refund-reason").value = "";
+  $("refund-msg").textContent = "";
+  $("refund-modal").style.display = "flex";
+};
+$("refund-confirm").onclick = async ()=>{
+  const amount = Number($("refund-amount").value);
+  const reason = $("refund-reason").value.trim();
+  if(!amount || amount <= 0){ $("refund-msg").textContent = "환불 금액을 입력하세요."; $("refund-msg").style.color="#d4512c"; return; }
+  if(!reason){ $("refund-msg").textContent = "환불 사유를 입력하세요."; $("refund-msg").style.color="#d4512c"; return; }
+  $("refund-confirm").disabled = true; $("refund-msg").textContent="처리 중…"; $("refund-msg").style.color="var(--muted)";
+  const{error}=await sb.from("payments").update({
+    status: "refund",
+    refund_reason: reason,
+    refund_amount: amount,
+    refunded_at: new Date().toISOString(),
+    refunded_by: USER.id,
+  }).eq("id", REFUND_PAYMENT_ID);
+  $("refund-confirm").disabled = false;
+  if(error){ $("refund-msg").textContent = "실패: "+error.message; $("refund-msg").style.color="#d4512c"; return; }
+  $("refund-modal").style.display = "none";
+  await loadPayments();
+};
+
+// ──────── MONTHLY NOTICE ────────
+$("mn-gen").onclick=async()=>{
+  const m=$("mn-month").value;
+  if(!m){alert("월을 선택하세요."); return;}
+  const[y,mo]=m.split("-").map(Number);
+  const monthName=`${y}년 ${mo}월`;
+  const lastDay=new Date(y,mo,0).getDate();
+  const holidays=$("mn-holidays").value.split(",").map(s=>s.trim()).filter(Boolean);
+  const notes=$("mn-notes").value.trim();
+  // 이 달의 active 학생 수, 진행 수업 등
+  const monthStart=`${y}-${String(mo).padStart(2,"0")}-01T00:00:00`;
+  const monthEnd=`${y}-${String(mo).padStart(2,"0")}-${String(lastDay).padStart(2,"0")}T23:59:59`;
+  const{count:bookingCount}=await sb.from("bookings").select("*",{count:"exact",head:true}).gte("start_at",new Date(monthStart).toISOString()).lte("start_at",new Date(monthEnd).toISOString()).eq("is_cancelled",false);
+
+  const out=`📅 ${monthName} 온택 영어 운영 안내
+
+안녕하세요, 온택 영어입니다.
+${monthName} 한 달간의 수업 안내드립니다.
+
+📆 운영 기간: ${monthName} 1일 ~ ${lastDay}일
+📚 진행 예정 수업: ${bookingCount||0}건
+🏫 수업일: 월·화·목·금 (수요일은 보강일)
+${holidays.length>0?"🚫 휴무일: "+holidays.join(", ")+"\n":""}${notes?"📌 안내: "+notes+"\n":""}
+■ 출결 안내
+• 수업 시작 5분 전 줌 입장 권장
+• 시작 후 5분 이상 미입장 시 노쇼 처리됩니다
+• 결석 시에는 사이트에서 결석계를 제출해주세요
+• 사전 결석계 제출 시 수요일 보강 예약 가능
+
+■ 줌 입장 방법
+1. 사이트 로그인 → "내 강의실" 메뉴
+2. "내 수업" 탭의 수업 카드 클릭 → "줌 입장" 버튼
+
+문의 사항이 있으시면 언제든 연락 주세요.
+감사합니다.
+
+온택 영어 드림`;
+  $("mn-out").textContent=out;
+  $("mn-out").style.display="block";
+  $("mn-copy").style.display="inline-block";
+};
+$("mn-copy").onclick=()=>{
+  navigator.clipboard.writeText($("mn-out").textContent);
+  $("mn-copy").textContent="✅ 복사됨";
+  setTimeout(()=>$("mn-copy").textContent="📋 복사",1500);
+};
+
+// ──────── GROUP CLASS ────────
+$("gc-create").onclick=async()=>{
+  const name=$("gc-name").value.trim(),tid=$("gc-teacher").value,when=$("gc-when").value;
+  if(!name||!tid||!when){$("gc-msg").textContent="이름·강사·시각을 입력하세요.";$("gc-msg").style.color="#d4512c";return;}
+  const dur=Number($("gc-dur").value)||60;
+  $("gc-msg").textContent="줌 생성 중…";$("gc-msg").style.color="var(--muted)";$("gc-create").disabled=true;
+  const{data:s}=await sb.auth.getSession();
+  const r=await fetch(`${SB_URL}/functions/v1/create-group-class`,{
+    method:"POST",
+    headers:{"Content-Type":"application/json","Authorization":`Bearer ${s.session.access_token}`},
+    body:JSON.stringify({name,teacher_id:tid,start_at:new Date(when).toISOString(),duration_min:dur}),
+  });
+  const j=await r.json();
+  $("gc-create").disabled=false;
+  if(!r.ok){$("gc-msg").textContent="생성 실패: "+(j.error||"unknown");$("gc-msg").style.color="#d4512c";return;}
+  $("gc-msg").innerHTML=`✅ 단체수업 줌 생성 완료<br><a href="${j.zoom_join_url}" target="_blank" style="color:var(--coral)">참가 링크</a> · <button onclick="navigator.clipboard.writeText('${j.zoom_join_url}');this.textContent='복사됨'" style="margin-left:4px;background:#fff;border:1px solid var(--ink);padding:2px 8px;border-radius:6px;cursor:pointer;font-size:.78rem">복사</button>`;
+  $("gc-msg").style.color="var(--teal)";
+  loadGroupClasses();
+};
+async function loadGroupClasses(){
+  const{data}=await sb.from("group_classes").select("name,start_at,duration_min,zoom_join_url,teachers(display_name)").order("start_at",{ascending:false}).limit(10);
+  if(!data||data.length===0){$("gc-list").innerHTML="없음";return;}
+  $("gc-list").innerHTML=data.map(g=>`<div style="padding:6px 0;border-bottom:1px solid var(--paper);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">
+    <span><b>${g.name}</b> · ${g.teachers?.display_name||"–"} · ${new Date(g.start_at).toLocaleString("ko-KR",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})} (${g.duration_min}분)</span>
+    <span>${g.zoom_join_url?`<a href="${g.zoom_join_url}" target="_blank" style="color:var(--coral)">참가</a> · <button onclick="navigator.clipboard.writeText('${g.zoom_join_url}')" style="background:#fff;border:1px solid var(--line);padding:2px 8px;border-radius:6px;cursor:pointer;font-size:.78rem">복사</button>`:""}</span>
+  </div>`).join("");
+}
+loadGroupClasses();
 </script>
+<!-- Chat widget -->
+<script>window.sb = sb;</script>
+<script>fetch("chat-widget.html").then(r=>r.text()).then(h=>document.body.insertAdjacentHTML("beforeend",h));</script>
 </body>
 </html>

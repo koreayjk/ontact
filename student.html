@@ -384,19 +384,13 @@ let sel={teacher:null, months:1, startDate:null, times:new Set()};
 /* ── 게이트 (로그인 + 학생만) ── */
 async function gate(){
   const{data:{user}}=await sb.auth.getUser();
-  if(!user){ 
-    // 🚧 응급: 자동 리다이렉트 비활성화
-    alert("로그인이 필요합니다. login.html로 직접 이동하세요."); 
-    return; 
-  }
+  if(!user){ location.href="login.html"; return; }
   USER=user;
-  const{data:profile, error}=await sb.from("profiles").select("role,full_name,email,timezone,level_test_done,level_result").eq("id",user.id).single();
-  if(error){ console.error("[student] profile error:", error); alert("Profile 로드 실패: "+JSON.stringify(error)); return; }
-  if(!profile){ console.warn("[student] no profile"); alert("Profile 없음. 회원가입 필요."); return; }
+  const{data:profile}=await sb.from("profiles").select("role,full_name,email,timezone,level_test_done,level_result").eq("id",user.id).single();
+  if(!profile){ location.href="login.html"; return; }
   if(profile.role!=="student"){
-    console.warn("[student] not student, role:", profile.role);
-    alert("학생 권한 아님 (role: "+profile.role+"). 페이지는 그대로 표시합니다.");
-    // 자동 이동 비활성화
+    const map={teacher:"teacher.html",manager:"manager.html",admin:"admin.html"};
+    location.href=map[profile.role]||"login.html"; return;
   }
   PROFILE=profile;
   $("who").textContent=(profile.full_name||profile.email)+" · "+(profile.timezone||"");
