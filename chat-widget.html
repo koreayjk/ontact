@@ -841,7 +841,15 @@
 
   function setupInputHandler(){
     const input = document.getElementById("chat-input");
+    let isComposing = false; // 한글 등 IME 조합 중인지
+
+    input.addEventListener("compositionstart", () => { isComposing = true; });
+    input.addEventListener("compositionend", () => { isComposing = false; });
+
     input.addEventListener("keydown", (e) => {
+      // IME 조합 중일 때는 Enter 무시 (한글 마지막 글자 확정용)
+      if(isComposing || e.isComposing || e.keyCode === 229) return;
+
       if(e.key === "Enter" && !e.shiftKey){
         e.preventDefault();
         sendChatMessage();
