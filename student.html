@@ -848,7 +848,7 @@ async function renderLevelTestBanner(){
   // 본인 예약 조회
   // ════════════════════════════════════════
   const { data: myBookings } = await sb.from("leveltest_bookings")
-    .select("id, start_at, zoom_join_url")
+    .select("id, start_at, zoom_join_url, student_joined_at, manager_joined_at, test_started_at")
     .eq("student_id", USER.id)
     .order("start_at", { ascending: false })
     .limit(1);
@@ -861,19 +861,30 @@ async function renderLevelTestBanner(){
     const minutesPast = (now - bookingTime) / 60000; // 분 단위 (양수=지남, 음수=미래)
     
     // ════════════════════════════════════════
-    // 상태 4: 예약 시간 30분 이상 지남 → 결과 대기 (1단계: 시간 기반)
-    // 2단계에서 Zoom Webhook으로 정밀 감지로 교체 예정
+    // 상태 4: 진단 진행 완료 → 결과 대기
+    //   판정 기준: 
+    //   (a) Zoom Webhook으로 test_started_at 세팅됨 (정밀)
+    //   (b) 시간 기반 fallback: 예약 시간 30분 이상 지남
     // ════════════════════════════════════════
-    if(minutesPast >= 30){
+    const testStarted = !!myBooking.test_started_at;
+    const timedOut = minutesPast >= 30;
+    
+    if(testStarted || timedOut){
       const dateStr = bookingTime.toLocaleString("ko-KR", { 
         month:"long", day:"numeric", weekday:"short", hour:"2-digit", minute:"2-digit" 
       });
+      
+      // Zoom 감지 vs 시간 기반 — 메시지 약간 다르게
+      const detectedMsg = testStarted 
+        ? '진단이 진행됐습니다 (자동 감지됨).'
+        : `${dateStr} 진행 시간입니다.`;
+      
       b.innerHTML = `<div style="background:linear-gradient(135deg,#f6f4ef 0%,#e8e2d5 100%);border:2px solid #6b7785;border-radius:18px;padding:24px 26px;margin-bottom:14px;box-shadow:0 8px 25px -10px rgba(107,119,133,.25)">
         <div style="display:flex;align-items:center;gap:14px;margin-bottom:10px;flex-wrap:wrap">
           <div style="font-size:2rem">⏳</div>
           <div style="flex:1;min-width:200px">
             <h3 style="font-family:'Fraunces',serif;font-size:1.25rem;font-weight:800;color:#12273d;margin-bottom:2px">레벨테스트 진행 완료</h3>
-            <p style="color:#6b7785;font-size:.88rem;margin:0">${dateStr} 진행됨</p>
+            <p style="color:#6b7785;font-size:.88rem;margin:0">${detectedMsg}</p>
           </div>
         </div>
         <div style="background:#fff;border-radius:10px;padding:14px 16px;border:1px solid rgba(107,119,133,.2)">
@@ -885,12 +896,12 @@ async function renderLevelTestBanner(){
     }
     
     // ════════════════════════════════════════
-    // 상태 3: 예약됨, 아직 진행 전 또는 진행 중 (30분 안 지남)
+    // 상태 3: 예약됨, 아직 진행 전 또는 진행 중 (30분 안 지남, test_started_at 없음)
     // ════════════════════════════════════════
     const dateStr = bookingTime.toLocaleString("ko-KR", { 
       month:"long", day:"numeric", weekday:"short", hour:"2-digit", minute:"2-digit" 
     });
-    const isUpcoming = minutesPast < 0; // 미래 예약
+    const isUpcoming = minutesPast < 0;
     const minutesUntil = Math.abs(minutesPast);
     
     let timingHint = "";
@@ -901,8 +912,15 @@ async function renderLevelTestBanner(){
         timingHint = `<span style="background:#6b7785;color:#fff;padding:2px 8px;border-radius:6px;font-size:.75rem;font-weight:700;margin-left:6px">${Math.ceil(minutesUntil/60)}시간 후</span>`;
       }
     } else {
-      // 0~30분 사이 → 진행 중
       timingHint = `<span style="background:#2e7d32;color:#fff;padding:2px 8px;border-radius:6px;font-size:.75rem;font-weight:700;margin-left:6px">🔴 진행 중</span>`;
+    }
+    
+    // 한쪽만 입장 표시 (대기 중)
+    let waitingMsg = "";
+    if(myBooking.student_joined_at && !myBooking.manager_joined_at){
+      waitingMsg = `<p style="font-size:.82rem;color:#c98a1f;margin-top:6px;margin-bottom:0">⏳ 매니저 입장을 기다리는 중…</p>`;
+    } else if(myBooking.manager_joined_at && !myBooking.student_joined_at){
+      waitingMsg = `<p style="font-size:.82rem;color:#2e7d32;margin-top:6px;margin-bottom:0">✅ 매니저가 입장했습니다. 지금 들어오세요!</p>`;
     }
     
     b.innerHTML = `<div style="background:linear-gradient(135deg,#e6f6ec 0%,#cce8d4 100%);border:2px solid #2e7d32;border-radius:18px;padding:24px 26px;margin-bottom:14px;box-shadow:0 8px 25px -10px rgba(46,125,50,.25)">
@@ -911,6 +929,7 @@ async function renderLevelTestBanner(){
         <div style="flex:1;min-width:200px">
           <h3 style="font-family:'Fraunces',serif;font-size:1.25rem;font-weight:800;color:#12273d;margin-bottom:2px">레벨테스트 예약됨${timingHint}</h3>
           <p style="color:#12273d;font-size:.95rem;margin:0;font-weight:600">📅 ${dateStr}</p>
+          ${waitingMsg}
         </div>
       </div>
       <p style="font-size:.88rem;line-height:1.5;color:#12273d;margin-bottom:14px">예약 시간에 줌 미팅으로 입장하세요. 매니저(원어민 강사)와 1:1로 약 20분 진단을 진행합니다.</p>
