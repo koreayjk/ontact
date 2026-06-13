@@ -180,6 +180,7 @@
     <button data-tab="reports" data-t="tab_reports">📊 Teacher Reports</button>
     <button data-tab="leveltest" data-t="tab_lt">🧪 Level Test</button>
     <button data-tab="roster" data-t="tab_roster">📒 Roster</button>
+    <button data-tab="meetings">📋 회의록</button>
   </div>
 
   <!-- 라이브 관제실 -->
@@ -317,6 +318,59 @@
       </table></div>
     </div>
   </div>
+
+  <!-- ============================================== -->
+  <!-- 📋 회의록 -->
+  <!-- ============================================== -->
+  <div class="panel" id="p-meetings">
+    <div class="step">
+      <h2>📋 교사 회의록</h2>
+      <p class="sub">회의별 안건과 실행 결과를 추적합니다. 작성·완료 표시는 매니저만, 관리자는 코멘트 가능.</p>
+      
+      <!-- 새 회의록 작성 카드 -->
+      <div style="background:#fff;border:2px dashed var(--line);border-radius:12px;padding:18px;margin-bottom:20px">
+        <h3 style="font-size:1rem;font-weight:700;margin-bottom:10px;color:var(--ink)">➕ 새 회의록 작성</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px">
+          <div>
+            <label style="font-size:.82rem;color:var(--muted);display:block;margin-bottom:3px">제목</label>
+            <input id="mtg-title" type="text" placeholder="예: 6월 2주차 교사 회의" style="width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-size:.88rem;box-sizing:border-box">
+          </div>
+          <div>
+            <label style="font-size:.82rem;color:var(--muted);display:block;margin-bottom:3px">날짜</label>
+            <input id="mtg-date" type="date" style="width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-size:.88rem;box-sizing:border-box">
+          </div>
+          <div>
+            <label style="font-size:.82rem;color:var(--muted);display:block;margin-bottom:3px">시간</label>
+            <input id="mtg-time" type="time" style="width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-size:.88rem;box-sizing:border-box">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+          <div>
+            <label style="font-size:.82rem;color:var(--muted);display:block;margin-bottom:3px">장소 (선택)</label>
+            <input id="mtg-loc" type="text" placeholder="예: 줌 회의실, 사무실" style="width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-size:.88rem;box-sizing:border-box">
+          </div>
+          <div>
+            <label style="font-size:.82rem;color:var(--muted);display:block;margin-bottom:3px">참석자 (선택)</label>
+            <input id="mtg-attendees" type="text" placeholder="예: 매니저, 강사 4명, 관리자" style="width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-size:.88rem;box-sizing:border-box">
+          </div>
+        </div>
+        <div style="margin-bottom:10px">
+          <label style="font-size:.82rem;color:var(--muted);display:block;margin-bottom:3px">회의 요약 (선택)</label>
+          <textarea id="mtg-summary" rows="2" placeholder="회의 주요 내용 한두 줄 요약" style="width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-size:.88rem;box-sizing:border-box;resize:vertical;font-family:inherit"></textarea>
+        </div>
+        <button id="mtg-create-btn" style="background:var(--ink);color:#fff;border:0;padding:9px 18px;border-radius:8px;cursor:pointer;font-weight:700;font-size:.88rem">회의록 생성</button>
+        <span id="mtg-create-msg" style="margin-left:10px;font-size:.85rem"></span>
+      </div>
+      
+      <!-- 미완료 안건 요약 (모든 회의 중 진행 중/보류) -->
+      <div id="mtg-pending-summary" style="margin-bottom:20px"></div>
+      
+      <!-- 회의록 목록 -->
+      <h3 style="font-size:1rem;font-weight:700;margin-bottom:10px;color:var(--ink)">📚 회의록 모음</h3>
+      <div id="mtg-list">불러오는 중…</div>
+    </div>
+  </div>
+
 </div>
 
 <!-- 셀 상세 모달 -->
@@ -1405,6 +1459,399 @@ async function loadRoster(){
   }).join("");
 }
 $("r-search") && ($("r-search").oninput = ()=>{ loadRoster(); });
+
+// ══════════════════════════════════════════
+// 📋 회의록 관리
+// ══════════════════════════════════════════
+
+let MEETINGS = [];          // 모든 회의록
+let MTG_EXPANDED = null;     // 펼쳐진 회의록 id
+
+const ACTION_STATUS_LABEL = {
+  pending: { label: "⏳ 대기", color: "#6b7785", bg: "#f6f4ef" },
+  in_progress: { label: "🔄 진행 중", color: "#c98a1f", bg: "#fff7e6" },
+  completed: { label: "✅ 완료", color: "#2e7d32", bg: "#e6f6ec" },
+  on_hold: { label: "⏸️ 보류", color: "#d4351c", bg: "#fbe9e7" },
+};
+
+function escapeM(s){
+  return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+async function loadMeetings(){
+  const myRole = PROFILE?.role;
+  if(myRole !== "manager" && myRole !== "admin"){
+    $("mtg-list").innerHTML = `<div class="empty">권한이 없습니다.</div>`;
+    return;
+  }
+
+  // 새 회의록 작성은 매니저만
+  const createCard = $("mtg-create-btn")?.closest("div[style*='border:2px dashed']");
+  if(createCard && myRole !== "manager"){
+    createCard.style.display = "none";
+  }
+
+  const { data, error } = await sb.from("meetings")
+    .select("id,title,meeting_date,meeting_time,location,attendees,summary,created_by,created_at, profiles!created_by(full_name,email)")
+    .order("meeting_date", { ascending: false })
+    .order("created_at", { ascending: false });
+
+  if(error){ $("mtg-list").innerHTML = `<div class="empty">불러오기 실패: ${error.message}</div>`; return; }
+
+  MEETINGS = data || [];
+  await renderPendingSummary();
+  await renderMeetingsList();
+}
+
+async function renderPendingSummary(){
+  // 미완료 안건 모두 조회 (회의록 전체에서)
+  const { data: pendingActions } = await sb.from("meeting_actions")
+    .select("id,content,due_date,status,progress_note,assignee_name,meeting_id,meetings(title,meeting_date)")
+    .neq("status", "completed")
+    .order("due_date", { ascending: true, nullsFirst: false })
+    .limit(20);
+
+  if(!pendingActions || pendingActions.length === 0){
+    $("mtg-pending-summary").innerHTML = "";
+    return;
+  }
+
+  const today = new Date().toISOString().split("T")[0];
+  const overdue = pendingActions.filter(a => a.due_date && a.due_date < today);
+  const soon = pendingActions.filter(a => a.due_date && a.due_date >= today && a.due_date <= addDays(today,7));
+
+  $("mtg-pending-summary").innerHTML = `
+    <div style="background:#fff7e6;border:1px solid #c98a1f;border-radius:10px;padding:14px;margin-bottom:14px">
+      <h3 style="font-size:.95rem;font-weight:700;color:#c98a1f;margin-bottom:8px">⏳ 미완료 안건 ${pendingActions.length}건</h3>
+      ${overdue.length > 0 ? `<div style="background:#fbe9e7;border:1px solid #d4351c;padding:8px 10px;border-radius:6px;margin-bottom:8px;font-size:.85rem">
+        <b style="color:#d4351c">🚨 기한 지남: ${overdue.length}건</b>
+        ${overdue.slice(0,3).map(a => `<div style="margin-top:3px;font-size:.82rem">• ${escapeM(a.content.substring(0,50))}${a.content.length>50?"…":""} <span style="color:#6b7785">(${a.meetings?.title||""})</span></div>`).join("")}
+      </div>` : ""}
+      ${soon.length > 0 ? `<div style="font-size:.85rem;color:#6b7785">
+        <b>📅 7일 이내 마감: ${soon.length}건</b>
+      </div>` : ""}
+      <div style="font-size:.78rem;color:#6b7785;margin-top:6px">자세한 내용은 아래 각 회의록을 펼쳐 확인하세요.</div>
+    </div>
+  `;
+}
+
+function addDays(dateStr, n){
+  const d = new Date(dateStr);
+  d.setDate(d.getDate() + n);
+  return d.toISOString().split("T")[0];
+}
+
+async function renderMeetingsList(){
+  if(MEETINGS.length === 0){
+    $("mtg-list").innerHTML = `<div class="empty">아직 회의록이 없습니다. 위에서 첫 회의록을 작성하세요.</div>`;
+    return;
+  }
+
+  const myRole = PROFILE?.role;
+  const html = MEETINGS.map(m => {
+    const dateLabel = new Date(m.meeting_date + "T00:00:00").toLocaleDateString("ko-KR", { 
+      year:"numeric", month:"long", day:"numeric", weekday:"short" 
+    });
+    const timeLabel = m.meeting_time ? ` ${m.meeting_time.substring(0,5)}` : "";
+    return `<div class="mtg-card" data-id="${m.id}" style="background:#fff;border:1px solid var(--line);border-radius:10px;margin-bottom:12px;overflow:hidden">
+      <div class="mtg-header" onclick="toggleMeeting(${m.id})" style="padding:14px 16px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+        <div style="flex:1">
+          <div style="font-weight:700;color:var(--ink);font-size:1rem">${escapeM(m.title)}</div>
+          <div style="font-size:.82rem;color:var(--muted);margin-top:2px">📅 ${dateLabel}${timeLabel} ${m.location?`· 📍 ${escapeM(m.location)}`:""}</div>
+          <div style="font-size:.78rem;color:var(--muted);margin-top:2px">작성: ${escapeM(m.profiles?.full_name || m.profiles?.email || "—")}</div>
+        </div>
+        <div style="color:var(--muted)" id="mtg-arrow-${m.id}">▼</div>
+      </div>
+      <div class="mtg-body" id="mtg-body-${m.id}" style="display:none;border-top:1px solid var(--line);padding:14px 16px;background:var(--paper)"></div>
+    </div>`;
+  }).join("");
+
+  $("mtg-list").innerHTML = html;
+}
+
+window.toggleMeeting = async function(meetingId){
+  const body = $("mtg-body-" + meetingId);
+  const arrow = $("mtg-arrow-" + meetingId);
+  
+  if(MTG_EXPANDED === meetingId){
+    body.style.display = "none";
+    arrow.textContent = "▼";
+    MTG_EXPANDED = null;
+    return;
+  }
+  
+  // 다른 열린 거 닫기
+  if(MTG_EXPANDED){
+    $("mtg-body-" + MTG_EXPANDED).style.display = "none";
+    $("mtg-arrow-" + MTG_EXPANDED).textContent = "▼";
+  }
+  
+  MTG_EXPANDED = meetingId;
+  body.style.display = "block";
+  arrow.textContent = "▲";
+  
+  await renderMeetingBody(meetingId);
+};
+
+async function renderMeetingBody(meetingId){
+  const body = $("mtg-body-" + meetingId);
+  const meeting = MEETINGS.find(m => m.id === meetingId);
+  
+  // 안건들 로드
+  const { data: actions } = await sb.from("meeting_actions")
+    .select("*, profiles!assignee_id(full_name,email)")
+    .eq("meeting_id", meetingId)
+    .order("action_number");
+  
+  // 모든 안건의 코멘트 한 번에 로드
+  const actionIds = (actions || []).map(a => a.id);
+  let commentsByAction = {};
+  if(actionIds.length > 0){
+    const { data: comments } = await sb.from("meeting_action_comments")
+      .select("*")
+      .in("action_id", actionIds)
+      .order("created_at");
+    (comments || []).forEach(c => {
+      if(!commentsByAction[c.action_id]) commentsByAction[c.action_id] = [];
+      commentsByAction[c.action_id].push(c);
+    });
+  }
+  
+  const myRole = PROFILE?.role;
+  const isManager = myRole === "manager";
+  const isAdmin = myRole === "admin";
+  const meetingOwnerId = meeting.created_by;
+  const canEditMeeting = isManager && meetingOwnerId === USER.id;
+  
+  body.innerHTML = `
+    ${meeting.attendees ? `<div style="font-size:.85rem;color:var(--muted);margin-bottom:8px"><b>참석:</b> ${escapeM(meeting.attendees)}</div>` : ""}
+    ${meeting.summary ? `<div style="background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px;font-size:.88rem;margin-bottom:14px;white-space:pre-wrap">${escapeM(meeting.summary)}</div>` : ""}
+    
+    <h4 style="font-size:.95rem;font-weight:700;margin-bottom:10px;color:var(--ink)">📌 안건 (액션 아이템)</h4>
+    
+    <div id="actions-list-${meetingId}">
+      ${(actions || []).map(a => renderActionCard(a, commentsByAction[a.id] || [], isManager, isAdmin)).join("") || `<div class="empty" style="background:#fff;padding:14px;border-radius:8px">아직 안건이 없습니다.</div>`}
+    </div>
+    
+    ${isManager ? `
+      <div style="background:#fff;border:2px dashed var(--line);border-radius:8px;padding:12px;margin-top:12px">
+        <h4 style="font-size:.88rem;font-weight:700;margin-bottom:8px;color:var(--ink)">➕ 새 안건 추가</h4>
+        <textarea id="new-action-content-${meetingId}" rows="2" placeholder="안건 내용 (예: Tr. Precious 발음 코칭 1회 진행)" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:.85rem;box-sizing:border-box;resize:vertical;font-family:inherit;margin-bottom:8px"></textarea>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+          <input type="text" id="new-action-assignee-${meetingId}" placeholder="담당자 (예: 매니저, Tr. Mel)" style="padding:7px;border:1px solid var(--line);border-radius:6px;font-size:.85rem">
+          <input type="date" id="new-action-due-${meetingId}" style="padding:7px;border:1px solid var(--line);border-radius:6px;font-size:.85rem">
+        </div>
+        <button onclick="addAction(${meetingId})" style="background:var(--ink);color:#fff;border:0;padding:7px 16px;border-radius:6px;cursor:pointer;font-weight:700;font-size:.85rem">안건 추가</button>
+      </div>
+    ` : ""}
+    
+    ${canEditMeeting ? `
+      <div style="margin-top:14px;text-align:right">
+        <button onclick="deleteMeeting(${meetingId}, '${escapeM(meeting.title).replace(/'/g,"\\'")}')" style="background:#fff;border:1px solid #d4351c;color:#d4351c;padding:6px 14px;border-radius:6px;cursor:pointer;font-weight:600;font-size:.82rem">🗑️ 회의록 삭제</button>
+      </div>
+    ` : ""}
+  `;
+}
+
+function renderActionCard(a, comments, isManager, isAdmin){
+  const status = ACTION_STATUS_LABEL[a.status] || ACTION_STATUS_LABEL.pending;
+  const today = new Date().toISOString().split("T")[0];
+  const isOverdue = a.due_date && a.due_date < today && a.status !== "completed";
+  
+  return `<div style="background:#fff;border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:10px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+      <div style="flex:1;min-width:220px">
+        <div style="font-weight:700;color:var(--ink);margin-bottom:4px">#${a.action_number}. ${escapeM(a.content)}</div>
+        <div style="font-size:.82rem;color:var(--muted)">
+          ${a.assignee_name ? `👤 ${escapeM(a.assignee_name)}` : ""}
+          ${a.due_date ? `${a.assignee_name?" · ":""}📅 ${a.due_date}${isOverdue?' <span style="color:#d4351c;font-weight:700">⚠️ 지남</span>':""}` : ""}
+        </div>
+        ${a.progress_note ? `<div style="font-size:.82rem;color:var(--muted);margin-top:4px;padding:6px;background:var(--paper);border-radius:4px">💬 ${escapeM(a.progress_note)}</div>` : ""}
+      </div>
+      <div style="background:${status.bg};color:${status.color};padding:4px 10px;border-radius:5px;font-size:.78rem;font-weight:700">${status.label}</div>
+    </div>
+    
+    ${isManager ? `
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;padding-top:8px;border-top:1px solid var(--paper)">
+        <select onchange="updateActionStatus(${a.id}, this.value)" style="padding:4px 8px;border:1px solid var(--line);border-radius:5px;font-size:.78rem">
+          <option value="pending" ${a.status==="pending"?"selected":""}>⏳ 대기</option>
+          <option value="in_progress" ${a.status==="in_progress"?"selected":""}>🔄 진행 중</option>
+          <option value="completed" ${a.status==="completed"?"selected":""}>✅ 완료</option>
+          <option value="on_hold" ${a.status==="on_hold"?"selected":""}>⏸️ 보류</option>
+        </select>
+        <button onclick="editActionNote(${a.id})" style="background:#fff;border:1px solid var(--line);padding:3px 9px;border-radius:5px;cursor:pointer;font-size:.78rem">📝 진행 메모</button>
+        <button onclick="deleteAction(${a.id})" style="background:#fff;border:1px solid #d4351c;color:#d4351c;padding:3px 9px;border-radius:5px;cursor:pointer;font-size:.78rem">🗑️ 삭제</button>
+      </div>
+    ` : ""}
+    
+    <!-- 코멘트 영역 -->
+    <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--paper)">
+      <div style="font-size:.78rem;font-weight:700;color:var(--muted);margin-bottom:5px">💭 코멘트 ${comments.length>0?`(${comments.length})`:""}</div>
+      ${comments.map(c => `<div style="background:var(--paper);border-radius:5px;padding:6px 10px;margin-bottom:5px;font-size:.82rem">
+        <div style="font-weight:700;color:var(--ink);font-size:.78rem">
+          ${c.author_role==="admin"?"👑 ":""}${escapeM(c.author_name||"—")} 
+          <span style="color:var(--muted);font-weight:400;margin-left:4px">${new Date(c.created_at).toLocaleString("ko-KR",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})}</span>
+        </div>
+        <div style="margin-top:3px;color:var(--ink);white-space:pre-wrap">${escapeM(c.content)}</div>
+      </div>`).join("")}
+      ${(isManager || isAdmin) ? `
+        <div style="display:flex;gap:5px;margin-top:5px">
+          <input type="text" id="comment-input-${a.id}" placeholder="${isAdmin?"관리자 코멘트…":"코멘트 입력…"}" style="flex:1;padding:5px 8px;border:1px solid var(--line);border-radius:5px;font-size:.82rem">
+          <button onclick="addComment(${a.id})" style="background:var(--ink);color:#fff;border:0;padding:5px 12px;border-radius:5px;cursor:pointer;font-size:.78rem;font-weight:700">전송</button>
+        </div>
+      ` : ""}
+    </div>
+  </div>`;
+}
+
+// 새 회의록 생성
+$("mtg-create-btn") && ($("mtg-create-btn").onclick = async () => {
+  const title = $("mtg-title").value.trim();
+  const date = $("mtg-date").value;
+  const time = $("mtg-time").value || null;
+  const loc = $("mtg-loc").value.trim() || null;
+  const attendees = $("mtg-attendees").value.trim() || null;
+  const summary = $("mtg-summary").value.trim() || null;
+  
+  if(!title){ showMtgCreateMsg("제목을 입력하세요.", false); return; }
+  if(!date){ showMtgCreateMsg("날짜를 선택하세요.", false); return; }
+  
+  if(PROFILE?.role !== "manager"){
+    showMtgCreateMsg("매니저만 작성 가능합니다.", false);
+    return;
+  }
+  
+  $("mtg-create-btn").disabled = true;
+  const { error } = await sb.from("meetings").insert({
+    title, meeting_date: date, meeting_time: time,
+    location: loc, attendees, summary,
+    created_by: USER.id,
+  });
+  $("mtg-create-btn").disabled = false;
+  
+  if(error){ showMtgCreateMsg("생성 실패: " + error.message, false); return; }
+  
+  showMtgCreateMsg("✅ 회의록 생성 완료", true);
+  $("mtg-title").value = "";
+  $("mtg-date").value = "";
+  $("mtg-time").value = "";
+  $("mtg-loc").value = "";
+  $("mtg-attendees").value = "";
+  $("mtg-summary").value = "";
+  await loadMeetings();
+});
+
+function showMtgCreateMsg(msg, ok){
+  const el = $("mtg-create-msg");
+  el.textContent = msg;
+  el.style.color = ok ? "#2e7d32" : "#d4351c";
+  setTimeout(() => { el.textContent = ""; }, 3000);
+}
+
+// 안건 추가
+window.addAction = async function(meetingId){
+  const content = $("new-action-content-" + meetingId).value.trim();
+  const assignee = $("new-action-assignee-" + meetingId).value.trim() || null;
+  const due = $("new-action-due-" + meetingId).value || null;
+  
+  if(!content){ alert("안건 내용을 입력하세요."); return; }
+  
+  // 다음 action_number 계산
+  const { count } = await sb.from("meeting_actions")
+    .select("id", { count: "exact", head: true })
+    .eq("meeting_id", meetingId);
+  const nextNum = (count || 0) + 1;
+  
+  const { error } = await sb.from("meeting_actions").insert({
+    meeting_id: meetingId,
+    action_number: nextNum,
+    content,
+    assignee_name: assignee,
+    due_date: due,
+    status: "pending",
+  });
+  
+  if(error){ alert("추가 실패: " + error.message); return; }
+  
+  $("new-action-content-" + meetingId).value = "";
+  $("new-action-assignee-" + meetingId).value = "";
+  $("new-action-due-" + meetingId).value = "";
+  await renderMeetingBody(meetingId);
+  await renderPendingSummary();
+};
+
+// 안건 상태 변경
+window.updateActionStatus = async function(actionId, newStatus){
+  const updates = { status: newStatus };
+  if(newStatus === "completed") updates.completed_at = new Date().toISOString();
+  else updates.completed_at = null;
+  
+  const { error } = await sb.from("meeting_actions").update(updates).eq("id", actionId);
+  if(error){ alert("변경 실패: " + error.message); return; }
+  
+  if(MTG_EXPANDED) await renderMeetingBody(MTG_EXPANDED);
+  await renderPendingSummary();
+};
+
+// 진행 메모 수정
+window.editActionNote = async function(actionId){
+  const { data } = await sb.from("meeting_actions").select("progress_note").eq("id", actionId).single();
+  const current = data?.progress_note || "";
+  const newNote = prompt("진행 메모 입력:", current);
+  if(newNote === null) return; // 취소
+  
+  const { error } = await sb.from("meeting_actions").update({ progress_note: newNote }).eq("id", actionId);
+  if(error){ alert("저장 실패: " + error.message); return; }
+  
+  if(MTG_EXPANDED) await renderMeetingBody(MTG_EXPANDED);
+};
+
+// 안건 삭제
+window.deleteAction = async function(actionId){
+  if(!confirm("이 안건을 삭제하시겠어요?\n관련된 코멘트도 모두 삭제됩니다.")) return;
+  
+  const { error } = await sb.from("meeting_actions").delete().eq("id", actionId);
+  if(error){ alert("삭제 실패: " + error.message); return; }
+  
+  if(MTG_EXPANDED) await renderMeetingBody(MTG_EXPANDED);
+  await renderPendingSummary();
+};
+
+// 코멘트 추가
+window.addComment = async function(actionId){
+  const input = $("comment-input-" + actionId);
+  const content = input.value.trim();
+  if(!content) return;
+  
+  const { error } = await sb.from("meeting_action_comments").insert({
+    action_id: actionId,
+    author_id: USER.id,
+    author_name: PROFILE.full_name || PROFILE.email,
+    author_role: PROFILE.role,
+    content,
+  });
+  
+  if(error){ alert("코멘트 실패: " + error.message); return; }
+  
+  input.value = "";
+  if(MTG_EXPANDED) await renderMeetingBody(MTG_EXPANDED);
+};
+
+// 회의록 삭제
+window.deleteMeeting = async function(meetingId, title){
+  if(!confirm(`회의록 "${title}"을(를) 삭제합니다.\n모든 안건과 코멘트가 함께 삭제됩니다.\n\n진행할까요?`)) return;
+  
+  const { error } = await sb.from("meetings").delete().eq("id", meetingId);
+  if(error){ alert("삭제 실패: " + error.message); return; }
+  
+  MTG_EXPANDED = null;
+  await loadMeetings();
+};
+
+// 탭 클릭 시 회의록 로드
+document.querySelector('[data-tab="meetings"]').addEventListener("click", () => {
+  setTimeout(loadMeetings, 100);
+});
 
 gate();
 </script>
