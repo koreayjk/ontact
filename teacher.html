@@ -166,6 +166,13 @@
       <div class="grid-wrap"><div class="grid" id="grid-2"></div></div>
     </details>
 
+    <details id="more-weeks-wrap">
+      <summary style="background:var(--paper);padding:12px 16px;border-radius:8px;border:1px dashed var(--line);font-weight:700;cursor:pointer;list-style:none">
+        📅 더 많은 주 보기 (앞으로 12주)
+      </summary>
+      <div id="more-weeks-content" style="margin-top:10px"></div>
+    </details>
+
     <p class="sub" style="margin-top:14px;text-align:center;font-size:.78rem"><span data-t="tz_note">Times shown in your timezone</span>: <b id="my-tz">–</b></p>
   </div>
 
@@ -405,15 +412,19 @@ function mondayOf(d){
 /* === 일정 로드 === */
 async function loadSchedule(){
   const monday = mondayOf(new Date());
-  const fromISO = new Date(monday.getTime() - 24*60*60*1000).toISOString();
-  const toISO   = new Date(monday.getTime() + 21*24*60*60*1000).toISOString();
-  const { data } = await sb.from("bookings")
+  // 과거 1개월 ~ 미래 3개월 (12주 + 4주 = 16주 = 약 4개월)
+  // 4달 수강신청 + 보강 + 휴일 다 커버
+  const fromISO = new Date(monday.getTime() - 30*24*60*60*1000).toISOString();
+  const toISO   = new Date(monday.getTime() + 120*24*60*60*1000).toISOString();
+  const { data, error } = await sb.from("bookings")
     .select("id,start_at,is_cancelled,zoom_join_url,zoom_start_url,absence_id,makeup_of,student_id,profiles(full_name,email)")
     .eq("teacher_id", USER.id)
     .gte("start_at", fromISO)
     .lte("start_at", toISO)
     .order("start_at",{ascending:true});
+  if(error) console.error("loadSchedule error:", error);
   BOOKINGS = data || [];
+  console.log("Loaded bookings:", BOOKINGS.length, "from", fromISO, "to", toISO);
   assignColors();
   renderSchedule();
 }
@@ -490,6 +501,58 @@ function renderSchedule(){
   renderWeekGrid(0);
   renderWeekGrid(1);
   renderWeekGrid(2);
+  renderFutureWeeks();
+}
+
+function renderFutureWeeks(){
+  const wrap = $("more-weeks-content");
+  if(!wrap) return;
+  
+  const baseMon = mondayOf(new Date());
+  let html = "";
+  let hasAnyClass = false;
+  
+  // 3주 후 ~ 14주 후 (12주)
+  for(let offset = 3; offset <= 14; offset++){
+    const monday = new Date(baseMon.getTime() + offset*7*24*60*60*1000);
+    const sun = new Date(monday.getTime() + 7*24*60*60*1000);
+    
+    const weekBks = BOOKINGS.filter(b=>{
+      const time = new Date(b.start_at).getTime();
+      return time >= monday.getTime() && time < sun.getTime();
+    });
+    
+    if(weekBks.length === 0) continue;
+    hasAnyClass = true;
+    
+    const totalCount = weekBks.filter(b=>!b.is_cancelled).length;
+    const rangeLabel = `${shortDate(monday)} – ${shortDate(new Date(sun.getTime()-1))}`;
+    
+    const dayLines = weekBks.map(b=>{
+      const stu = b.profiles ? (b.profiles.full_name || b.profiles.email) : t("student");
+      const cancelled = b.is_cancelled ? '<span style="color:#d4351c;font-weight:700;margin-left:6px">취소</span>' : '';
+      return `<div style="padding:6px 10px;border-bottom:1px solid var(--paper);font-size:.85rem">
+        <span style="color:var(--muted);min-width:90px;display:inline-block">${dayHeader(b.start_at)}</span>
+        <b>${fmtTime(b.start_at)}</b>
+        <span style="margin-left:8px">👤 ${stu}</span>
+        ${cancelled}
+      </div>`;
+    }).join("");
+    
+    html += `<div style="margin-bottom:14px;border:1px solid var(--line);border-radius:8px;overflow:hidden">
+      <div style="background:var(--paper);padding:10px 14px;font-weight:700;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+        <span>📅 ${rangeLabel}</span>
+        <span style="font-size:.85rem;color:var(--muted);font-weight:500"><b>${totalCount}</b>회 수업</span>
+      </div>
+      <div style="background:#fff">${dayLines}</div>
+    </div>`;
+  }
+  
+  if(!hasAnyClass){
+    wrap.innerHTML = `<div class="empty" style="padding:20px;text-align:center">예정된 미래 수업이 없습니다.</div>`;
+  } else {
+    wrap.innerHTML = html;
+  }
 }
 
 function renderWeekGrid(weekOffset){
