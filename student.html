@@ -492,7 +492,7 @@ async function gate(){
     location.href=map[profile.role]||"login.html"; return;
   }
   PROFILE=profile;
-  $("who").textContent=(profile.full_name||profile.email)+" · "+(profile.timezone||"");
+  $("who").textContent=(profile.full_name||profile.email)+" · 🌐 "+Intl.DateTimeFormat().resolvedOptions().timeZone;
   renderLevelTestBanner();
   renderPlacementBanner();
   init();
@@ -622,7 +622,7 @@ window.saveProfile = async function(){
   PROFILE.country = newCountry;
   
   // 헤더 업데이트
-  $("who").textContent = (PROFILE.full_name || PROFILE.email) + " · " + (PROFILE.timezone || "");
+  $("who").textContent = (PROFILE.full_name || PROFILE.email) + " · 🌐 " + Intl.DateTimeFormat().resolvedOptions().timeZone;
   
   showProfileMsg("✅ 저장됐습니다.", true);
   setTimeout(closeProfileModal, 800);
@@ -884,6 +884,7 @@ async function renderLevelTestBanner(){
     
     if(testStarted || timedOut){
       const dateStr = bookingTime.toLocaleString("ko-KR", { 
+        timeZone: BROWSER_TZ,
         month:"long", day:"numeric", weekday:"short", hour:"2-digit", minute:"2-digit" 
       });
       
@@ -912,6 +913,7 @@ async function renderLevelTestBanner(){
     // 상태 3: 예약됨, 아직 진행 전 또는 진행 중 (30분 안 지남, test_started_at 없음)
     // ════════════════════════════════════════
     const dateStr = bookingTime.toLocaleString("ko-KR", { 
+      timeZone: BROWSER_TZ,
       month:"long", day:"numeric", weekday:"short", hour:"2-digit", minute:"2-digit" 
     });
     const isUpcoming = minutesPast < 0;
@@ -978,7 +980,7 @@ async function renderLevelTestBanner(){
   if(daysUntilStart < 0) return;
 
   // 결제 완료 + 본 수업 시작 전 → 큰 히어로 카드
-  const startDateStr = startDate.toLocaleDateString("ko-KR",{month:"long",day:"numeric",weekday:"long"});
+  const startDateStr = startDate.toLocaleDateString("ko-KR",{timeZone: BROWSER_TZ, month:"long",day:"numeric",weekday:"long"});
   b.innerHTML = `<div style="background:linear-gradient(135deg,#fff7e6 0%,#ffe9c7 100%);border:2px solid #c98a1f;border-radius:18px;padding:24px 26px;margin-bottom:14px;box-shadow:0 8px 25px -10px rgba(201,138,31,.3)">
     <div style="display:flex;align-items:center;gap:14px;margin-bottom:10px;flex-wrap:wrap">
       <div style="font-size:2rem">🎯</div>
@@ -1233,7 +1235,10 @@ $("payBtn").onclick=async()=>{
 };
 
 /* ── 내 수업 (히어로 + 통계 + 진행률 + 주간 그리드) ── */
-const TZ = () => PROFILE.timezone || "Asia/Seoul";
+// 🌐 시간대 — 브라우저 자동 감지 (사용자의 실제 현재 위치)
+// 학생의 프로필 timezone은 fallback일 뿐, 우선순위는 현재 위치
+const BROWSER_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+const TZ = () => BROWSER_TZ || PROFILE.timezone || "Asia/Seoul";
 let MY_BOOKINGS=[], MY_ABS={}, MY_ENROLLS=[];
 
 function fmtTime(iso){ return new Intl.DateTimeFormat('ko-KR',{timeZone:TZ(),hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(iso)); }
@@ -1256,7 +1261,7 @@ function mondayOf(d){
 }
 
 async function loadMyClasses(){
-  $("my-tz").textContent = PROFILE.timezone || "Asia/Seoul";
+  $("my-tz").textContent = BROWSER_TZ + " (자동 감지)";
 
   // 모든 booking (출석률·진행률 계산용)
   const { data:all } = await sb.from("bookings")
