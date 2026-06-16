@@ -348,8 +348,8 @@ async function gate(){
     location.href=map[profile.role]||"login.html"; return;
   }
   PROFILE=profile;
-  $("who").textContent=(profile.full_name||profile.email)+" · "+(profile.timezone||"");
-  $("my-tz").textContent = profile.timezone || "Asia/Seoul";
+  $("who").textContent=(profile.full_name||profile.email)+" · 🌐 "+Intl.DateTimeFormat().resolvedOptions().timeZone;
+  $("my-tz").textContent = BROWSER_TZ + " (자동 감지)";
   applyLang();
   init();
 }
@@ -383,7 +383,9 @@ function reRender(){
 }
 
 /* === 포맷 === */
-const TZ = () => PROFILE.timezone || "Asia/Seoul";
+// 🌐 시간대 — 브라우저 자동 감지 (강사의 실제 현재 위치)
+const BROWSER_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+const TZ = () => BROWSER_TZ || PROFILE.timezone || "Asia/Seoul";
 const localeOf = () => LANG==="kr" ? "ko-KR" : "en-US";
 function fmtTime(iso){ return new Intl.DateTimeFormat(localeOf(),{timeZone:TZ(),hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(iso)); }
 function dayKey(iso){
