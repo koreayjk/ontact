@@ -417,7 +417,7 @@ async function loadSchedule(){
   const fromISO = new Date(monday.getTime() - 30*24*60*60*1000).toISOString();
   const toISO   = new Date(monday.getTime() + 120*24*60*60*1000).toISOString();
   const { data, error } = await sb.from("bookings")
-    .select("id,start_at,is_cancelled,zoom_join_url,zoom_start_url,absence_id,makeup_of,student_id,profiles(full_name,email)")
+    .select("id,start_at,is_cancelled,zoom_join_url,zoom_start_url,absence_id,makeup_of,student_id,profiles!bookings_student_id_fkey(full_name,email)")
     .eq("teacher_id", USER.id)
     .gte("start_at", fromISO)
     .lte("start_at", toISO)
