@@ -518,6 +518,8 @@
 const SB_URL="https://nhydhyolgrhsykdcqfzb.supabase.co";
 const SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5oeWRoeW9sZ3Joc3lrZGNxZnpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MTk1OTAsImV4cCI6MjA5NTk5NTU5MH0.s3qPFFN-4zMLAt-dtkOwzakCj-pkglKgbhyUR9uu4xs";
 const sb=supabase.createClient(SB_URL,SB_KEY);
+// 🌐 admin은 자기 현재 위치의 시간으로 봄 (브라우저 자동 감지)
+const BROWSER_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
 const $=id=>document.getElementById(id);
 
 let USER=null, PROFILE=null;
@@ -542,7 +544,7 @@ let EXPIRING_LIST=[], OVERDUE_LIST=[], NOSHOW_LIST=[];
     location.href = "student.html";
     return;
   }
-  $("who").textContent = `${p.full_name||user.email}`;
+  $("who").textContent = `${p.full_name||user.email} · 🌐 ${BROWSER_TZ}`;
   $("logout").onclick = async e=>{ e.preventDefault(); await sb.auth.signOut(); location.href="login.html"; };
   loadAll();
   // 기본 월 셋팅
@@ -571,7 +573,7 @@ $("card-expiring").onclick = ()=>{
   if(EXPIRING_LIST.length === 0){ alert("만료 임박 학생이 없습니다."); return; }
   $("list-modal-title").textContent = `⏰ 만료 임박 학생 (7일 내) — ${EXPIRING_LIST.length}명`;
   $("list-modal-body").innerHTML = EXPIRING_LIST.map(e=>{
-    const dt = new Date(e.last_at).toLocaleDateString("ko-KR",{month:"numeric",day:"numeric",weekday:"short"});
+    const dt = new Date(e.last_at).toLocaleDateString("ko-KR",{timeZone:BROWSER_TZ,month:"numeric",day:"numeric",weekday:"short"});
     return `<div style="padding:10px 4px;border-bottom:1px solid var(--paper);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
       <div>
         <b>${e.name}</b> · <span style="color:var(--muted);font-size:.85rem">${e.teacher}</span>
@@ -590,7 +592,7 @@ $("card-noshow").onclick = ()=>{
   if(NOSHOW_LIST.length === 0){ alert("최근 30일 노쇼 3회 이상인 학생이 없습니다."); return; }
   $("list-modal-title").textContent = `🚨 노쇼 3회 이상 학생 (최근 30일) — ${NOSHOW_LIST.length}명`;
   $("list-modal-body").innerHTML = NOSHOW_LIST.map(e=>{
-    const dt = new Date(e.last).toLocaleDateString("ko-KR",{month:"numeric",day:"numeric"});
+    const dt = new Date(e.last).toLocaleDateString("ko-KR",{timeZone:BROWSER_TZ,month:"numeric",day:"numeric"});
     return `<div style="padding:10px 4px;border-bottom:1px solid var(--paper);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
       <div>
         <b>${e.name}</b> · <span style="color:var(--alert);font-weight:700;font-size:.92rem">${e.count}회 노쇼</span>
@@ -618,7 +620,7 @@ $("card-alerts").onclick = async ()=>{
       const stuName = a.profiles?.full_name || "—";
       const phone = a.profiles?.phone || "";
       const tname = a.bookings?.teachers?.display_name || "—";
-      const dt = a.bookings?.start_at ? new Date(a.bookings.start_at).toLocaleDateString("ko-KR",{month:"numeric",day:"numeric",weekday:"short",hour:"2-digit",minute:"2-digit"}) : "—";
+      const dt = a.bookings?.start_at ? new Date(a.bookings.start_at).toLocaleDateString("ko-KR",{timeZone:BROWSER_TZ,month:"numeric",day:"numeric",weekday:"short",hour:"2-digit",minute:"2-digit"}) : "—";
       return `<div style="padding:10px 4px;border-bottom:1px solid var(--paper)">
         <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap">
           <div><b>${stuName}</b> · <span style="color:var(--muted);font-size:.85rem">${tname} · ${dt}</span></div>
@@ -878,7 +880,7 @@ async function togglePersonDetail(tr, personId){
 
     content = `
       <div class="detail-grid">
-        <div class="detail-box"><div class="lab">다음 수업</div><div class="val">${nextLesson ? new Date(nextLesson.start_at).toLocaleString("ko-KR",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit",weekday:"short"}) : "—"}</div><div class="extra">${nextLesson?nextLesson.teacher||"":""}</div></div>
+        <div class="detail-box"><div class="lab">다음 수업</div><div class="val">${nextLesson ? new Date(nextLesson.start_at).toLocaleString("ko-KR",{timeZone:BROWSER_TZ,month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit",weekday:"short"}) : "—"}</div><div class="extra">${nextLesson?nextLesson.teacher||"":""}</div></div>
         <div class="detail-box"><div class="lab">진행률</div><div class="val">${doneBookings}/${totalBookings} (${progress}%)</div><div class="extra">완료 / 전체</div></div>
         <div class="detail-box"><div class="lab">출석률</div><div class="val">${attendanceRate}%</div><div class="extra">${attendedBookings}/${doneBookings} 출석</div></div>
         <div class="detail-box" style="background:${m.level_result?'#fff7e6':'#fff'};border-color:${m.level_result?'#c98a1f':'var(--line)'}">
@@ -927,7 +929,7 @@ async function togglePersonDetail(tr, personId){
       ${(alertNotes||[]).length ? `<h3 style="font-size:.95rem;margin:14px 0 6px">⚠️ 매니저 알람 기록</h3>
       <div style="background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden">
         ${(alertNotes||[]).map(n=>{
-          const dt = new Date(n.start_at).toLocaleString("ko-KR",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit",weekday:"short"});
+          const dt = new Date(n.start_at).toLocaleString("ko-KR",{timeZone:BROWSER_TZ,month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit",weekday:"short"});
           const tname = n.teachers?.display_name || "—";
           const notes = [];
           if(n.teacher_alert_note) notes.push(`<div style="font-size:.78rem;color:var(--muted)">🚨 강사 미입장: <span style="color:var(--ink)">${n.teacher_alert_note}</span></div>`);
@@ -964,7 +966,7 @@ async function togglePersonDetail(tr, personId){
             <div style="padding:8px 12px;border-bottom:1px solid var(--paper);font-size:.85rem;display:flex;justify-content:space-between;gap:8px">
               <div style="flex:1">
                 <div style="white-space:pre-wrap;color:var(--ink)">${n.content.replace(/</g,'&lt;')}</div>
-                <div style="font-size:.72rem;color:var(--muted);margin-top:4px">${n.author_name||"–"} · ${new Date(n.created_at).toLocaleString("ko-KR",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})}</div>
+                <div style="font-size:.72rem;color:var(--muted);margin-top:4px">${n.author_name||"–"} · ${new Date(n.created_at).toLocaleString("ko-KR",{timeZone:BROWSER_TZ,month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})}</div>
               </div>
               <button onclick="deleteStudentNote(${n.id},'${personId}')" style="background:none;border:0;color:var(--muted);cursor:pointer;font-size:.85rem;padding:0 4px">🗑️</button>
             </div>
@@ -1128,7 +1130,7 @@ async function refreshStudentNotes(studentId){
     <div style="padding:8px 12px;border-bottom:1px solid var(--paper);font-size:.85rem;display:flex;justify-content:space-between;gap:8px">
       <div style="flex:1">
         <div style="white-space:pre-wrap;color:var(--ink)">${n.content.replace(/</g,'&lt;')}</div>
-        <div style="font-size:.72rem;color:var(--muted);margin-top:4px">${n.author_name||"–"} · ${new Date(n.created_at).toLocaleString("ko-KR",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})}</div>
+        <div style="font-size:.72rem;color:var(--muted);margin-top:4px">${n.author_name||"–"} · ${new Date(n.created_at).toLocaleString("ko-KR",{timeZone:BROWSER_TZ,month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})}</div>
       </div>
       <button onclick="deleteStudentNote(${n.id},'${studentId}')" style="background:none;border:0;color:var(--muted);cursor:pointer;font-size:.85rem;padding:0 4px">🗑️</button>
     </div>
@@ -1190,7 +1192,7 @@ async function refreshTeacherNotes(){
       <div style="padding:8px 12px;border-bottom:1px solid var(--paper);font-size:.85rem;display:flex;justify-content:space-between;gap:8px">
         <div style="flex:1">
           <div style="white-space:pre-wrap;color:var(--ink)">${n.content.replace(/</g,'&lt;')}</div>
-          <div style="font-size:.72rem;color:var(--muted);margin-top:4px">${n.author_name||"–"} · ${new Date(n.created_at).toLocaleString("ko-KR",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})}</div>
+          <div style="font-size:.72rem;color:var(--muted);margin-top:4px">${n.author_name||"–"} · ${new Date(n.created_at).toLocaleString("ko-KR",{timeZone:BROWSER_TZ,month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})}</div>
         </div>
         <button onclick="deleteTeacherNote(${n.id})" style="background:none;border:0;color:var(--muted);cursor:pointer;font-size:.85rem;padding:0 4px">🗑️</button>
       </div>
@@ -1530,7 +1532,7 @@ async function loadGroupClasses(){
   const{data}=await sb.from("group_classes").select("name,start_at,duration_min,zoom_join_url,teachers(display_name)").order("start_at",{ascending:false}).limit(10);
   if(!data||data.length===0){$("gc-list").innerHTML="없음";return;}
   $("gc-list").innerHTML=data.map(g=>`<div style="padding:6px 0;border-bottom:1px solid var(--paper);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">
-    <span><b>${g.name}</b> · ${g.teachers?.display_name||"–"} · ${new Date(g.start_at).toLocaleString("ko-KR",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})} (${g.duration_min}분)</span>
+    <span><b>${g.name}</b> · ${g.teachers?.display_name||"–"} · ${new Date(g.start_at).toLocaleString("ko-KR",{timeZone:BROWSER_TZ,month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})} (${g.duration_min}분)</span>
     <span>${g.zoom_join_url?`<a href="${g.zoom_join_url}" target="_blank" style="color:var(--coral)">참가</a> · <button onclick="navigator.clipboard.writeText('${g.zoom_join_url}')" style="background:#fff;border:1px solid var(--line);padding:2px 8px;border-radius:6px;cursor:pointer;font-size:.78rem">복사</button>`:""}</span>
   </div>`).join("");
 }
@@ -1563,7 +1565,7 @@ async function loadHolidays(){
     
     const isPast = h.holiday_date < today;
     const isToday = h.holiday_date === today;
-    const dateLabel = new Date(h.holiday_date + "T00:00:00").toLocaleDateString("ko-KR", { 
+    const dateLabel = new Date(h.holiday_date + "T00:00:00").toLocaleDateString("ko-KR", {timeZone:BROWSER_TZ, 
       year:"numeric", month:"long", day:"numeric", weekday:"short" 
     });
     
@@ -1686,7 +1688,7 @@ window.showHolidayMakeups = async function(holidayId, holidayDate, holidayName){
       <div>
         ${cancelled.map(b => {
           const m = makeupMap[b.id];
-          const cancelledTime = new Date(b.start_at).toLocaleString("ko-KR", { month:"numeric", day:"numeric", hour:"2-digit", minute:"2-digit", weekday:"short" });
+          const cancelledTime = new Date(b.start_at).toLocaleString("ko-KR", {timeZone:BROWSER_TZ, month:"numeric", day:"numeric", hour:"2-digit", minute:"2-digit", weekday:"short" });
           return `<div style="padding:12px;border:1px solid var(--line);border-radius:10px;margin-bottom:10px;background:var(--paper)">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:8px">
               <div>
@@ -1696,7 +1698,7 @@ window.showHolidayMakeups = async function(holidayId, holidayDate, holidayName){
               ${m ? `
                 <div style="text-align:right;background:#e6f6ec;border:1px solid #2e7d32;padding:6px 10px;border-radius:6px;font-size:.82rem">
                   ✅ 보강 설정됨<br>
-                  <b>${new Date(m.start_at).toLocaleString("ko-KR", { month:"numeric", day:"numeric", hour:"2-digit", minute:"2-digit", weekday:"short" })}</b>
+                  <b>${new Date(m.start_at).toLocaleString("ko-KR", {timeZone:BROWSER_TZ, month:"numeric", day:"numeric", hour:"2-digit", minute:"2-digit", weekday:"short" })}</b>
                   <button onclick="cancelMakeup(${m.id}, ${b.id})" style="margin-left:6px;background:#fff;border:1px solid #d4351c;color:#d4351c;padding:2px 8px;border-radius:5px;cursor:pointer;font-size:.75rem">취소</button>
                 </div>
               ` : `

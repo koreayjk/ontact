@@ -916,8 +916,8 @@ async function gate(){
     location.href=map[profile.role]||"login.html"; return;
   }
   PROFILE=profile;
-  $("who").textContent=(profile.full_name||profile.email)+" · "+(profile.timezone||"");
-  $("my-tz").textContent = profile.timezone || "Asia/Seoul";
+  $("who").textContent=(profile.full_name||profile.email)+" · 🌐 "+Intl.DateTimeFormat().resolvedOptions().timeZone;
+  $("my-tz").textContent = Intl.DateTimeFormat().resolvedOptions().timeZone + " (자동 감지)";
   if(profile.role==="admin") $("admin-link").style.display="inline-block";
   applyLang();
   init();
@@ -969,7 +969,9 @@ async function loadTeachersCache(){
   sel.innerHTML = `<option value="">${t("all_teachers")}</option>` + TEACHERS_CACHE.map(x=>`<option value="${x.id}">${x.display_name}</option>`).join("");
 }
 
-const MY_TZ = () => PROFILE.timezone || "Asia/Seoul";
+// 🌐 매니저는 자기 현재 위치의 시간으로 봄 (브라우저 자동 감지)
+const BROWSER_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+const MY_TZ = () => BROWSER_TZ || PROFILE.timezone || "Asia/Seoul";
 const localeOf = () => LANG==="kr" ? "ko-KR" : "en-US";
 function fmtTimeIn(iso, tz){ return new Intl.DateTimeFormat(localeOf(),{timeZone:tz,hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(iso)); }
 function fmtTime(iso){ return fmtTimeIn(iso, MY_TZ()); }

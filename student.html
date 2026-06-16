@@ -1236,7 +1236,6 @@ $("payBtn").onclick=async()=>{
 
 /* ── 내 수업 (히어로 + 통계 + 진행률 + 주간 그리드) ── */
 // 🌐 시간대 — 브라우저 자동 감지 (사용자의 실제 현재 위치)
-// 학생의 프로필 timezone은 fallback일 뿐, 우선순위는 현재 위치
 const BROWSER_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
 const TZ = () => BROWSER_TZ || PROFILE.timezone || "Asia/Seoul";
 let MY_BOOKINGS=[], MY_ABS={}, MY_ENROLLS=[];
