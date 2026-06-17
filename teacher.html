@@ -168,7 +168,7 @@
 
     <details id="more-weeks-wrap">
       <summary style="background:var(--paper);padding:12px 16px;border-radius:8px;border:1px dashed var(--line);font-weight:700;cursor:pointer;list-style:none">
-        📅 더 많은 주 보기 (앞으로 12주)
+        <span data-t="more_weeks">📅 More weeks (next 12 weeks)</span>
       </summary>
       <div id="more-weeks-content" style="margin-top:10px"></div>
     </details>
@@ -318,6 +318,8 @@ const I18N = {
     review_this:"이번 주",
     orig_label:"원래:", new_label:"보강:", reason_label:"사유:",
     classes:"수업", hrs:"시간", min:"분", min_until:"분 후",
+    more_weeks:"📅 더 많은 주 보기 (앞으로 12주)", no_future_classes:"예정된 미래 수업이 없습니다.",
+    tz_auto:"(자동 감지)", cancelled_short:"취소", week_classes:"회 수업",
   }
 };
 let LANG = localStorage.getItem("ontact_lang") || "en";
@@ -349,7 +351,7 @@ async function gate(){
   }
   PROFILE=profile;
   $("who").textContent=(profile.full_name||profile.email)+" · 🌐 "+Intl.DateTimeFormat().resolvedOptions().timeZone;
-  $("my-tz").textContent = BROWSER_TZ + " (자동 감지)";
+  $("my-tz").textContent = BROWSER_TZ + " " + t("tz_auto");
   applyLang();
   init();
 }
@@ -532,7 +534,7 @@ function renderFutureWeeks(){
     
     const dayLines = weekBks.map(b=>{
       const stu = b.profiles ? (b.profiles.full_name || b.profiles.email) : t("student");
-      const cancelled = b.is_cancelled ? '<span style="color:#d4351c;font-weight:700;margin-left:6px">취소</span>' : '';
+      const cancelled = b.is_cancelled ? `<span style="color:#d4351c;font-weight:700;margin-left:6px">${t("cancelled_short")}</span>` : '';
       return `<div style="padding:6px 10px;border-bottom:1px solid var(--paper);font-size:.85rem">
         <span style="color:var(--muted);min-width:90px;display:inline-block">${dayHeader(b.start_at)}</span>
         <b>${fmtTime(b.start_at)}</b>
@@ -544,14 +546,14 @@ function renderFutureWeeks(){
     html += `<div style="margin-bottom:14px;border:1px solid var(--line);border-radius:8px;overflow:hidden">
       <div style="background:var(--paper);padding:10px 14px;font-weight:700;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
         <span>📅 ${rangeLabel}</span>
-        <span style="font-size:.85rem;color:var(--muted);font-weight:500"><b>${totalCount}</b>회 수업</span>
+        <span style="font-size:.85rem;color:var(--muted);font-weight:500"><b>${totalCount}</b>${t("week_classes")}</span>
       </div>
       <div style="background:#fff">${dayLines}</div>
     </div>`;
   }
   
   if(!hasAnyClass){
-    wrap.innerHTML = `<div class="empty" style="padding:20px;text-align:center">예정된 미래 수업이 없습니다.</div>`;
+    wrap.innerHTML = `<div class="empty" style="padding:20px;text-align:center">${t("no_future_classes")}</div>`;
   } else {
     wrap.innerHTML = html;
   }

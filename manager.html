@@ -920,7 +920,7 @@ async function gate(){
   }
   PROFILE=profile;
   $("who").textContent=(profile.full_name||profile.email)+" · 🌐 "+Intl.DateTimeFormat().resolvedOptions().timeZone;
-  $("my-tz").textContent = Intl.DateTimeFormat().resolvedOptions().timeZone + " (자동 감지)";
+  $("my-tz").textContent = Intl.DateTimeFormat().resolvedOptions().timeZone + (LANG === "kr" ? " (자동 감지)" : " (auto-detected)");
   if(profile.role==="admin") $("admin-link").style.display="inline-block";
   applyLang();
   init();
@@ -1106,7 +1106,7 @@ async function loadAbsences(){
     html += `<div style="background:#fef0f0;border:1px solid #d4351c;border-radius:8px;padding:10px 14px;margin-bottom:12px">
       <div style="font-weight:700;color:#d4351c;font-size:.88rem;margin-bottom:6px">⚠️ ${LANG === "kr" ? "최근 30일 자주 결석한 학생" : "Frequent absences (last 30 days)"}</div>
       <div style="font-size:.85rem">
-        ${frequentStudents.map(s => `${s.name} <b style="color:#d4351c">${s.count}건</b>`).join(" · ")}
+        ${frequentStudents.map(s => `${s.name} <b style="color:#d4351c">${s.count}${LANG === "kr" ? "건" : ""}</b>`).join(" · ")}
       </div>
     </div>`;
   }
@@ -1154,10 +1154,10 @@ function renderAbsenceCard(a, compact){
             📅 ${classTime}
           </div>
           <div style="font-size:.82rem;color:var(--muted);line-height:1.5">
-            💬 ${a.reason ? escapeM(a.reason) : "(사유 없음)"}
+            💬 ${a.reason ? escapeM(a.reason) : (LANG === "kr" ? "(사유 없음)" : "(No reason)")}
           </div>
           <div style="font-size:.75rem;color:var(--muted);margin-top:4px">
-            🕒 ${requestedAt} 신청
+            🕒 ${requestedAt} ${LANG === "kr" ? "신청" : "submitted"}
           </div>
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-start">
@@ -1178,8 +1178,12 @@ function renderAbsenceCard(a, compact){
 }
 
 window.decideAbsence = async function(absenceId, decision){
-  const decisionLabel = decision === "approved" ? "승인" : "거부";
-  if(!confirm(`이 결석계를 ${decisionLabel}하시겠습니까?\n\n${decision === "approved" ? "✅ 승인 시 해당 수업이 자동 취소됩니다." : "❌ 거부 시 수업은 그대로 진행됩니다."}`)) return;
+  const decisionLabel = decision === "approved" ? (LANG === "kr" ? "승인" : "approve") : (LANG === "kr" ? "거부" : "reject");
+  const decisionLabelDone = decision === "approved" ? (LANG === "kr" ? "승인" : "approved") : (LANG === "kr" ? "거부" : "rejected");
+  const confirmMsg = LANG === "kr"
+    ? `이 결석계를 ${decisionLabel}하시겠습니까?\n\n${decision === "approved" ? "✅ 승인 시 해당 수업이 자동 취소됩니다." : "❌ 거부 시 수업은 그대로 진행됩니다."}`
+    : `${decisionLabel === "approve" ? "Approve" : "Reject"} this absence request?\n\n${decision === "approved" ? "✅ Approving will automatically cancel the class." : "❌ Rejecting keeps the class as scheduled."}`;
+  if(!confirm(confirmMsg)) return;
   
   // 1. absences 업데이트
   const { error: absErr } = await sb.from("absences").update({
@@ -1188,7 +1192,7 @@ window.decideAbsence = async function(absenceId, decision){
   }).eq("id", absenceId);
   
   if(absErr){
-    alert("결석계 처리 실패: " + absErr.message);
+    alert((LANG === "kr" ? "결석계 처리 실패: " : "Absence processing failed: ") + absErr.message);
     return;
   }
   
@@ -1198,12 +1202,15 @@ window.decideAbsence = async function(absenceId, decision){
     if(abs?.booking_id){
       await sb.from("bookings").update({
         is_cancelled: true,
-        cancel_reason: "결석계 승인",
+        cancel_reason: LANG === "kr" ? "결석계 승인" : "Absence approved",
       }).eq("id", abs.booking_id);
     }
   }
   
-  alert(`✅ 결석계가 ${decisionLabel}되었습니다.`);
+  const successMsg = LANG === "kr" 
+    ? `✅ 결석계가 ${decisionLabelDone}되었습니다.` 
+    : `✅ Absence ${decisionLabelDone}.`;
+  alert(successMsg);
   loadAbsences();
   loadLive(); // 라이브 화면도 갱신
 };
