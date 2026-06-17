@@ -1135,7 +1135,7 @@ async function refreshSignupGate(){
       });
       
       if(testStarted || timedOut){
-        // [상태 3-C] 진단 진행 완료 → 결과 대기
+        // [상태 3-C] 진단 진행 완료 → 결과 대기 + 강사·시간 선택 가능
         gate.innerHTML = `
           <div style="background:linear-gradient(135deg,#f6f4ef 0%,#e8e2d5 100%);border:2px solid #6b7785;border-radius:18px;padding:24px 26px;margin-bottom:18px">
             <div style="display:flex;align-items:center;gap:14px;margin-bottom:10px;flex-wrap:wrap">
@@ -1145,9 +1145,15 @@ async function refreshSignupGate(){
                 <p style="color:#6b7785;font-size:.88rem;margin:0">${testStarted ? "진단이 진행됐습니다 (자동 감지됨)." : dateStr + " 진행됨."}</p>
               </div>
             </div>
-            <div style="background:#fff;border-radius:10px;padding:14px 16px;border:1px solid rgba(107,119,133,.2)">
-              <p style="font-size:.95rem;line-height:1.5;color:#12273d;margin:0;font-weight:600">📊 진단 결과를 곧 받아보실 예정입니다.</p>
-              <p style="font-size:.85rem;line-height:1.5;color:#6b7785;margin-top:6px;margin-bottom:0">매니저가 평가 결과를 정리하고 있습니다. 결과지가 준비되면 강사·시간 선택 화면으로 자동 전환됩니다.</p>
+            <div style="background:#fff;border-radius:10px;padding:14px 16px;border:1px solid rgba(107,119,133,.2);margin-bottom:12px">
+              <p style="font-size:.95rem;line-height:1.5;color:#12273d;margin:0;font-weight:600">📊 진단 결과지를 곧 받아보실 예정입니다.</p>
+              <p style="font-size:.85rem;line-height:1.5;color:#6b7785;margin-top:6px;margin-bottom:0">매니저가 평가 결과를 정리하고 있습니다.</p>
+            </div>
+            <div style="background:#fff;border-radius:10px;padding:14px 16px;border:1px solid rgba(46,125,50,.3)">
+              <p style="font-size:.88rem;color:#12273d;margin:0 0 10px;line-height:1.5">
+                💡 결과지를 기다리는 동안 <b>본 수업 강사·시간을 선택</b>하실 수 있어요.
+              </p>
+              <button onclick="showScheduleSelector(${ongoingEnr.id})" style="background:#12273d;color:#fff;border:0;padding:9px 18px;border-radius:8px;font-weight:700;cursor:pointer;font-size:.88rem">👨‍🏫 본 수업 강사·시간 선택하기 →</button>
             </div>
           </div>
         `;
@@ -1187,10 +1193,17 @@ async function refreshSignupGate(){
             </div>
           </div>
           <p style="font-size:.88rem;line-height:1.5;color:#12273d;margin-bottom:14px">예약 시간에 줌 미팅으로 입장하세요. 매니저(원어민 강사)와 1:1로 약 20분 진단을 진행합니다.</p>
-          <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
             ${myBooking.zoom_join_url 
               ? `<a href="${myBooking.zoom_join_url}" target="_blank" style="background:#2e7d32;color:#fff;text-decoration:none;padding:.7em 1.5em;border-radius:10px;font-weight:700;font-size:.95rem;display:inline-block">🎥 줌 미팅 입장 →</a>` 
               : `<span style="color:#d4351c;font-size:.85rem">⚠️ 줌 링크가 생성되지 않았습니다. 매니저에게 문의하세요.</span>`}
+          </div>
+          <div style="background:#fff;border-radius:10px;padding:14px 16px;border:1px solid rgba(46,125,50,.3)">
+            <p style="font-size:.88rem;color:#12273d;margin:0 0 10px;line-height:1.5">
+              💡 <b>이미 예약하셨다면 본 수업 강사·시간을 미리 선택하실 수 있어요.</b><br>
+              <span style="font-size:.8rem;color:#6b7785">1:1 진단 후 결과에 따라 매니저가 도와드릴 수도 있습니다.</span>
+            </p>
+            <button onclick="showScheduleSelector(${ongoingEnr.id})" style="background:#12273d;color:#fff;border:0;padding:9px 18px;border-radius:8px;font-weight:700;cursor:pointer;font-size:.88rem">👨‍🏫 본 수업 강사·시간 선택하기 →</button>
           </div>
         </div>
       `;
