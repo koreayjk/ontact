@@ -475,6 +475,9 @@ const $=(id)=>document.getElementById(id);
 const PRICE_PER_MONTH=60000;
 const WEEKDAYS_PER_WEEK=4; // 월화목금
 
+// 🌐 시간대 — 브라우저 자동 감지 (사용자의 실제 현재 위치)
+const BROWSER_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
 let USER=null, PROFILE=null;
 let TEACHERS=[], HOURS={}, OCCUPIED=new Set();
 let sel={teacher:null, months:1, startDate:null, times:new Set()};
@@ -1107,7 +1110,94 @@ async function refreshSignupGate(){
   ptBanner.innerHTML = "";
   
   if(ongoingEnr.status === "pending_levelcheck"){
-    // [상태 3] 결제 완료 + 1:1 레벨테스트 대기
+    // [상태 3] 결제 완료 + 1:1 레벨테스트 단계 — 예약 여부에 따라 분기
+    
+    // 본인의 1:1 레벨테스트 예약 조회
+    const { data: myBookings } = await sb.from("leveltest_bookings")
+      .select("id, start_at, zoom_join_url, student_joined_at, manager_joined_at, test_started_at")
+      .eq("student_id", USER.id)
+      .order("start_at", { ascending: false })
+      .limit(1);
+    
+    const myBooking = myBookings && myBookings[0];
+    
+    if(myBooking){
+      // ── 이미 예약함 → 시간 기반 분기 ──
+      const bookingTime = new Date(myBooking.start_at);
+      const now = new Date();
+      const minutesPast = (now - bookingTime) / 60000;
+      const testStarted = !!myBooking.test_started_at;
+      const timedOut = minutesPast >= 30;
+      
+      const dateStr = bookingTime.toLocaleString("ko-KR", { 
+        timeZone: BROWSER_TZ,
+        month:"long", day:"numeric", weekday:"short", hour:"2-digit", minute:"2-digit" 
+      });
+      
+      if(testStarted || timedOut){
+        // [상태 3-C] 진단 진행 완료 → 결과 대기
+        gate.innerHTML = `
+          <div style="background:linear-gradient(135deg,#f6f4ef 0%,#e8e2d5 100%);border:2px solid #6b7785;border-radius:18px;padding:24px 26px;margin-bottom:18px">
+            <div style="display:flex;align-items:center;gap:14px;margin-bottom:10px;flex-wrap:wrap">
+              <div style="font-size:2rem">⏳</div>
+              <div style="flex:1;min-width:200px">
+                <h3 style="font-family:'Fraunces',serif;font-size:1.25rem;font-weight:800;color:#12273d;margin-bottom:2px">레벨테스트 진행 완료</h3>
+                <p style="color:#6b7785;font-size:.88rem;margin:0">${testStarted ? "진단이 진행됐습니다 (자동 감지됨)." : dateStr + " 진행됨."}</p>
+              </div>
+            </div>
+            <div style="background:#fff;border-radius:10px;padding:14px 16px;border:1px solid rgba(107,119,133,.2)">
+              <p style="font-size:.95rem;line-height:1.5;color:#12273d;margin:0;font-weight:600">📊 진단 결과를 곧 받아보실 예정입니다.</p>
+              <p style="font-size:.85rem;line-height:1.5;color:#6b7785;margin-top:6px;margin-bottom:0">매니저가 평가 결과를 정리하고 있습니다. 결과지가 준비되면 강사·시간 선택 화면으로 자동 전환됩니다.</p>
+            </div>
+          </div>
+        `;
+        return;
+      }
+      
+      // [상태 3-B] 예약됨, 아직 진행 전 또는 진행 중
+      const isUpcoming = minutesPast < 0;
+      const minutesUntil = Math.abs(minutesPast);
+      
+      let timingHint = "";
+      if(isUpcoming){
+        if(minutesUntil < 60){
+          timingHint = `<span style="background:#c98a1f;color:#fff;padding:2px 8px;border-radius:6px;font-size:.75rem;font-weight:700;margin-left:6px">${Math.ceil(minutesUntil)}분 후</span>`;
+        } else if(minutesUntil < 60 * 24){
+          timingHint = `<span style="background:#6b7785;color:#fff;padding:2px 8px;border-radius:6px;font-size:.75rem;font-weight:700;margin-left:6px">${Math.ceil(minutesUntil/60)}시간 후</span>`;
+        }
+      } else {
+        timingHint = `<span style="background:#2e7d32;color:#fff;padding:2px 8px;border-radius:6px;font-size:.75rem;font-weight:700;margin-left:6px">🔴 진행 중</span>`;
+      }
+      
+      let waitingMsg = "";
+      if(myBooking.student_joined_at && !myBooking.manager_joined_at){
+        waitingMsg = `<p style="font-size:.82rem;color:#c98a1f;margin-top:6px;margin-bottom:0">⏳ 매니저 입장을 기다리는 중…</p>`;
+      } else if(myBooking.manager_joined_at && !myBooking.student_joined_at){
+        waitingMsg = `<p style="font-size:.82rem;color:#2e7d32;margin-top:6px;margin-bottom:0">✅ 매니저가 입장했습니다. 지금 들어오세요!</p>`;
+      }
+      
+      gate.innerHTML = `
+        <div style="background:linear-gradient(135deg,#e6f6ec 0%,#cce8d4 100%);border:2px solid #2e7d32;border-radius:18px;padding:24px 26px;margin-bottom:18px">
+          <div style="display:flex;align-items:center;gap:14px;margin-bottom:10px;flex-wrap:wrap">
+            <div style="font-size:2rem">🎙</div>
+            <div style="flex:1;min-width:200px">
+              <h3 style="font-family:'Fraunces',serif;font-size:1.25rem;font-weight:800;color:#12273d;margin-bottom:2px">레벨테스트 예약됨${timingHint}</h3>
+              <p style="color:#12273d;font-size:.95rem;margin:0;font-weight:600">📅 ${dateStr}</p>
+              ${waitingMsg}
+            </div>
+          </div>
+          <p style="font-size:.88rem;line-height:1.5;color:#12273d;margin-bottom:14px">예약 시간에 줌 미팅으로 입장하세요. 매니저(원어민 강사)와 1:1로 약 20분 진단을 진행합니다.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            ${myBooking.zoom_join_url 
+              ? `<a href="${myBooking.zoom_join_url}" target="_blank" style="background:#2e7d32;color:#fff;text-decoration:none;padding:.7em 1.5em;border-radius:10px;font-weight:700;font-size:.95rem;display:inline-block">🎥 줌 미팅 입장 →</a>` 
+              : `<span style="color:#d4351c;font-size:.85rem">⚠️ 줌 링크가 생성되지 않았습니다. 매니저에게 문의하세요.</span>`}
+          </div>
+        </div>
+      `;
+      return;
+    }
+    
+    // [상태 3-A] 예약 안 함 → 예약 안내 박스
     gate.innerHTML = `
       <div style="background:linear-gradient(135deg,#fff7e6 0%,#ffe9c7 100%);border:2px solid #c98a1f;border-radius:18px;padding:24px 26px;margin-bottom:18px">
         <div style="display:flex;align-items:center;gap:14px;margin-bottom:10px;flex-wrap:wrap">
@@ -1122,7 +1212,6 @@ async function refreshSignupGate(){
         </p>
         <button class="lt-btn" id="gate-lt-btn" style="background:#12273d;color:#fff;border:0;padding:.8em 1.7em;border-radius:10px;font-weight:700;cursor:pointer;font-size:1rem">🎙 레벨테스트 예약하기 →</button>
       </div>
-      <p style="text-align:center;font-size:.85rem;color:var(--muted)">아래 <b>📅 내 수업</b> 탭에서도 예약하실 수 있어요.</p>
     `;
     const btn = $("gate-lt-btn");
     if(btn) btn.onclick = openLtPicker;
@@ -1315,8 +1404,6 @@ function expandSlots(startHM,endHM,stepMin){
 }
 
 /* ── 내 수업 (히어로 + 통계 + 진행률 + 주간 그리드) ── */
-// 🌐 시간대 — 브라우저 자동 감지 (사용자의 실제 현재 위치)
-const BROWSER_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
 const TZ = () => BROWSER_TZ || PROFILE.timezone || "Asia/Seoul";
 let MY_BOOKINGS=[], MY_ABS={}, MY_ENROLLS=[];
 
