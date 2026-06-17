@@ -2,12 +2,7 @@
   ============================================================
   온택 채팅 위젯 — chat-widget.html
   ============================================================
-  포함 방법: 각 페이지(student/teacher/manager/admin)의 </body> 직전에:
-    <script>fetch('chat-widget.html').then(r=>r.text()).then(h=>document.body.insertAdjacentHTML('beforeend',h));</script>
-
-  요구 사항:
-   - window.sb (Supabase 클라이언트) 이미 초기화됨
-   - 사용자 로그인 상태 (auth.getUser() 호출 가능)
+  역할별 언어: manager/teacher → 영어, student/admin → 한국어
 -->
 
 <style>
@@ -232,7 +227,6 @@
     overflow-wrap: break-word;
     white-space: pre-wrap;
     box-sizing: border-box;
-    /* admin.html의 .msg 충돌 방지 */
     margin: 0;
     min-height: auto;
     height: auto;
@@ -341,21 +335,19 @@
 </style>
 
 <div class="chat-dock hidden" id="chat-dock">
-  <!-- 채팅 목록 패널 (펼침 상태) -->
   <div class="chat-list-panel" id="chat-list-panel">
     <div class="head">
-      <h3>💬 채팅</h3>
+      <h3 id="chat-panel-title">💬 채팅</h3>
       <button onclick="toggleChatDock()">▼</button>
     </div>
     <div class="search">
       <input type="search" id="chat-search" placeholder="🔎 이름·이메일로 검색해 새 대화 시작">
     </div>
     <div class="list" id="chat-list">
-      <div class="empty">불러오는 중…</div>
+      <div class="empty" id="chat-loading-text">불러오는 중…</div>
     </div>
   </div>
 
-  <!-- 채팅 창 -->
   <div class="chat-room" id="chat-room">
     <div class="head">
       <button onclick="closeChatRoom()">←</button>
@@ -367,62 +359,166 @@
     </div>
     <div class="messages" id="chat-messages"></div>
     <div class="input-area">
-      <textarea id="chat-input" placeholder="메시지 입력… (Enter 전송)" rows="1"></textarea>
-      <button id="chat-send" onclick="sendChatMessage()">전송</button>
+      <textarea id="chat-input" rows="1"></textarea>
+      <button id="chat-send" onclick="sendChatMessage()"></button>
     </div>
   </div>
 
-  <!-- 최소화 탭 (오른쪽 끝) -->
   <button class="chat-tab" id="chat-tab" onclick="toggleChatDock()">
-    💬 채팅
+    <span id="chat-tab-label">💬 채팅</span>
     <span class="badge" id="chat-total-unread" style="display:none">0</span>
   </button>
 </div>
 
-<!-- 단체 발송 모달 -->
 <div id="chat-broadcast-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center;padding:20px">
   <div style="background:#fff;border-radius:14px;padding:24px;max-width:480px;width:100%;max-height:80vh;display:flex;flex-direction:column;font-family:'Hanken Grotesk',sans-serif">
-    <h3 id="chat-bc-title" style="font-size:1.15rem;margin-bottom:6px;color:#12273d">📢 전체 공지 보내기</h3>
-    <p id="chat-bc-sub" style="font-size:.82rem;color:#6b7785;margin-bottom:14px">모든 대상에게 1:1 메시지로 자동 발송됩니다.</p>
-    <textarea id="chat-bc-content" placeholder="공지 내용을 입력하세요…" style="width:100%;border:1px solid #e3ddd0;border-radius:10px;padding:12px;font:inherit;font-size:.9rem;resize:vertical;min-height:120px;margin-bottom:10px;box-sizing:border-box"></textarea>
+    <h3 id="chat-bc-title" style="font-size:1.15rem;margin-bottom:6px;color:#12273d"></h3>
+    <p id="chat-bc-sub" style="font-size:.82rem;color:#6b7785;margin-bottom:14px"></p>
+    <textarea id="chat-bc-content" style="width:100%;border:1px solid #e3ddd0;border-radius:10px;padding:12px;font:inherit;font-size:.9rem;resize:vertical;min-height:120px;margin-bottom:10px;box-sizing:border-box"></textarea>
     <div id="chat-bc-info" style="font-size:.78rem;color:#c98a1f;background:#fff7e6;border:1px solid #c98a1f;padding:8px 10px;border-radius:6px;margin-bottom:14px"></div>
     <div style="display:flex;gap:8px;justify-content:flex-end">
-      <button onclick="closeBroadcastModal()" style="background:#fff;border:1px solid #6b7785;color:#6b7785;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:600;font-size:.85rem">취소</button>
-      <button id="chat-bc-send" onclick="confirmBroadcast()" style="background:#c98a1f;color:#fff;border:0;padding:8px 18px;border-radius:8px;cursor:pointer;font-weight:700;font-size:.85rem">📢 발송</button>
+      <button id="chat-bc-cancel" onclick="closeBroadcastModal()" style="background:#fff;border:1px solid #6b7785;color:#6b7785;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:600;font-size:.85rem"></button>
+      <button id="chat-bc-send" onclick="confirmBroadcast()" style="background:#c98a1f;color:#fff;border:0;padding:8px 18px;border-radius:8px;cursor:pointer;font-weight:700;font-size:.85rem"></button>
     </div>
   </div>
 </div>
 
 <script>
 (function(){
-  // ============================================================
-  // ONTACT CHAT WIDGET
-  // ============================================================
   const _sb = window.sb;
   if(!_sb){ console.warn("[chat] window.sb not found. Chat disabled."); return; }
 
-  let _me = null;        // current user profile { id, role, full_name, email }
-  let _conversations = []; // [{ id, type, other_user, unread, last_message_preview, last_message_at }]
+  let _me = null;
+  let _conversations = [];
   let _activeConvId = null;
-  let _messages = [];    // current room messages
-  let _possibleContacts = []; // 채팅 가능한 사람들
+  let _messages = [];
+  let _possibleContacts = [];
   let _realtimeChannel = null;
   let _presenceChannel = null;
-  let _onlineUsers = new Set(); // 온라인 사용자 id들
+  let _onlineUsers = new Set();
 
-  // 라벨
-  const ROLE_LABEL_KR = { student:"학생", teacher:"강사", manager:"매니저", admin:"총관리자" };
+  // ============================================================
+  // 다국어 — 매니저/강사는 영어, 학생/관리자는 한국어
+  // ============================================================
+  let _isEn = false; // init에서 결정됨
+  
+  const I18N = {
+    kr: {
+      chatTitle: "💬 채팅",
+      searchPh: "🔎 이름·이메일로 검색해 새 대화 시작",
+      loading: "불러오는 중…",
+      inputPh: "메시지 입력… (Enter 전송)",
+      sendBtn: "전송",
+      bcTitle: "📢 전체 공지 보내기",
+      bcSub: "모든 대상에게 1:1 메시지로 자동 발송됩니다.",
+      bcContentPh: "공지 내용을 입력하세요…",
+      cancel: "취소",
+      bcSend: "📢 발송",
+      // 역할 라벨
+      roleStudent: "학생", roleTeacher: "강사", roleManager: "매니저", roleAdmin: "총관리자",
+      // 카테고리 라벨
+      ongoingConvs: "진행 중인 대화",
+      contactsManager: "매니저",
+      contactsAdminTeacher: "관리자 · 강사",
+      contactsAvailable: "연락 가능",
+      searchResults: "검색 결과",
+      // 빈 상태
+      noSearchResults: (q) => `"${q}" 검색 결과가 없습니다.`,
+      noConvs: "아직 대화가 없습니다",
+      startConvHint: "위 검색창에 이름을 입력해<br>새 대화를 시작하세요.",
+      startChat: "대화를 시작해보세요",
+      noMessages: "아직 메시지가 없습니다. 먼저 인사를 보내보세요.",
+      // 단체 발송
+      broadcastBtnStudents: "📢 전체 학생에게 공지",
+      broadcastBtnTeachers: "📢 전체 강사에게 공지",
+      broadcastTitleStudents: "📢 전체 학생에게 공지",
+      broadcastTitleTeachers: "📢 전체 강사에게 공지",
+      broadcastSubStudents: "모든 학생에게 1:1 메시지로 자동 발송됩니다.",
+      broadcastSubTeachers: "모든 강사에게 1:1 메시지로 자동 발송됩니다.",
+      broadcastInfoStudents: (n) => `현재 등록된 학생: <b>${n}명</b>. 발송 시 각 학생의 1:1 대화방에 "📢 단체 공지" 표시와 함께 도착합니다.`,
+      broadcastInfoTeachers: (n) => `현재 등록된 강사: <b>${n}명</b>. 발송 시 각 강사의 1:1 대화방에 "📢 단체 공지" 표시와 함께 도착합니다.`,
+      broadcastConfirmStudents: (n, content) => `${n}명의 학생에게 다음 공지를 발송합니다.\n\n"${content}"\n\n진행할까요?`,
+      broadcastConfirmTeachers: (n, content) => `${n}명의 강사에게 다음 공지를 발송합니다.\n\n"${content}"\n\n진행할까요?`,
+      broadcastEnter: "공지 내용을 입력하세요.",
+      broadcastSending: "발송 중…",
+      broadcastSendFailed: "발송 실패: ",
+      broadcastDone: (n) => `✅ ${n}명에게 발송 완료`,
+      // 메시지
+      broadcastLabel: "📢 단체 공지",
+      online: "온라인",
+      offline: "오프라인",
+      sendFailed: "전송 실패: ",
+      convCreateFailed: "대화 방 생성 실패. 권한이 없는 상대일 수 있습니다.",
+      // 날짜
+      dateLocale: "ko-KR",
+    },
+    en: {
+      chatTitle: "💬 Chat",
+      searchPh: "🔎 Search by name or email to start a new chat",
+      loading: "Loading…",
+      inputPh: "Type a message… (Enter to send)",
+      sendBtn: "Send",
+      bcTitle: "📢 Send Broadcast Notice",
+      bcSub: "Will be automatically sent as 1:1 messages to all recipients.",
+      bcContentPh: "Enter notice content…",
+      cancel: "Cancel",
+      bcSend: "📢 Send",
+      roleStudent: "Student", roleTeacher: "Teacher", roleManager: "Manager", roleAdmin: "Admin",
+      ongoingConvs: "Ongoing chats",
+      contactsManager: "Manager",
+      contactsAdminTeacher: "Admin · Teachers",
+      contactsAvailable: "Available contacts",
+      searchResults: "Search results",
+      noSearchResults: (q) => `No results for "${q}".`,
+      noConvs: "No chats yet",
+      startConvHint: "Use the search above to find<br>someone and start a chat.",
+      startChat: "Start a conversation",
+      noMessages: "No messages yet. Say hi first.",
+      broadcastBtnStudents: "📢 Notice to all students",
+      broadcastBtnTeachers: "📢 Notice to all teachers",
+      broadcastTitleStudents: "📢 Notice to all students",
+      broadcastTitleTeachers: "📢 Notice to all teachers",
+      broadcastSubStudents: "Will be sent as 1:1 messages to all students.",
+      broadcastSubTeachers: "Will be sent as 1:1 messages to all teachers.",
+      broadcastInfoStudents: (n) => `Total students: <b>${n}</b>. Each will receive this in their 1:1 chat marked as "📢 Broadcast".`,
+      broadcastInfoTeachers: (n) => `Total teachers: <b>${n}</b>. Each will receive this in their 1:1 chat marked as "📢 Broadcast".`,
+      broadcastConfirmStudents: (n, content) => `Send this notice to ${n} students?\n\n"${content}"\n\nContinue?`,
+      broadcastConfirmTeachers: (n, content) => `Send this notice to ${n} teachers?\n\n"${content}"\n\nContinue?`,
+      broadcastEnter: "Please enter the notice content.",
+      broadcastSending: "Sending…",
+      broadcastSendFailed: "Send failed: ",
+      broadcastDone: (n) => `✅ Sent to ${n} recipients`,
+      broadcastLabel: "📢 Broadcast",
+      online: "Online",
+      offline: "Offline",
+      sendFailed: "Send failed: ",
+      convCreateFailed: "Could not create conversation. You may not have permission to chat with this person.",
+      dateLocale: "en-US",
+    }
+  };
+  
+  let T = I18N.kr; // 기본 한국어, init에서 결정
+  
+  // 역할 라벨 가져오기
+  function roleLabel(role){
+    return T["role" + role.charAt(0).toUpperCase() + role.slice(1)] || role;
+  }
 
   // ─── 초기화 ───
   async function init(){
     const { data:{ user } } = await _sb.auth.getUser();
-    if(!user){ return; } // 비로그인이면 위젯 안 보임
+    if(!user){ return; }
 
     const { data:profile } = await _sb.from("profiles").select("id,role,full_name,email").eq("id",user.id).single();
     if(!profile){ return; }
 
     _me = profile;
-    // 위젯 즉시 표시 (이후 작업이 실패해도 채팅 탭은 보임)
+    
+    // 매니저/강사는 영어, 그 외는 한국어
+    _isEn = (_me.role === "manager" || _me.role === "teacher");
+    T = _isEn ? I18N.en : I18N.kr;
+    applyI18N();
+    
     document.getElementById("chat-dock").classList.remove("hidden");
 
     try {
@@ -435,15 +531,21 @@
       setupInputHandler();
     } catch(e) {
       console.error("[chat] init partial failure:", e);
-      // 위젯은 보임 — 부분 기능만 안 될 수 있음
     }
   }
+  
+  // ─── i18n 적용 (정적 라벨) ───
+  function applyI18N(){
+    document.getElementById("chat-panel-title").textContent = T.chatTitle;
+    document.getElementById("chat-tab-label").textContent = T.chatTitle;
+    document.getElementById("chat-search").placeholder = T.searchPh;
+    document.getElementById("chat-loading-text").textContent = T.loading;
+    document.getElementById("chat-input").placeholder = T.inputPh;
+    document.getElementById("chat-send").textContent = T.sendBtn;
+    document.getElementById("chat-bc-content").placeholder = T.bcContentPh;
+    document.getElementById("chat-bc-cancel").textContent = T.cancel;
+  }
 
-  // ─── 본인이 채팅할 수 있는 사람 목록 ───
-  // 권한 매트릭스:
-  //   student ↔ admin
-  //   teacher ↔ manager
-  //   admin   ↔ manager
   async function loadPossibleContacts(){
     let roles = [];
     if(_me.role === "student") roles = ["admin"];
@@ -456,7 +558,6 @@
     _possibleContacts = data || [];
   }
 
-  // ─── 본인이 참여한 대화방 모두 로드 ───
   async function loadConversations(){
     const { data:convs } = await _sb.from("conversations")
       .select("id, type, participant_a, participant_b, last_message_at, last_message_preview")
@@ -465,18 +566,15 @@
 
     if(!convs || convs.length === 0){ _conversations = []; return; }
 
-    // 상대방 ID 모으기
     const otherIds = convs.map(c => c.participant_a === _me.id ? c.participant_b : c.participant_a);
     const { data:others } = await _sb.from("profiles").select("id, role, full_name, email").in("id", otherIds);
     const otherMap = {};
     (others || []).forEach(p => otherMap[p.id] = p);
 
-    // 읽음 기록
     const { data:reads } = await _sb.from("message_reads").select("conversation_id, last_read_at").eq("user_id", _me.id);
     const readMap = {};
     (reads || []).forEach(r => readMap[r.conversation_id] = r.last_read_at);
 
-    // 안 읽은 메시지 수 계산을 위해 최근 메시지 가져오기
     const convIds = convs.map(c => c.id);
     const { data:recentMsgs } = await _sb.from("messages")
       .select("conversation_id, sender_id, created_at")
@@ -505,28 +603,20 @@
     });
   }
 
-  // ─── 채팅 목록 그리기 ───
   function renderChatList(){
     const searchQ = (document.getElementById("chat-search").value || "").trim().toLowerCase();
     const listEl = document.getElementById("chat-list");
 
-    // 검색 매치 헬퍼
     const matchesQ = (p) => {
       if(!searchQ) return true;
       return (`${p.full_name || ""} ${p.email || ""}`).toLowerCase().includes(searchQ);
     };
 
-    // 안 읽음 표시
     const totalUnread = _conversations.reduce((s, c) => s + c.unread, 0);
     const badge = document.getElementById("chat-total-unread");
     if(totalUnread > 0){ badge.textContent = totalUnread; badge.style.display = "inline-block"; }
     else { badge.style.display = "none"; }
 
-    // 역할별 "항상 표시" 사람들 결정
-    // - admin: 매니저만 항상
-    // - manager: 관리자 + 모든 강사 항상
-    // - teacher: 매니저 (대화방으로 처리, "항상 표시" 불필요)
-    // - student: 학생은 이 함수 호출 안 됨 (바로 1:1 창)
     let alwaysVisibleRoles = [];
     if(_me.role === "admin") alwaysVisibleRoles = ["manager"];
     else if(_me.role === "manager") alwaysVisibleRoles = ["admin", "teacher"];
@@ -535,14 +625,9 @@
     const alwaysVisible = _possibleContacts.filter(p => alwaysVisibleRoles.includes(p.role));
     const existingOtherIds = new Set(_conversations.map(c => c.other.id));
 
-    // 기존 대화 (검색 적용)
     const filteredConvs = _conversations.filter(c => matchesQ(c.other));
+    const visibleNoConvYet = alwaysVisible.filter(p => !existingOtherIds.has(p.id) && matchesQ(p));
 
-    // "항상 보이는 사람들 중 아직 대화 없는 사람" — 검색 매치한 것만
-    const visibleNoConvYet = alwaysVisible
-      .filter(p => !existingOtherIds.has(p.id) && matchesQ(p));
-
-    // 검색 중일 때만 보이는 "기타 가능 연락처" (admin의 경우 학생들, manager의 경우 없음, etc)
     let extraSearchResults = [];
     if(searchQ){
       const alwaysVisibleIds = new Set(alwaysVisible.map(p => p.id));
@@ -555,46 +640,41 @@
 
     let html = "";
 
-    // 단체 발송 버튼 (admin/manager만, 검색 안 할 때만 표시)
     if(!searchQ && (_me.role === "admin" || _me.role === "manager")){
-      const broadcastLabel = _me.role === "admin" ? "전체 학생에게 공지" : "전체 강사에게 공지";
+      const broadcastLabel = _me.role === "admin" ? T.broadcastBtnStudents : T.broadcastBtnTeachers;
       html += `<div style="padding:10px 14px;border-bottom:1px solid #f6f4ef">
         <button id="chat-broadcast-btn" style="width:100%;background:#fff7e6;border:1.5px dashed #c98a1f;color:#c98a1f;padding:9px;border-radius:8px;font-weight:700;cursor:pointer;font-size:.85rem">
-          📢 ${broadcastLabel}
+          ${broadcastLabel}
         </button>
       </div>`;
     }
 
-    // 진행 중인 대화
     if(filteredConvs.length > 0){
-      html += `<div class="group-label">진행 중인 대화</div>`;
+      html += `<div class="group-label">${T.ongoingConvs}</div>`;
       html += filteredConvs.map(c => convRowHTML(c.other, c.last_message_preview, c.unread, c.id)).join("");
     }
 
-    // 항상 보이는 사람들 (아직 대화 없는)
     if(visibleNoConvYet.length > 0){
-      const label = _me.role === "admin" ? "매니저" : 
-                    _me.role === "manager" ? "관리자 · 강사" : 
-                    "연락 가능";
+      const label = _me.role === "admin" ? T.contactsManager : 
+                    _me.role === "manager" ? T.contactsAdminTeacher : 
+                    T.contactsAvailable;
       html += `<div class="group-label">${label}</div>`;
       html += visibleNoConvYet.map(p => convRowHTML(p, "", 0, null)).join("");
     }
 
-    // 검색 결과 (기타)
     if(extraSearchResults.length > 0){
-      html += `<div class="group-label">검색 결과</div>`;
+      html += `<div class="group-label">${T.searchResults}</div>`;
       html += extraSearchResults.map(p => convRowHTML(p, "", 0, null)).join("");
     }
 
-    // 빈 화면 안내
     if(html === "" || (!searchQ && filteredConvs.length === 0 && visibleNoConvYet.length === 0 && !(_me.role === "admin" || _me.role === "manager"))){
       if(searchQ){
-        html += `<div class="empty">"${escapeHtml(searchQ)}" 검색 결과가 없습니다.</div>`;
+        html += `<div class="empty">${T.noSearchResults(escapeHtml(searchQ))}</div>`;
       } else if(_conversations.length === 0 && visibleNoConvYet.length === 0){
         html += `<div class="empty" style="padding:30px 20px;line-height:1.6">
           <div style="font-size:2rem;margin-bottom:10px">💬</div>
-          <b style="color:#12273d">아직 대화가 없습니다</b><br>
-          <span style="font-size:.82rem">위 검색창에 이름을 입력해<br>새 대화를 시작하세요.</span>
+          <b style="color:#12273d">${T.noConvs}</b><br>
+          <span style="font-size:.82rem">${T.startConvHint}</span>
         </div>`;
       }
     }
@@ -604,7 +684,6 @@
       row.onclick = () => openChatRoom(row.dataset.otherId, row.dataset.convId === "null" ? null : Number(row.dataset.convId));
     });
 
-    // 단체 발송 버튼 핸들러
     const broadcastBtn = document.getElementById("chat-broadcast-btn");
     if(broadcastBtn){
       broadcastBtn.onclick = openBroadcastModal;
@@ -612,12 +691,12 @@
   }
 
   function convRowHTML(other, preview, unread, convId){
-    const roleText = ROLE_LABEL_KR[other.role] || other.role;
-    const previewText = preview ? escapeHtml(preview) : "<i style='color:#b8c4d3'>대화를 시작해보세요</i>";
+    const roleText = roleLabel(other.role);
+    const previewText = preview ? escapeHtml(preview) : `<i style='color:#b8c4d3'>${T.startChat}</i>`;
     const isOnline = _onlineUsers.has(other.id);
     const dot = isOnline 
-      ? `<span class="online-dot" title="온라인"></span>`
-      : `<span class="offline-dot" title="오프라인"></span>`;
+      ? `<span class="online-dot" title="${T.online}"></span>`
+      : `<span class="offline-dot" title="${T.offline}"></span>`;
     return `<div class="conv-row" data-other-id="${other.id}" data-conv-id="${convId || 'null'}">
       <div class="who">
         <b>${escapeHtml(other.full_name || other.email || "—")}${dot}<span class="role-tag">${roleText}</span></b>
@@ -631,12 +710,10 @@
     return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
   }
 
-  // ─── 채팅방 열기 (기존 또는 신규 대화) ───
   async function openChatRoom(otherUserId, convId){
-    // 신규 대화면 conversation 먼저 만들기
     if(!convId){
       convId = await ensureConversation(otherUserId);
-      if(!convId){ alert("대화 방 생성 실패. 권한이 없는 상대일 수 있습니다."); return; }
+      if(!convId){ alert(T.convCreateFailed); return; }
     }
     _activeConvId = convId;
     document.getElementById("chat-list-panel").classList.remove("open");
@@ -645,9 +722,8 @@
     const conv = _conversations.find(c => c.id === convId);
     const other = conv ? conv.other : _possibleContacts.find(p => p.id === otherUserId);
     document.getElementById("chat-room-name").textContent = other?.full_name || other?.email || "—";
-    document.getElementById("chat-room-role").textContent = ROLE_LABEL_KR[other?.role] || other?.role || "";
+    document.getElementById("chat-room-role").textContent = roleLabel(other?.role || "");
 
-    // 온라인 상태 점 표시
     if(other){
       const isOnline = _onlineUsers.has(other.id);
       const roleEl = document.getElementById("chat-room-role");
@@ -655,31 +731,27 @@
       if(oldDot) oldDot.remove();
       const dot = document.createElement("span");
       dot.className = isOnline ? "online-dot" : "offline-dot";
-      dot.title = isOnline ? "온라인" : "오프라인";
+      dot.title = isOnline ? T.online : T.offline;
       roleEl.parentElement.appendChild(dot);
     }
 
     await loadMessages(convId);
     await markAsRead(convId);
-    // 새로 만든 대화는 _conversations에 아직 없을 수 있음 → 다시 로드
     await loadConversations();
     renderChatList();
   }
 
-  // ─── 두 사람 사이 대화방 보장 (없으면 생성) ───
   async function ensureConversation(otherUserId){
     if(!otherUserId) return null;
-    // role 매트릭스에 따라 타입 결정
     const myRole = _me.role;
     const otherProfile = _possibleContacts.find(p => p.id === otherUserId);
     if(!otherProfile) return null;
     const otherRole = otherProfile.role;
 
     let type = null;
-    let pa, pb; // participant_a, participant_b (alphabetic UUID 순)
+    let pa, pb;
     if((myRole === "student" && otherRole === "admin") || (myRole === "admin" && otherRole === "student")){
       type = "student_admin";
-      // a = student, b = admin
       pa = myRole === "student" ? _me.id : otherUserId;
       pb = myRole === "admin" ? _me.id : otherUserId;
     } else if((myRole === "teacher" && otherRole === "manager") || (myRole === "manager" && otherRole === "teacher")){
@@ -688,13 +760,11 @@
       pb = myRole === "manager" ? _me.id : otherUserId;
     } else if((myRole === "admin" && otherRole === "manager") || (myRole === "manager" && otherRole === "admin")){
       type = "admin_manager";
-      // admin이 a, manager가 b (일관성)
       pa = myRole === "admin" ? _me.id : otherUserId;
       pb = myRole === "manager" ? _me.id : otherUserId;
     }
     if(!type) return null;
 
-    // 이미 있으면 가져오기
     const { data:existing } = await _sb.from("conversations")
       .select("id")
       .eq("type", type)
@@ -704,7 +774,6 @@
 
     if(existing){ return existing.id; }
 
-    // 새로 생성
     const { data:created, error } = await _sb.from("conversations")
       .insert({ type, participant_a: pa, participant_b: pb })
       .select("id")
@@ -714,7 +783,6 @@
     return created.id;
   }
 
-  // ─── 메시지 로드 ───
   async function loadMessages(convId){
     const { data } = await _sb.from("messages")
       .select("id, sender_id, content, created_at, broadcast_id")
@@ -731,15 +799,15 @@
     let lastDate = "";
     _messages.forEach(m => {
       const d = new Date(m.created_at);
-      const dateStr = d.toLocaleDateString("ko-KR", { month:"long", day:"numeric", weekday:"short" });
+      const dateStr = d.toLocaleDateString(T.dateLocale, { month:"long", day:"numeric", weekday:"short" });
       if(dateStr !== lastDate){
         html += `<div class="date-divider">─ ${dateStr} ─</div>`;
         lastDate = dateStr;
       }
       const mine = m.sender_id === _me.id;
-      const timeStr = d.toLocaleTimeString("ko-KR", { hour:"2-digit", minute:"2-digit" });
+      const timeStr = d.toLocaleTimeString(T.dateLocale, { hour:"2-digit", minute:"2-digit" });
       const broadcastLabel = m.broadcast_id 
-        ? `<div style="font-size:.7rem;color:#c98a1f;font-weight:700;margin-bottom:3px">📢 단체 공지</div>`
+        ? `<div style="font-size:.7rem;color:#c98a1f;font-weight:700;margin-bottom:3px">${T.broadcastLabel}</div>`
         : "";
       const bgColor = m.broadcast_id 
         ? (mine ? "background:#c98a1f" : "background:#fff7e6;border-color:#c98a1f")
@@ -747,12 +815,11 @@
       html += `<div class="msg ${mine ? "mine" : "theirs"}" style="${bgColor}">${broadcastLabel}${escapeHtml(m.content)}</div>`;
       html += `<div class="msg-time" style="${mine ? "text-align:right" : "text-align:left"}">${timeStr}</div>`;
     });
-    if(!html) html = `<div class="empty" style="margin:auto;color:#6b7785">아직 메시지가 없습니다. 먼저 인사를 보내보세요.</div>`;
+    if(!html) html = `<div class="empty" style="margin:auto;color:#6b7785">${T.noMessages}</div>`;
     el.innerHTML = html;
     el.scrollTop = el.scrollHeight;
   }
 
-  // ─── 메시지 전송 ───
   window.sendChatMessage = async function(){
     if(!_activeConvId) return;
     const input = document.getElementById("chat-input");
@@ -765,24 +832,30 @@
       content,
     });
     document.getElementById("chat-send").disabled = false;
-    if(error){ alert("전송 실패: " + error.message); return; }
+    if(error){ alert(T.sendFailed + error.message); return; }
     input.value = "";
     input.style.height = "36px";
-    // Realtime이 메시지 도착 처리하니까 여기서 추가 작업 불필요
   };
 
-  // ─── 단체 발송 — admin/manager용 ───
   window.openBroadcastModal = function(){
     const modal = document.getElementById("chat-broadcast-modal");
     const title = document.getElementById("chat-bc-title");
     const sub = document.getElementById("chat-bc-sub");
     const info = document.getElementById("chat-bc-info");
+    const sendBtn = document.getElementById("chat-bc-send");
     const targetRole = _me.role === "admin" ? "student" : "teacher";
-    const targetLabel = _me.role === "admin" ? "학생" : "강사";
     const count = _possibleContacts.filter(p => p.role === targetRole).length;
-    title.textContent = `📢 전체 ${targetLabel}에게 공지`;
-    sub.textContent = `모든 ${targetLabel}에게 1:1 메시지로 자동 발송됩니다.`;
-    info.innerHTML = `현재 등록된 ${targetLabel}: <b>${count}명</b>. 발송 시 각 ${targetLabel}의 1:1 대화방에 "📢 단체 공지" 표시와 함께 도착합니다.`;
+    
+    if(targetRole === "student"){
+      title.textContent = T.broadcastTitleStudents;
+      sub.textContent = T.broadcastSubStudents;
+      info.innerHTML = T.broadcastInfoStudents(count);
+    } else {
+      title.textContent = T.broadcastTitleTeachers;
+      sub.textContent = T.broadcastSubTeachers;
+      info.innerHTML = T.broadcastInfoTeachers(count);
+    }
+    sendBtn.textContent = T.bcSend;
     document.getElementById("chat-bc-content").value = "";
     modal.style.display = "flex";
   };
@@ -793,15 +866,19 @@
 
   window.confirmBroadcast = async function(){
     const content = document.getElementById("chat-bc-content").value.trim();
-    if(!content){ alert("공지 내용을 입력하세요."); return; }
+    if(!content){ alert(T.broadcastEnter); return; }
     const targetRole = _me.role === "admin" ? "student" : "teacher";
-    const targetLabel = _me.role === "admin" ? "학생" : "강사";
     const count = _possibleContacts.filter(p => p.role === targetRole).length;
-    if(!confirm(`${count}명의 ${targetLabel}에게 다음 공지를 발송합니다.\n\n"${content.substring(0,100)}${content.length>100?"…":""}"\n\n진행할까요?`)) return;
+    
+    const previewContent = content.substring(0,100) + (content.length>100?"…":"");
+    const confirmMsg = targetRole === "student" 
+      ? T.broadcastConfirmStudents(count, previewContent)
+      : T.broadcastConfirmTeachers(count, previewContent);
+    if(!confirm(confirmMsg)) return;
 
     const btn = document.getElementById("chat-bc-send");
     btn.disabled = true;
-    btn.textContent = "발송 중…";
+    btn.textContent = T.broadcastSending;
 
     const { data, error } = await _sb.rpc("send_broadcast", {
       p_target_role: targetRole,
@@ -809,24 +886,23 @@
     });
 
     btn.disabled = false;
-    btn.textContent = "📢 발송";
+    btn.textContent = T.bcSend;
 
     if(error){
-      alert("발송 실패: " + error.message);
+      alert(T.broadcastSendFailed + error.message);
       return;
     }
     if(data?.error){
-      alert("발송 실패: " + data.error);
+      alert(T.broadcastSendFailed + data.error);
       return;
     }
 
-    alert(`✅ ${data.recipient_count}명에게 발송 완료`);
+    alert(T.broadcastDone(data.recipient_count));
     closeBroadcastModal();
     await loadConversations();
     renderChatList();
   };
 
-  // ─── 읽음 처리 ───
   async function markAsRead(convId){
     await _sb.from("message_reads").upsert({
       user_id: _me.id,
@@ -835,31 +911,25 @@
     });
   }
 
-  // ─── Realtime — 새 메시지 도착 시 자동 반영 ───
   function setupRealtime(){
     if(_realtimeChannel) _sb.removeChannel(_realtimeChannel);
     _realtimeChannel = _sb.channel("chat-widget-" + _me.id)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, async (payload) => {
         const m = payload.new;
-        // 본인 대화방 메시지만 처리
         const myConv = _conversations.find(c => c.id === m.conversation_id);
         const isMine = m.sender_id === _me.id;
         if(!myConv && !isMine) {
-          // 신규 대화(다른 사람이 처음 메시지 보냄) → 대화 목록 다시 로드
           await loadConversations();
           renderChatList();
           return;
         }
 
-        // 현재 보고 있는 채팅방의 메시지면 즉시 추가
         if(_activeConvId === m.conversation_id){
-          // ID 중복 방지
           if(_messages.some(existing => existing.id === m.id)) return;
           _messages.push(m);
           renderMessages();
           if(!isMine) markAsRead(m.conversation_id);
         } else {
-          // 다른 방의 메시지 → 목록 다시 로드 (안 읽음 카운트 갱신)
           await loadConversations();
           renderChatList();
         }
@@ -867,7 +937,6 @@
       .subscribe();
   }
 
-  // ─── Presence — 온라인 상태 추적 ───
   function setupPresence(){
     if(_presenceChannel) _sb.removeChannel(_presenceChannel);
 
@@ -879,9 +948,7 @@
       .on("presence", { event: "sync" }, () => {
         const state = _presenceChannel.presenceState();
         _onlineUsers = new Set(Object.keys(state));
-        // 본인은 제외
         _onlineUsers.delete(_me.id);
-        // UI 갱신
         renderChatList();
         updateChatRoomOnlineStatus();
       })
@@ -907,7 +974,6 @@
       });
   }
 
-  // 채팅방 헤더의 온라인 상태 갱신
   function updateChatRoomOnlineStatus(){
     if(!_activeConvId) return;
     const conv = _conversations.find(c => c.id === _activeConvId);
@@ -916,16 +982,14 @@
     const roleEl = document.getElementById("chat-room-role");
     if(!roleEl) return;
     const isOnline = _onlineUsers.has(otherId);
-    // 기존 점 제거 후 새로 추가
     const oldDot = roleEl.parentElement.querySelector(".online-dot, .offline-dot");
     if(oldDot) oldDot.remove();
     const dot = document.createElement("span");
     dot.className = isOnline ? "online-dot" : "offline-dot";
-    dot.title = isOnline ? "온라인" : "오프라인";
+    dot.title = isOnline ? T.online : T.offline;
     roleEl.parentElement.appendChild(dot);
   }
 
-  // ─── UI 핸들러 ───
   window.toggleChatDock = async function(){
     const panel = document.getElementById("chat-list-panel");
     const tab = document.getElementById("chat-tab");
@@ -938,10 +1002,8 @@
     } else {
       tab.classList.add("hidden");
       
-      // 학생은 채팅 버튼 → 바로 관리자 1:1 창
       if(_me.role === "student"){
         await loadConversations();
-        // 첫 관리자 찾기
         const admins = _possibleContacts.filter(p => p.role === "admin");
         if(admins.length > 0){
           await openChatRoom(admins[0].id, null);
@@ -949,7 +1011,6 @@
         }
       }
       
-      // 그 외 역할(admin/manager/teacher) — 목록 표시
       panel.classList.add("open");
       loadConversations().then(renderChatList);
     }
@@ -959,13 +1020,11 @@
     document.getElementById("chat-room").classList.remove("open");
     _activeConvId = null;
     
-    // 학생은 채팅창 닫으면 위젯 전체 닫힘 (목록 단계 없음)
     if(_me.role === "student"){
       document.getElementById("chat-tab").classList.remove("hidden");
       return;
     }
     
-    // 그 외 역할은 목록으로 돌아감
     document.getElementById("chat-list-panel").classList.add("open");
     loadConversations().then(renderChatList);
   };
@@ -976,15 +1035,13 @@
 
   function setupInputHandler(){
     const input = document.getElementById("chat-input");
-    let isComposing = false; // 한글 등 IME 조합 중인지
+    let isComposing = false;
 
     input.addEventListener("compositionstart", () => { isComposing = true; });
     input.addEventListener("compositionend", () => { isComposing = false; });
 
     input.addEventListener("keydown", (e) => {
-      // IME 조합 중일 때는 Enter 무시 (한글 마지막 글자 확정용)
       if(isComposing || e.isComposing || e.keyCode === 229) return;
-
       if(e.key === "Enter" && !e.shiftKey){
         e.preventDefault();
         sendChatMessage();
@@ -996,8 +1053,6 @@
     });
   }
 
-  // ─── 시작 ───
-  // window.sb가 늦게 초기화될 수 있으므로 polling으로 대기
   function startWhenReady(attempts){
     attempts = attempts || 0;
     if(!window.sb){
