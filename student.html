@@ -1453,10 +1453,191 @@ document.querySelectorAll(".tabs button").forEach(b=>{
 
 /* ── 초기화 ── */
 async function init(){
-  await loadTeachers();
+  await refreshSignupGate();
   renderMonths();
-  renderStartDates();
   refreshSummary();
+}
+
+/**
+ * 수강신청 탭 상태 분기 (서면 진단 / 결제 / 1:1 진단 / 강사·시간 선택)
+ */
+async function refreshSignupGate(){
+  const gate = $("signup-gate");
+  const ptBanner = $("pt-banner");
+  const paySection = $("signup-pay-section");
+  if(!gate) return;
+  
+  // 1. 서면 진단 응시 여부
+  const { data: placement } = await sb.from("placement_tests")
+    .select("id, overall_level").eq("student_id", USER.id).maybeSingle();
+  
+  // 2. 현재 진행 중 enrollment 확인
+  const { data: enrolls } = await sb.from("enrollments")
+    .select("id, status, months, leveltest_required, leveltest_done")
+    .eq("student_id", USER.id)
+    .in("status", ["pending_levelcheck", "pending_schedule", "active"])
+    .order("created_at", { ascending: false });
+  
+  const ongoingEnr = enrolls && enrolls[0];
+  
+  // 상태 분기
+  if(!placement){
+    // [상태 1] 서면 진단 안 봄
+    gate.innerHTML = "";
+    paySection.style.display = "none";
+    renderPlacementBanner();
+    return;
+  }
+  
+  if(!ongoingEnr){
+    // [상태 2] 서면 진단 완료 + 결제 안 함 → 결제 화면 표시
+    gate.innerHTML = `
+      <div style="background:#e6f6ec;border:1px solid #2e7d32;border-radius:12px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span style="background:#2e7d32;color:#fff;padding:2px 10px;border-radius:99px;font-size:.78rem;font-weight:700">✅ 서면 진단 완료</span>
+        <span style="font-size:.92rem;color:#12273d">예상 레벨 <b>${placement.overall_level}</b> · 이제 수강 기간을 선택하고 결제하세요</span>
+      </div>`;
+    ptBanner.innerHTML = "";
+    paySection.style.display = "block";
+    return;
+  }
+  
+  // 진행 중 enrollment 있음 → 결제 화면 숨김
+  paySection.style.display = "none";
+  ptBanner.innerHTML = "";
+  
+  if(ongoingEnr.status === "pending_levelcheck"){
+    // 본인의 1:1 레벨테스트 예약 조회
+    const { data: myBookings } = await sb.from("leveltest_bookings")
+      .select("id, start_at, zoom_join_url, student_joined_at, manager_joined_at, test_started_at")
+      .eq("student_id", USER.id)
+      .order("start_at", { ascending: false })
+      .limit(1);
+    
+    const myBooking = myBookings && myBookings[0];
+    
+    if(myBooking){
+      const bookingTime = new Date(myBooking.start_at);
+      const now = new Date();
+      const minutesPast = (now - bookingTime) / 60000;
+      const testStarted = !!myBooking.test_started_at;
+      const timedOut = minutesPast >= 30;
+      
+      const dateStr = bookingTime.toLocaleString("ko-KR", { 
+        timeZone: BROWSER_TZ,
+        month:"long", day:"numeric", weekday:"short", hour:"2-digit", minute:"2-digit" 
+      });
+      
+      if(testStarted || timedOut){
+        gate.innerHTML = `
+          <div style="background:linear-gradient(135deg,#f6f4ef 0%,#e8e2d5 100%);border:2px solid #6b7785;border-radius:18px;padding:24px 26px;margin-bottom:18px">
+            <div style="display:flex;align-items:center;gap:14px;margin-bottom:10px;flex-wrap:wrap">
+              <div style="font-size:2rem">⏳</div>
+              <div style="flex:1;min-width:200px">
+                <h3 style="font-family:'Fraunces',serif;font-size:1.25rem;font-weight:800;color:#12273d;margin-bottom:2px">레벨테스트 진행 완료</h3>
+                <p style="color:#6b7785;font-size:.88rem;margin:0">${testStarted ? "진단이 진행됐습니다." : dateStr + " 진행됨."}</p>
+              </div>
+            </div>
+            <div style="background:#fff;border-radius:10px;padding:14px 16px;border:1px solid rgba(107,119,133,.2);margin-bottom:12px">
+              <p style="font-size:.95rem;line-height:1.5;color:#12273d;margin:0;font-weight:600">📊 진단 결과지를 곧 받아보실 예정입니다.</p>
+            </div>
+            <div style="background:#fff;border-radius:10px;padding:14px 16px;border:1px solid rgba(46,125,50,.3)">
+              <p style="font-size:.88rem;color:#12273d;margin:0 0 10px;line-height:1.5">
+                💡 결과지를 기다리는 동안 <b>본 수업 강사·시간을 선택</b>하실 수 있어요.
+              </p>
+              <button onclick="showScheduleSelector(${ongoingEnr.id})" style="background:#12273d;color:#fff;border:0;padding:9px 18px;border-radius:8px;font-weight:700;cursor:pointer;font-size:.88rem">👨‍🏫 본 수업 강사·시간 선택하기 →</button>
+            </div>
+          </div>
+        `;
+        return;
+      }
+      
+      const isUpcoming = minutesPast < 0;
+      const minutesUntil = Math.abs(minutesPast);
+      
+      let timingHint = "";
+      if(isUpcoming){
+        if(minutesUntil < 60){
+          timingHint = `<span style="background:#c98a1f;color:#fff;padding:2px 8px;border-radius:6px;font-size:.75rem;font-weight:700;margin-left:6px">${Math.ceil(minutesUntil)}분 후</span>`;
+        } else if(minutesUntil < 60 * 24){
+          timingHint = `<span style="background:#6b7785;color:#fff;padding:2px 8px;border-radius:6px;font-size:.75rem;font-weight:700;margin-left:6px">${Math.ceil(minutesUntil/60)}시간 후</span>`;
+        }
+      } else {
+        timingHint = `<span style="background:#2e7d32;color:#fff;padding:2px 8px;border-radius:6px;font-size:.75rem;font-weight:700;margin-left:6px">🔴 진행 중</span>`;
+      }
+      
+      gate.innerHTML = `
+        <div style="background:linear-gradient(135deg,#e6f6ec 0%,#cce8d4 100%);border:2px solid #2e7d32;border-radius:18px;padding:24px 26px;margin-bottom:18px">
+          <div style="display:flex;align-items:center;gap:14px;margin-bottom:10px;flex-wrap:wrap">
+            <div style="font-size:2rem">🎙</div>
+            <div style="flex:1;min-width:200px">
+              <h3 style="font-family:'Fraunces',serif;font-size:1.25rem;font-weight:800;color:#12273d;margin-bottom:2px">레벨테스트 예약됨${timingHint}</h3>
+              <p style="color:#12273d;font-size:.95rem;margin:0;font-weight:600">📅 ${dateStr}</p>
+            </div>
+          </div>
+          <p style="font-size:.88rem;line-height:1.5;color:#12273d;margin-bottom:14px">예약 시간에 줌 미팅으로 입장하세요.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+            ${myBooking.zoom_join_url 
+              ? `<a href="${myBooking.zoom_join_url}" target="_blank" style="background:#2e7d32;color:#fff;text-decoration:none;padding:.7em 1.5em;border-radius:10px;font-weight:700;font-size:.95rem;display:inline-block">🎥 줌 미팅 입장 →</a>` 
+              : `<span style="color:#d4351c;font-size:.85rem">⚠️ 줌 링크가 생성되지 않았습니다.</span>`}
+          </div>
+          <div style="background:#fff;border-radius:10px;padding:14px 16px;border:1px solid rgba(46,125,50,.3)">
+            <p style="font-size:.88rem;color:#12273d;margin:0 0 10px;line-height:1.5">
+              💡 <b>이미 예약하셨다면 본 수업 강사·시간을 미리 선택하실 수 있어요.</b>
+            </p>
+            <button onclick="showScheduleSelector(${ongoingEnr.id})" style="background:#12273d;color:#fff;border:0;padding:9px 18px;border-radius:8px;font-weight:700;cursor:pointer;font-size:.88rem">👨‍🏫 본 수업 강사·시간 선택하기 →</button>
+          </div>
+        </div>
+      `;
+      return;
+    }
+    
+    // 예약 안 함
+    gate.innerHTML = `
+      <div style="background:linear-gradient(135deg,#fff7e6 0%,#ffe9c7 100%);border:2px solid #c98a1f;border-radius:18px;padding:24px 26px;margin-bottom:18px">
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:10px;flex-wrap:wrap">
+          <div style="font-size:2rem">🎙</div>
+          <div style="flex:1;min-width:200px">
+            <h3 style="font-family:'Fraunces',serif;font-size:1.3rem;font-weight:800;color:#12273d;margin-bottom:2px">결제 완료 · 1:1 레벨테스트 예약하기</h3>
+            <p style="color:#6b7785;font-size:.88rem;margin:0">${ongoingEnr.months}개월 수강이 시작됩니다.</p>
+          </div>
+        </div>
+        <p style="font-size:.92rem;line-height:1.6;color:#12273d;margin-bottom:14px">
+          진단 후 강사·시간·시작일을 선택하실 수 있어요.<br><span style="color:#6b7785;font-size:.85rem">(약 20분 · 원어민 매니저 진행)</span>
+        </p>
+        <button class="lt-btn" id="gate-lt-btn" style="background:#12273d;color:#fff;border:0;padding:.8em 1.7em;border-radius:10px;font-weight:700;cursor:pointer;font-size:1rem">🎙 레벨테스트 예약하기 →</button>
+      </div>
+    `;
+    const btn = $("gate-lt-btn");
+    if(btn) btn.onclick = openLtPicker;
+    return;
+  }
+  
+  if(ongoingEnr.status === "pending_schedule"){
+    gate.innerHTML = `
+      <div style="background:linear-gradient(135deg,#e6f6ec 0%,#cce8d4 100%);border:2px solid #2e7d32;border-radius:18px;padding:24px 26px;margin-bottom:18px">
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:10px;flex-wrap:wrap">
+          <div style="font-size:2rem">👨‍🏫</div>
+          <div style="flex:1;min-width:200px">
+            <h3 style="font-family:'Fraunces',serif;font-size:1.3rem;font-weight:800;color:#12273d;margin-bottom:2px">1:1 진단 완료 · 강사와 시간을 선택하세요</h3>
+            <p style="color:#6b7785;font-size:.88rem;margin:0">${ongoingEnr.months}개월 수강이 곧 시작됩니다.</p>
+          </div>
+        </div>
+        <button class="lt-btn" onclick="showScheduleSelector(${ongoingEnr.id})" style="background:#2e7d32;color:#fff;border:0;padding:.8em 1.7em;border-radius:10px;font-weight:700;cursor:pointer;font-size:1rem">👨‍🏫 강사 · 시간 · 시작일 선택 →</button>
+      </div>
+    `;
+    return;
+  }
+  
+  if(ongoingEnr.status === "active"){
+    gate.innerHTML = `
+      <div style="background:#e6f6ec;border:1px solid #2e7d32;border-radius:12px;padding:16px 20px;margin-bottom:16px;text-align:center">
+        <p style="margin:0;font-size:.95rem;color:#12273d">
+          🎉 ${ongoingEnr.months}개월 수강이 진행 중입니다. 
+          <button onclick="document.querySelector('[data-tab=myclass]').click()" style="background:#2e7d32;color:#fff;border:0;padding:6px 16px;border-radius:8px;cursor:pointer;font-weight:700;font-size:.88rem;margin-left:8px">📅 내 수업 보기 →</button>
+        </p>
+      </div>`;
+    return;
+  }
 }
 
 async function loadTeachers(){
@@ -1464,21 +1645,6 @@ async function loadTeachers(){
   const{data:hours}=await sb.from("teacher_hours").select("teacher_id,start_hm,end_hm");
   HOURS={}; (hours||[]).forEach(h=>HOURS[h.teacher_id]=h);
   TEACHERS=teachers||[];
-  const html=TEACHERS.map(t=>{
-    const h=HOURS[t.id];
-    const init=t.display_name.replace(/^Tr\.?\s*/,"").slice(0,1).toUpperCase();
-    const dis=!h?"disabled":"";
-    return `<div class="tcard ${dis}" data-id="${t.id}">
-      <div class="avatar">${init}</div>
-      <div class="nm">${t.display_name}</div>
-      <div class="sp">${t.specialties||""}</div>
-      <div class="hr">${h?`🕒 ${h.start_hm}~${h.end_hm}`:'시간 미설정'}</div>
-    </div>`;
-  }).join("");
-  $("teachers").innerHTML = html || `<div class="empty">등록된 강사가 없습니다.</div>`;
-  document.querySelectorAll(".tcard:not(.disabled)").forEach(c=>{
-    c.onclick=()=>selectTeacher(c.dataset.id);
-  });
 }
 
 /* 기간 옵션 */
@@ -1492,73 +1658,69 @@ function renderMonths(){
   });
 }
 
-/* 시작일 — 신청일이 월요일이면 다음주/다다음주, 아니면 돌아오는/그 다음주 */
-function nextMondays(){
-  const today=new Date();
-  const dow=today.getDay(); // 0일 1월 ... 6토
-  const base=new Date(today); base.setHours(0,0,0,0);
-  let first, second;
-  if(dow===1){ // 월요일
-    first=new Date(base); first.setDate(base.getDate()+7);
-    second=new Date(first); second.setDate(first.getDate()+7);
-  }else{
-    const daysToMon = (8 - dow) % 7 || 7; // 돌아오는 월요일까지
-    first=new Date(base); first.setDate(base.getDate()+daysToMon);
-    second=new Date(first); second.setDate(first.getDate()+7);
+/* 합계 갱신 (기간만) */
+function refreshSummary(){
+  $("r-period").textContent = sel.months ? `${sel.months}개월` : "–";
+  const price = sel.months * PRICE_PER_MONTH;
+  $("r-price").textContent = `₩${price.toLocaleString()}`;
+  $("payBtn").disabled = !sel.months;
+}
+
+/* 결제 버튼 — 기간만 결제 */
+$("payBtn").onclick=async()=>{
+  const m=$("msg");
+  if(!sel.months){ return; }
+  $("payBtn").disabled=true;
+  $("payBtn").textContent="처리 중…";
+  m.style.color="var(--muted)"; m.textContent="";
+
+  try{
+    const{data:{session}}=await sb.auth.getSession();
+    const res=await fetch(`${SUPABASE_URL}/functions/v1/create-enrollment`,{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "Authorization":`Bearer ${session.access_token}`,
+        "apikey":SUPABASE_ANON_KEY,
+      },
+      body:JSON.stringify({
+        months: sel.months,
+      }),
+    });
+    const result=await res.json();
+    if(!res.ok || !result.ok){
+      m.style.color="#d4512c";
+      m.textContent="❌ "+(result.error||"신청 실패");
+      $("payBtn").disabled=false;
+      $("payBtn").textContent="💳 결제하기";
+      return;
+    }
+    m.style.color="var(--teal)";
+    m.innerHTML=`✅ 결제가 완료됐습니다!<br>다음 단계: 1:1 레벨테스트 예약`;
+    $("payBtn").textContent="신청 완료";
+    sel={teacher:null, months:1, startDate:null, times:new Set()};
+    
+    setTimeout(async()=>{
+      await refreshSignupGate();
+      m.textContent = "";
+    }, 1500);
+  }catch(err){
+    m.style.color="#d4512c";
+    m.textContent="❌ 오류: "+err.message;
+    $("payBtn").disabled=false;
+    $("payBtn").textContent="💳 결제하기";
   }
-  return [first, second];
-}
-function fmtKoDate(d){const wd=["일","월","화","수","목","금","토"][d.getDay()];return `${d.getMonth()+1}월 ${d.getDate()}일 (${wd})`;}
-function ymd(d){const p=n=>String(n).padStart(2,"0");return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;}
+};
 
-function renderStartDates(){
-  const [a,b]=nextMondays();
-  const dow=new Date().getDay();
-  const labels = dow===1 ? ["다음 주 월요일","다다음 주 월요일"] : ["돌아오는 월요일","그 다음 주 월요일"];
-  if(!sel.startDate) sel.startDate=ymd(a);
-  $("startdates").innerHTML=[[a,labels[0]],[b,labels[1]]].map(([d,lab])=>`
-    <div class="opt ${sel.startDate===ymd(d)?"sel":""}" data-d="${ymd(d)}">
-      ${lab}<span class="sm">${fmtKoDate(d)} 시작</span>
-    </div>`).join("");
-  document.querySelectorAll("#startdates .opt").forEach(o=>{
-    o.onclick=()=>{ sel.startDate=o.dataset.d; renderStartDates(); refreshSummary(); };
-  });
-}
-
-/* 강사 선택 → 시간대 렌더 */
+/* (옛 함수들 — 모달에서 부분적으로 재사용) */
 async function selectTeacher(teacher_id){
   sel.teacher=TEACHERS.find(t=>t.id===teacher_id);
   sel.times=new Set();
-  document.querySelectorAll(".tcard").forEach(c=>c.classList.toggle("sel",c.dataset.id===teacher_id));
   await loadOccupied(teacher_id);
-  renderTimes();
-  refreshSummary();
 }
-
-/* 이 강사의 이미 신청된 시간(active enrollment) — 같은 시각 슬롯 막기용 */
 async function loadOccupied(teacher_id){
   const{data}=await sb.from("enrollments").select("slot_hm,status").eq("teacher_id",teacher_id).in("status",["pending","active"]);
   OCCUPIED=new Set((data||[]).map(e=>e.slot_hm));
-}
-
-/* 시간대(20분 단위) */
-function renderTimes(){
-  const h=HOURS[sel.teacher.id];
-  if(!h){ $("times").innerHTML=`<div class="empty">이 강사의 시간이 설정되지 않았습니다.</div>`; return; }
-  const slots=expandSlots(h.start_hm,h.end_hm,20);
-  if(!slots.length){ $("times").innerHTML=`<div class="empty">가능한 시간이 없습니다.</div>`; return; }
-  $("times").innerHTML=slots.map(s=>{
-    const dis=OCCUPIED.has(s)?"disabled":"";
-    const on=sel.times.has(s)?"sel":"";
-    return `<div class="time ${dis} ${on}" data-t="${s}">${s}</div>`;
-  }).join("");
-  document.querySelectorAll(".time:not(.disabled)").forEach(el=>{
-    el.onclick=()=>{
-      const t=el.dataset.t;
-      if(sel.times.has(t)) sel.times.delete(t); else sel.times.add(t);
-      renderTimes(); refreshSummary();
-    };
-  });
 }
 function expandSlots(startHM,endHM,stepMin){
   const [sh,sm]=startHM.split(":").map(Number);
@@ -1573,64 +1735,6 @@ function expandSlots(startHM,endHM,stepMin){
   }
   return out;
 }
-
-/* 합계 갱신 */
-function refreshSummary(){
-  $("r-teacher").textContent = sel.teacher?sel.teacher.display_name:"–";
-  $("r-period").textContent = sel.startDate ? `${sel.months}개월 / ${sel.startDate}` : `${sel.months}개월`;
-  $("r-times").textContent = sel.times.size ? [...sel.times].join(", ") : "–";
-  const sessions = sel.times.size * sel.months * 4 * WEEKDAYS_PER_WEEK;
-  $("r-sessions").textContent = sel.times.size ? `${sessions}회 (시간대 ${sel.times.size}개)` : "–";
-  const price = sel.times.size * sel.months * PRICE_PER_MONTH;
-  $("r-price").textContent = `₩${price.toLocaleString()}`;
-  $("payBtn").disabled = !(sel.teacher && sel.startDate && sel.times.size>0);
-}
-
-/* 결제 버튼 — 실제 enrollment + bookings + 첫주 줌 생성 */
-$("payBtn").onclick=async()=>{
-  const m=$("msg");
-  if(!(sel.teacher && sel.startDate && sel.times.size>0)){ return; }
-  $("payBtn").disabled=true;
-  $("payBtn").textContent="처리 중… (첫 주 줌 미팅 생성)";
-  m.style.color="var(--muted)"; m.textContent="";
-
-  try{
-    const{data:{session}}=await sb.auth.getSession();
-    const res=await fetch(`${SUPABASE_URL}/functions/v1/create-enrollment`,{
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json",
-        "Authorization":`Bearer ${session.access_token}`,
-        "apikey":SUPABASE_ANON_KEY,
-      },
-      body:JSON.stringify({
-        teacher_id: sel.teacher.id,
-        months: sel.months,
-        start_date: sel.startDate,
-        times: [...sel.times],
-      }),
-    });
-    const result=await res.json();
-    if(!res.ok || !result.ok){
-      m.style.color="#d4512c";
-      m.textContent="❌ "+(result.error||"신청 실패");
-      $("payBtn").disabled=false;
-      $("payBtn").textContent="결제하기 (테스트)";
-      return;
-    }
-    m.style.color="var(--teal)";
-    m.innerHTML=`✅ 수강신청이 완료됐습니다!<br>총 ${result.enrollments}개 시간대 · 결제금액 ₩${result.total_price.toLocaleString()}<br>"내 수업" 탭에서 첫 주 수업 줌 링크를 확인하세요.`;
-    $("payBtn").textContent="신청 완료";
-    // 선택 초기화
-    sel={teacher:null, months:1, startDate:null, times:new Set()};
-    setTimeout(()=>{ document.querySelector('[data-tab="myclass"]').click(); }, 2500);
-  }catch(err){
-    m.style.color="#d4512c";
-    m.textContent="❌ 오류: "+err.message;
-    $("payBtn").disabled=false;
-    $("payBtn").textContent="결제하기 (테스트)";
-  }
-};
 
 /* ── 내 수업 (히어로 + 통계 + 진행률 + 주간 그리드) ── */
 // 🌐 시간대 — 브라우저 자동 감지 (사용자의 실제 현재 위치)
