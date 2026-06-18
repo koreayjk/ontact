@@ -306,43 +306,42 @@
   <!-- 수강신청 -->
   <div class="panel on" id="p-signup">
     
-    <!-- 무료 서면 진단 배너 -->
+    <!-- 서면 진단 + 결제 상태 안내 (gateBanner) -->
+    <div id="signup-gate"></div>
+
+    <!-- 무료 서면 진단 배너 (서면 진단 안 본 경우만) -->
     <div id="pt-banner"></div>
 
-    <div class="step">
-      <h2><span class="step-no">1</span>강사 선택</h2>
-      <p class="sub">원하는 강사를 선택하세요.</p>
-      <div class="teachers" id="teachers"><div class="empty">강사를 불러오는 중…</div></div>
-    </div>
+    <!-- 기간 선택 + 결제 (서면 진단 완료, 결제 전인 경우만 표시) -->
+    <div id="signup-pay-section" style="display:none">
+      <div class="step">
+        <h2 style="margin-bottom:6px">📚 수강 기간 선택</h2>
+        <p class="sub" style="margin-bottom:20px">1개월 = 4주 × 주 4회(월·화·목·금) × 20분 · 1개월당 ₩60,000</p>
+        <div class="opts" id="months"></div>
+      </div>
 
-    <div class="step">
-      <h2><span class="step-no">2</span>수강 기간</h2>
-      <p class="sub">1개월 = 4주 × 주 4회(월·화·목·금) × 20분. 1개월당 60,000원.</p>
-      <div class="opts" id="months"></div>
-    </div>
+      <!-- 안내 박스 -->
+      <div style="background:linear-gradient(135deg,#fff7e6 0%,#fff1d4 100%);border:2px solid #c98a1f;border-radius:14px;padding:20px 24px;margin:18px 0">
+        <div style="display:flex;gap:14px;align-items:flex-start">
+          <div style="font-size:2rem;line-height:1">💡</div>
+          <div style="flex:1">
+            <h3 style="font-family:'Fraunces',serif;font-size:1.05rem;font-weight:800;color:#12273d;margin:0 0 6px">결제 후 진행 안내</h3>
+            <p style="font-size:.9rem;line-height:1.6;color:#12273d;margin:0">
+              1. 먼저 <b>기간을 선택하고 결제</b>해주세요<br>
+              2. 결제 후 <b>1:1 원어민 강사와 진단 테스트</b>를 진행합니다<br>
+              3. 진단 후 <b>강사 · 시간대 · 시작일을 선택</b>하실 수 있어요
+            </p>
+          </div>
+        </div>
+      </div>
 
-    <div class="step">
-      <h2><span class="step-no">3</span>시작일</h2>
-      <p class="sub">수업은 월요일에 시작합니다. 둘 중 선택하세요.</p>
-      <div class="opts" id="startdates"></div>
+      <div class="summary">
+        <div class="sum-row"><span>선택한 기간</span><b id="r-period">–</b></div>
+        <div class="sum-total"><span>결제 금액</span><span id="r-price">₩0</span></div>
+        <button class="pay-btn" id="payBtn" disabled>💳 결제하기</button>
+        <div class="msg" id="msg"></div>
+      </div>
     </div>
-
-    <div class="step">
-      <h2><span class="step-no">4</span>수업 시간</h2>
-      <p class="sub">강사의 가능 시간대(20분 단위). 여러 개 고르면 그만큼 동시 수강합니다.</p>
-      <div class="times" id="times"><div class="empty">먼저 강사를 선택하세요.</div></div>
-    </div>
-
-    <div class="summary">
-      <div class="sum-row"><span>선택한 강사</span><b id="r-teacher">–</b></div>
-      <div class="sum-row"><span>기간 / 시작일</span><b id="r-period">–</b></div>
-      <div class="sum-row"><span>시간대</span><b id="r-times">–</b></div>
-      <div class="sum-row"><span>총 회차 (월화목금 × 주)</span><b id="r-sessions">–</b></div>
-      <div class="sum-total"><span>합계</span><span id="r-price">₩0</span></div>
-      <button class="pay-btn" id="payBtn" disabled>결제하기 (테스트)</button>
-      <div class="msg" id="msg"></div>
-    </div>
-    <p style="text-align:center;color:var(--muted);font-size:.85rem;margin-top:16px">💡 결제 후 본 수업 시작 전, '내 강의실'에서 레벨테스트를 예약할 수 있습니다.</p>
   </div>
 
   <!-- 내 수업 -->
