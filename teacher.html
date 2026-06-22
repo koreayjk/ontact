@@ -673,9 +673,99 @@ function openCell(bid){
   } else {
     actions += `<button class="btn-host-modal disabled">${b.is_cancelled?t("cancelled"):t("ended")}</button>`;
   }
+  // 레벨테스트 결과지 보기 (서면 + 1:1) — 수업 상태와 무관하게 항상 제공
+  actions += `<button class="btn-host-modal" style="background:#12273d" onclick="openStudentLevelReport('${b.student_id}','${stu.replace(/'/g,"\\'")}')">📊 ${LANG==="kr"?"레벨테스트 결과":"Level Report"}</button>`;
   $("c-actions").innerHTML = actions;
   $("cell-modal").classList.add("on");
 }
+
+// ── 학생 레벨테스트 결과지 (읽기 전용) — 서면(placement) + 1:1(level_test_results) ──
+window.openStudentLevelReport = async function(studentId, studentName){
+  const esc = (s)=> (s==null?"":String(s)).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  const kr = LANG==="kr";
+  const stars = (n)=>{ n = Math.max(0, Math.min(5, Number(n)||0)); return "★".repeat(n) + "☆".repeat(5-n); };
+  const lvColor = (lv)=> (lv==="C1+"||lv==="C1"||lv==="C2") ? "#2e7d32" : lv==="B2" ? "#2c7a73" : lv==="B1" ? "#ef6a48" : lv==="A2" ? "#c98a1f" : "#6b7785";
+
+  // 기존 모달 제거
+  const old = document.getElementById("lt-report-modal"); if(old) old.remove();
+  const modal = document.createElement("div");
+  modal.id = "lt-report-modal";
+  modal.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px";
+  modal.onclick = (e)=>{ if(e.target.id==="lt-report-modal") modal.remove(); };
+  modal.innerHTML = `<div style="background:#fff;border-radius:14px;max-width:600px;width:100%;max-height:90vh;overflow-y:auto;font-family:'Pretendard',sans-serif">
+    <div style="position:sticky;top:0;background:#fff;border-bottom:1px solid #e3ddd0;padding:14px 22px;display:flex;justify-content:space-between;align-items:center;z-index:1">
+      <h2 style="font-size:1.1rem;margin:0;color:#12273d">📊 ${esc(studentName)} · ${kr?"레벨테스트 결과":"Level Test Report"}</h2>
+      <button onclick="document.getElementById('lt-report-modal').remove()" style="background:none;border:0;font-size:1.4rem;cursor:pointer;color:#6b7785">✕</button>
+    </div>
+    <div id="lt-report-body" style="padding:22px"><div style="text-align:center;color:#6b7785;padding:30px">${kr?"불러오는 중…":"Loading…"}</div></div>
+  </div>`;
+  document.body.appendChild(modal);
+
+  // 서면 + 1:1 동시 조회
+  const [ptRes, ltrRes] = await Promise.all([
+    sb.from("placement_tests").select("overall_level,total_score,max_score,a1_score,a2_score,b1_score,b2_score,c1_score,taken_at").eq("student_id", studentId).maybeSingle(),
+    sb.from("level_test_results").select("*").eq("student_id", studentId).order("test_date",{ascending:false}),
+  ]);
+  const pt = ptRes.data;
+  const ltrs = ltrRes.data || [];
+
+  // ── 서면 진단 섹션 ──
+  let html = `<h3 style="font-size:.95rem;font-weight:800;margin:0 0 8px;color:#12273d">📝 ${kr?"서면 진단 (객관식)":"Written Placement"}</h3>`;
+  if(pt){
+    const dateStr = new Date(pt.taken_at).toLocaleDateString(localeOf());
+    html += `<div style="border:2px solid ${lvColor(pt.overall_level)};border-radius:12px;padding:14px;margin-bottom:18px">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+        <div>${kr?"예상 레벨":"Level"}: <span style="background:${lvColor(pt.overall_level)};color:#fff;padding:2px 10px;border-radius:99px;font-weight:700">${pt.overall_level}</span> · ${pt.total_score}/${pt.max_score}</div>
+        <div style="font-size:.78rem;color:#6b7785">📅 ${dateStr}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;font-size:.78rem;text-align:center">
+        <div><b>A1</b><br>${pt.a1_score}/5</div><div><b>A2</b><br>${pt.a2_score}/5</div><div><b>B1</b><br>${pt.b1_score}/5</div><div><b>B2</b><br>${pt.b2_score}/5</div><div><b>C1</b><br>${pt.c1_score}/5</div>
+      </div>
+    </div>`;
+  } else {
+    html += `<p style="color:#6b7785;font-size:.85rem;margin:0 0 18px">${kr?"서면 진단 기록이 없습니다.":"No written placement record."}</p>`;
+  }
+
+  // ── 1:1 결과 섹션 ──
+  html += `<h3 style="font-size:.95rem;font-weight:800;margin:0 0 8px;color:#12273d">🎙 ${kr?"1:1 회화 평가":"1:1 Speaking Assessment"}</h3>`;
+  if(ltrs.length === 0){
+    html += `<p style="color:#6b7785;font-size:.85rem;margin:0">${kr?"1:1 레벨테스트 결과가 아직 없습니다.":"No 1:1 level test result yet."}</p>`;
+  } else {
+    const fields = [
+      ["vocab", kr?"어휘":"Vocabulary"], ["grammar", kr?"문법":"Grammar"], ["fluency", kr?"유창성":"Fluency"],
+      ["pronunciation", kr?"발음":"Pronunciation"], ["interaction", kr?"상호작용":"Interaction"],
+    ];
+    html += ltrs.map((r, idx)=>{
+      const open = idx===0 ? " open" : "";
+      const rows = fields.map(([k,label])=>{
+        const sc = r[k+"_score"]; const note = r[k+"_note"];
+        return `<div style="display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid #f6f4ef;font-size:.85rem">
+          <span style="color:#12273d;min-width:84px">${label}</span>
+          <span style="color:#c98a1f;letter-spacing:1px">${sc?stars(sc):"—"}</span>
+          <span style="flex:1;color:#6b7785;font-size:.8rem">${esc(note)||""}</span>
+        </div>`;
+      }).join("");
+      const block = (label, val, bg)=> val ? `<div style="background:${bg};border-radius:8px;padding:10px 12px;margin-top:8px;font-size:.85rem"><b style="color:#12273d">${label}</b><div style="color:#12273d;margin-top:3px;white-space:pre-wrap">${esc(val)}</div></div>` : "";
+      return `<details${open} style="border:1px solid #e3ddd0;border-radius:12px;padding:12px 14px;margin-bottom:10px">
+        <summary style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px;list-style:none">
+          <span style="font-weight:700;color:#12273d">📅 ${r.test_date||"—"} · <span style="background:${lvColor(r.overall_level)};color:#fff;padding:2px 10px;border-radius:99px">${r.overall_level||"—"}</span></span>
+          <span style="font-size:.75rem;color:#6b7785">${esc(r.conducted_by_name)||""}</span>
+        </summary>
+        <div style="margin-top:10px">
+          ${r.level_description?`<p style="font-size:.85rem;color:#6b7785;margin:0 0 10px;font-style:italic">${esc(r.level_description)}</p>`:""}
+          ${rows}
+          ${block(kr?"강점":"Strengths", r.strengths, "#e6f6ec")}
+          ${block(kr?"약점":"Weaknesses", r.weaknesses, "#fbe9e7")}
+          ${block(kr?"권장 사항":"Recommendations", r.recommendations, "#fff7e6")}
+          ${r.recommended_textbook?`<div style="margin-top:8px;font-size:.85rem;color:#12273d">📖 <b>${kr?"추천 교재":"Textbook"}:</b> ${esc(r.recommended_textbook)}</div>`:""}
+        </div>
+      </details>`;
+    }).join("");
+  }
+
+  const body = document.getElementById("lt-report-body");
+  if(body) body.innerHTML = html;
+};
 // 모달 바깥 클릭으로 닫기
 $("cell-modal").onclick = (e)=>{ if(e.target.id==="cell-modal") $("cell-modal").classList.remove("on"); };
 

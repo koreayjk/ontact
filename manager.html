@@ -1752,7 +1752,7 @@ async function loadLeveltest(){
     .select("id,start_at,duration_min,status,manager_id")
     .order("start_at",{ascending:true}).limit(500);
   const{data:bookings}=await sb.from("leveltest_bookings")
-    .select("id,slot_id,start_at,zoom_join_url,level_result,student_id,profiles!leveltest_bookings_student_id_fkey(full_name,email)");
+    .select("id,slot_id,start_at,zoom_join_url,level_result,student_id,test_started_at,student_joined_at,manager_joined_at,profiles!leveltest_bookings_student_id_fkey(full_name,email)");
   const bkBySlot = {}; (bookings||[]).forEach(b=>bkBySlot[b.slot_id]=b);
 
   const box = $("lt-list");
@@ -1825,13 +1825,23 @@ async function loadLeveltest(){
       const placementBadge = pt 
         ? ` · <span style="background:${ptColor};color:#fff;padding:1px 7px;border-radius:5px;font-size:.72rem;font-weight:700">📝 ${pt.overall_level}</span>` 
         : "";
-      const placementBtn = pt 
-        ? `<button class="btn btn-sm" data-pt-sid="${bk.student_id}" data-pt-name="${escapeM(stuName).replace(/"/g,'&quot;')}" style="background:#c98a1f;color:#fff">📝 ${LANG === "kr" ? "서면결과" : "Placement"}</button>` 
+      const placementBtn = pt
+        ? `<button class="btn btn-sm" data-pt-sid="${bk.student_id}" data-pt-name="${escapeM(stuName).replace(/"/g,'&quot;')}" style="background:#c98a1f;color:#fff">📝 ${LANG === "kr" ? "서면결과" : "Placement"}</button>`
         : "";
+      // 진행/채점 상태 — 줌 둘 다 입장(또는 webhook test_started_at) = 진행 완료
+      const bothJoined = bk.student_joined_at && bk.manager_joined_at;
+      const ltDone = !!bk.test_started_at || bothJoined || (Date.now() - new Date(bk.start_at).getTime()) >= 30 * 60000;
+      const statusBadge = bk.level_result
+        ? "" // 'Lv.' 표시로 갈음
+        : (bk.test_started_at || bothJoined)
+          ? ` · <span style="background:#e3f2fd;color:#1565c0;padding:1px 7px;border-radius:5px;font-size:.72rem;font-weight:700">${LANG === "kr" ? "🎙 진행 완료 · 채점 대기" : "🎙 Done · grade"}</span>`
+          : ltDone
+            ? ` · <span style="background:#fff3e0;color:#c98a1f;padding:1px 7px;border-radius:5px;font-size:.72rem;font-weight:700">${LANG === "kr" ? "⏱ 채점 대기" : "⏱ Needs grade"}</span>`
+            : ` · <span style="background:var(--paper);color:var(--muted);padding:1px 7px;border-radius:5px;font-size:.72rem;font-weight:700">${LANG === "kr" ? "예정" : "Upcoming"}</span>`;
       return `<div class="lt-slot booked">
         <div>
           <div class="when">${fmtTime(s.start_at)} · ${dayHeader(s.start_at)}</div>
-          <div class="meta">${s.duration_min} ${t("min")} · 👤 ${escapeM(stuName)}${bk.level_result ? ` · <b>Lv. ${bk.level_result}</b>` : ""}${placementBadge}</div>
+          <div class="meta">${s.duration_min} ${t("min")} · 👤 ${escapeM(stuName)}${bk.level_result ? ` · <b>Lv. ${bk.level_result}</b>` : ""}${statusBadge}${placementBadge}</div>
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap">
           ${bk.zoom_join_url ? `<a href="${bk.zoom_join_url}" target="_blank" class="btn btn-sm" style="text-decoration:none;background:var(--ink)">🎥 ${t("view_zoom")}</a>` : ""}
@@ -2746,40 +2756,52 @@ function hoverStar(el, val){
   });
 }
 
-let LTR_STUDENTS_ALL = [];        // 전체 학생
-let LTR_STUDENTS_BOOKED = new Set(); // 레벨테스트 예약한 학생 IDs
+let LTR_STUDENTS_COMPLETED = [];  // 1:1 레벨테스트를 완료한 학생 (최신 예약 1건 기준)
 
-// 학생 목록 로드 (전체 + 레벨테스트 예약자)
+// 1:1 레벨테스트 "완료" 판정 — 학생 페이지(student.html)와 동일 규칙
+//   (a) Zoom Webhook으로 test_started_at 세팅됨 (정밀)
+//   (b) fallback: 예약 시간이 30분 이상 지남
+function ltBookingDone(b){
+  if(b.test_started_at) return true;
+  return (Date.now() - new Date(b.start_at).getTime()) >= 30 * 60000;
+}
+
+// 학생 목록 로드 — 1:1 레벨테스트 완료자만
 async function loadLtrStudents(){
-  // 전체 학생
-  const { data: students } = await sb.from("profiles")
-    .select("id, full_name, email, level_result, level_test_done")
-    .eq("role", "student")
-    .order("full_name");
-  
-  LTR_STUDENTS_ALL = students || [];
-  
-  // 레벨테스트 예약한 학생 ID 모음 (미래 + 최근 1개월)
-  const oneMonthAgo = new Date();
-  oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-  
-  const { data: ltBookings } = await sb.from("leveltest_bookings")
-    .select("student_id, start_at")
-    .gte("start_at", oneMonthAgo.toISOString());
-  
-  LTR_STUDENTS_BOOKED = new Set((ltBookings || []).map(b => b.student_id));
-  
+  const { data: bookings } = await sb.from("leveltest_bookings")
+    .select("student_id, start_at, test_started_at, student_joined_at, manager_joined_at, profiles!leveltest_bookings_student_id_fkey(full_name,email,level_result,level_test_done)")
+    .order("start_at", { ascending: false })
+    .limit(500);
+
+  // 학생별 최신 예약 1건만, 완료된 것만
+  const seen = new Set();
+  const list = [];
+  (bookings || []).forEach(b => {
+    if(seen.has(b.student_id)) return;     // 이미 desc 정렬 → 최신 1건
+    seen.add(b.student_id);
+    if(!ltBookingDone(b)) return;          // 미완료(예정/진행 전)는 제외
+    const p = b.profiles || {};
+    list.push({
+      id: b.student_id,
+      full_name: p.full_name,
+      email: p.email,
+      level_result: p.level_result,
+      level_test_done: p.level_test_done,
+      auto: !!b.test_started_at,           // 줌 자동 감지 여부
+    });
+  });
+
+  LTR_STUDENTS_COMPLETED = list;
   renderStudentDropdown("");
 }
 
 function renderStudentDropdown(filter){
   const dropdown = $("ltr-student-dropdown");
   if(!dropdown) return;
-  
+
   const filterLower = (filter || "").toLowerCase().trim();
-  
-  // 필터 적용
-  let filtered = LTR_STUDENTS_ALL;
+
+  let filtered = LTR_STUDENTS_COMPLETED;
   if(filterLower){
     filtered = filtered.filter(s => {
       const name = (s.full_name || "").toLowerCase();
@@ -2787,46 +2809,36 @@ function renderStudentDropdown(filter){
       return name.includes(filterLower) || email.includes(filterLower);
     });
   }
-  
-  // 분류: 레벨테스트 예약자 우선, 그 다음 기타
-  const booked = filtered.filter(s => LTR_STUDENTS_BOOKED.has(s.id));
-  const others = filtered.filter(s => !LTR_STUDENTS_BOOKED.has(s.id));
-  
-  let html = "";
-  
-  if(booked.length > 0){
-    html += `<div style="padding:8px 12px;background:#fff7e6;border-bottom:1px solid var(--line);font-size:.78rem;font-weight:700;color:#c98a1f">
-      🎯 ${LANG === "kr" ? "레벨테스트 예약자" : "Level Test Booked"} (${booked.length})
+
+  if(filtered.length === 0){
+    dropdown.innerHTML = `<div style="padding:20px;text-align:center;color:var(--muted);font-size:.85rem;line-height:1.5">
+      ${LTR_STUDENTS_COMPLETED.length === 0
+        ? (LANG === "kr" ? "🎯 완료된 1:1 레벨테스트가 없습니다.<br><span style='font-size:.78rem'>학생과 줌 미팅을 진행하면 여기에 표시됩니다.</span>" : "🎯 No completed 1:1 level tests yet.")
+        : (LANG === "kr" ? "검색 결과가 없습니다." : "No students found.")}
     </div>`;
-    html += booked.map(s => renderStudentItem(s, true)).join("");
+    return;
   }
-  
-  if(others.length > 0){
-    html += `<div style="padding:8px 12px;background:var(--paper);border-bottom:1px solid var(--line);font-size:.78rem;font-weight:700;color:var(--muted)">
-      📒 ${LANG === "kr" ? "전체 학생" : "All Students"} (${others.length})
-    </div>`;
-    html += others.map(s => renderStudentItem(s, false)).join("");
-  }
-  
-  if(booked.length === 0 && others.length === 0){
-    html = `<div style="padding:20px;text-align:center;color:var(--muted);font-size:.85rem">
-      ${LANG === "kr" ? "검색 결과가 없습니다." : "No students found."}
-    </div>`;
-  }
-  
+
+  let html = `<div style="padding:8px 12px;background:#fff7e6;border-bottom:1px solid var(--line);font-size:.78rem;font-weight:700;color:#c98a1f">
+    🎯 ${LANG === "kr" ? "1:1 레벨테스트 완료" : "1:1 Test Completed"} (${filtered.length})
+  </div>`;
+  html += filtered.map(s => renderStudentItem(s)).join("");
   dropdown.innerHTML = html;
 }
 
-function renderStudentItem(s, isBooked){
+function renderStudentItem(s){
   const name = s.full_name || s.email;
-  const levelBadge = s.level_test_done && s.level_result 
-    ? `<span style="background:#e6f6ec;color:#2e7d32;padding:2px 8px;border-radius:5px;font-size:.72rem;font-weight:700;margin-left:6px">${s.level_result}</span>` 
+  const levelBadge = s.level_test_done && s.level_result
+    ? `<span style="background:#e6f6ec;color:#2e7d32;padding:2px 8px;border-radius:5px;font-size:.72rem;font-weight:700;margin-left:6px">${s.level_result}</span>`
+    : `<span style="background:#fff3e0;color:#c98a1f;padding:2px 8px;border-radius:5px;font-size:.72rem;font-weight:700;margin-left:6px">${LANG === "kr" ? "채점 전" : "Ungraded"}</span>`;
+  const autoBadge = s.auto
+    ? `<span title="${LANG === "kr" ? "줌 입장 자동 감지" : "Auto-detected via Zoom"}" style="margin-left:4px;font-size:.72rem">✅</span>`
     : "";
-  
+
   return `<div class="ltr-stu-item" data-id="${s.id}" data-name="${escapeM(name).replace(/"/g,'&quot;')}" style="padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--paper);display:flex;justify-content:space-between;align-items:center;gap:8px" onmouseenter="this.style.background='var(--paper)'" onmouseleave="this.style.background=''">
     <div style="flex:1;min-width:0">
       <div style="font-weight:600;color:var(--ink);font-size:.88rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
-        ${isBooked ? "🎯 " : ""}${escapeM(name)}${levelBadge}
+        🎯 ${escapeM(name)}${levelBadge}${autoBadge}
       </div>
       <div style="font-size:.75rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeM(s.email || "")}</div>
     </div>
