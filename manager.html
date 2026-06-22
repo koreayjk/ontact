@@ -2914,7 +2914,7 @@ $("ltr-student") && ($("ltr-student").onchange = async () => {
   
   if(!data || data.length === 0){
     $("ltr-history").style.display = "none";
-    clearLtrForm();
+    clearLtrForm(true); // 폼만 비우고, 방금 선택한 학생은 유지
     // 오늘 날짜 기본 설정
     $("ltr-date").value = new Date().toISOString().split("T")[0];
     return;
@@ -3003,9 +3003,11 @@ window.loadLtrResult = async function(resultId){
   initStars();
 };
 
-function clearLtrForm(){
-  $("ltr-student-search").value = "";
-  $("ltr-student").value = "";
+function clearLtrForm(keepStudent){
+  if(!keepStudent){
+    $("ltr-student-search").value = "";
+    $("ltr-student").value = "";
+  }
   $("ltr-level").value = "";
   $("ltr-textbook").value = "";
   $("ltr-level-desc").value = "";
