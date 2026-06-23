@@ -469,7 +469,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-<script src="https://js.tosspayments.com/v1/payment"></script>
+<script src="https://js.tosspayments.com/v2/standard"></script>
 <script>
 const SUPABASE_URL="https://nhydhyolgrhsykdcqfzb.supabase.co";
 const SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5oeWRoeW9sZ3Joc3lrZGNxZnpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MTk1OTAsImV4cCI6MjA5NTk5NTU5MH0.s3qPFFN-4zMLAt-dtkOwzakCj-pkglKgbhyUR9uu4xs";
@@ -1920,13 +1920,17 @@ async function startTossPayment({ amount, orderName, kind, payload }){
   const orderId = "ontact_" + kind + "_" + Date.now() + "_" + Math.random().toString(36).slice(2,8);
   sessionStorage.setItem("toss_pending", JSON.stringify({ orderId, amount, kind, payload }));
   const base = location.origin + location.pathname;
+  // 토스 SDK v2 (결제창 / requestPayment)
   const toss = TossPayments(TOSS_CLIENT_KEY);
-  await toss.requestPayment("카드", {
-    amount, orderId, orderName,
-    customerName: (typeof PROFILE!=="undefined" && PROFILE && PROFILE.full_name) || undefined,
-    customerEmail: (typeof PROFILE!=="undefined" && PROFILE && PROFILE.email) || undefined,
+  const payment = toss.payment({ customerKey: TossPayments.ANONYMOUS }); // 일회성 결제
+  await payment.requestPayment({
+    method: "CARD",
+    amount: { currency: "KRW", value: amount },
+    orderId, orderName,
     successUrl: base + "?toss=success",
     failUrl: base + "?toss=fail",
+    customerName: (typeof PROFILE!=="undefined" && PROFILE && PROFILE.full_name) || undefined,
+    customerEmail: (typeof PROFILE!=="undefined" && PROFILE && PROFILE.email) || undefined,
   });
 }
 
