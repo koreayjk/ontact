@@ -3144,19 +3144,30 @@ window.openLtrModal = function(sid, name){
 $("ltr-close-btn") && ($("ltr-close-btn").onclick = ()=> $("ltr-modal").style.display = "none");
 $("ltr-modal") && ($("ltr-modal").onclick = (e)=>{ if(e.target.id==="ltr-modal") $("ltr-modal").style.display="none"; });
 
-// ── #3 결과지 PDF (저장된 최신 1:1 결과로 생성·다운로드) ──
+// ── #3 결과지 PDF (저장된 최신 1:1 결과로 생성 → 새 창 미리보기 + 다운로드) ──
 $("ltr-pdf-btn") && ($("ltr-pdf-btn").onclick = async ()=>{
   const sid = $("ltr-student").value;
   if(!sid){ showLtrMsg(LANG==="kr"?"학생을 먼저 선택하세요.":"Select a student first.", false); return; }
+  if(typeof html2pdf==="undefined"){ showLtrMsg("PDF 라이브러리를 불러오지 못했습니다.", false); return; }
+  // 팝업 차단 방지: 클릭 제스처 동안 미리 창을 연다
+  const win = window.open("", "_blank");
+  if(win) win.document.write(`<!doctype html><meta charset="utf-8"><title>${LANG==="kr"?"결과지 미리보기":"Report preview"}</title><body style="font-family:sans-serif;color:#6b7785;padding:28px">${LANG==="kr"?"📄 PDF 생성 중…":"📄 Generating PDF…"}</body>`);
   const { data } = await sb.from("level_test_results").select("*").eq("student_id",sid).order("test_date",{ascending:false}).limit(1);
   const rec = data && data[0];
-  if(!rec){ showLtrMsg(LANG==="kr"?"저장된 결과가 없습니다. 먼저 저장하세요.":"No saved result — please Save first.", false); return; }
-  if(typeof html2pdf==="undefined"){ showLtrMsg("PDF 라이브러리를 불러오지 못했습니다.", false); return; }
+  if(!rec){ if(win) win.close(); showLtrMsg(LANG==="kr"?"저장된 결과가 없습니다. 먼저 저장하세요.":"No saved result — please Save first.", false); return; }
   const name = ($("ltr-student-search").value || "Student").trim();
   const el = buildLtrSheet(name, rec);
   document.body.appendChild(el);
   const opt = { margin:8, filename:`ONTACT_LevelTest_${name}_${rec.test_date||""}.pdf`, image:{type:"jpeg",quality:.97}, html2canvas:{scale:2,useCORS:true}, jsPDF:{unit:"mm",format:"a4",orientation:"portrait"} };
-  html2pdf().set(opt).from(el).save().then(()=>el.remove()).catch(()=>el.remove());
+  try{
+    const blobUrl = await html2pdf().set(opt).from(el).outputPdf("bloburl");
+    el.remove();
+    if(win){ win.location.href = blobUrl; }       // 새 창에서 미리보기(뷰어에 다운로드 버튼 포함)
+    else { window.open(blobUrl, "_blank"); }       // 창이 막혔으면 한 번 더 시도
+  }catch(e){
+    el.remove(); if(win) win.close();
+    showLtrMsg(LANG==="kr"?"PDF 생성 실패":"PDF generation failed", false);
+  }
 });
 
 // 결과지 시트 HTML (PDF 렌더용)
