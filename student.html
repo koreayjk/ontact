@@ -729,7 +729,7 @@ window.showReenrollmentModal = async function(currentEnrollmentId){
       ${isCurrent ? '<span style="position:absolute;top:4px;right:4px;background:#2e7d32;color:#fff;padding:1px 6px;border-radius:4px;font-size:.65rem;font-weight:700">현재</span>' : ''}
       <div style="width:42px;height:42px;border-radius:50%;background:var(--coral);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.1rem;margin:0 auto 6px">${init}</div>
       <div style="font-weight:700;font-size:.88rem">${t.display_name}</div>
-      <div style="font-size:.72rem;color:var(--muted);margin-top:2px">🕒 ${h.start_hm}~${h.end_hm}</div>
+      <div style="font-size:.72rem;color:var(--muted);margin-top:2px">🕒 ${phtToLocalPlain(h.start_hm)}~${phtToLocalPlain(h.end_hm)}</div>
     </div>`;
   }).join("");
   
@@ -780,18 +780,9 @@ window.showReenrollmentModal = async function(currentEnrollmentId){
       $("re-times").innerHTML = `<div style="grid-column:1/-1;color:var(--muted);text-align:center;padding:14px;background:var(--paper);border-radius:8px;font-size:.85rem">강사의 시간이 설정되지 않았습니다.</div>`;
       return;
     }
-    const slots = [];
-    const [sh, sm] = h.start_hm.split(":").map(Number);
-    const [eh, em] = h.end_hm.split(":").map(Number);
-    let cur = sh * 60 + sm;
-    const end = eh * 60 + em;
-    while(cur + 20 <= end){
-      const hh = String(Math.floor(cur/60)).padStart(2,"0");
-      const mi = String(cur%60).padStart(2,"0");
-      slots.push(`${hh}:${mi}`);
-      cur += 20;
-    }
-    
+    // 정규 시간표(필리핀) 중 강사 가능시간 안에 드는 슬롯만
+    const slots = phSlotsInWindow(h.start_hm, h.end_hm);
+
     // 다른 학생이 신청한 시간 (본인 enrollment 제외)
     const { data: taken } = await sb.from("enrollments")
       .select("slot_hm, student_id")
@@ -805,7 +796,7 @@ window.showReenrollmentModal = async function(currentEnrollmentId){
       const isSel = reSel.times.has(s);
       const isCurrent = s === currentEnr.slot_hm && reSel.teacher.id === currentEnr.teacher_id;
       return `<button class="re-time" data-hm="${s}" ${isTaken?"disabled":""} style="background:${isTaken?'#f4f0e8':isSel?'#fef6ef':'#fff'};border:2px solid ${isSel?'var(--coral)':'var(--line)'};padding:8px;border-radius:8px;cursor:${isTaken?'not-allowed':'pointer'};font-weight:700;font-size:.85rem;color:${isTaken?'#bbb':'var(--ink)'};font-family:inherit;text-decoration:${isTaken?'line-through':'none'};position:relative">
-        ${s}
+        ${phtToLocal(s)}
         ${isCurrent ? '<span style="position:absolute;top:-5px;right:-3px;background:#2e7d32;color:#fff;padding:1px 4px;border-radius:3px;font-size:.55rem;font-weight:700">현재</span>' : ''}
       </button>`;
     }).join("");
@@ -833,7 +824,7 @@ window.showReenrollmentModal = async function(currentEnrollmentId){
     $("re-r-teacher").textContent = reSel.teacher?.display_name || "–";
     const sd = startCandidates.find(c => c.iso === reSel.startDate);
     $("re-r-start").textContent = sd?.label || "–";
-    $("re-r-times").textContent = reSel.times.size ? [...reSel.times].join(", ") : "–";
+    $("re-r-times").textContent = reSel.times.size ? [...reSel.times].map(phtToLocalPlain).join(", ") : "–";
     $("re-r-price").textContent = `₩${(reSel.months * PRICE_PER_MONTH).toLocaleString()}`;
     const ok = reSel.teacher && reSel.startDate && reSel.times.size > 0 && reSel.months;
     $("re-confirm").disabled = !ok;
@@ -993,7 +984,7 @@ window.showScheduleSelector = async function(enrollmentId){
     return `<div class="ss-tcard" data-id="${t.id}" style="border:2px solid var(--line);border-radius:10px;padding:12px;text-align:center;cursor:pointer;transition:.15s">
       <div style="width:42px;height:42px;border-radius:50%;background:var(--coral);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.1rem;margin:0 auto 6px">${init}</div>
       <div style="font-weight:700;font-size:.88rem">${t.display_name}</div>
-      <div style="font-size:.72rem;color:var(--muted);margin-top:2px">🕒 ${h.start_hm}~${h.end_hm}</div>
+      <div style="font-size:.72rem;color:var(--muted);margin-top:2px">🕒 ${phtToLocalPlain(h.start_hm)}~${phtToLocalPlain(h.end_hm)}</div>
     </div>`;
   }).join("") || `<div style="grid-column:1/-1;color:var(--muted);text-align:center;padding:14px">등록된 강사가 없습니다.</div>`;
   
@@ -1040,19 +1031,9 @@ window.showScheduleSelector = async function(enrollmentId){
       $("ss-times").innerHTML = `<div style="grid-column:1/-1;color:var(--muted);text-align:center;padding:14px;background:var(--paper);border-radius:8px;font-size:.85rem">강사의 시간이 설정되지 않았습니다.</div>`;
       return;
     }
-    // 가능 시간 슬롯 생성 (20분 단위)
-    const slots = [];
-    const [sh, sm] = h.start_hm.split(":").map(Number);
-    const [eh, em] = h.end_hm.split(":").map(Number);
-    let cur = sh * 60 + sm;
-    const end = eh * 60 + em;
-    while(cur + 20 <= end){
-      const hh = String(Math.floor(cur/60)).padStart(2,"0");
-      const mi = String(cur%60).padStart(2,"0");
-      slots.push(`${hh}:${mi}`);
-      cur += 20;
-    }
-    
+    // 정규 시간표(필리핀) 중 강사 가능시간 안에 드는 슬롯만
+    const slots = phSlotsInWindow(h.start_hm, h.end_hm);
+
     // 이미 다른 학생이 신청한 시간 제외
     const { data: taken } = await sb.from("enrollments")
       .select("slot_hm")
@@ -1063,7 +1044,7 @@ window.showScheduleSelector = async function(enrollmentId){
     $("ss-times").innerHTML = slots.map(s => {
       const isTaken = takenSet.has(s);
       const isSel = ssSel.times.has(s);
-      return `<button class="ss-time" data-hm="${s}" ${isTaken?"disabled":""} style="background:${isTaken?'#f4f0e8':isSel?'#fef6ef':'#fff'};border:2px solid ${isSel?'var(--coral)':'var(--line)'};padding:8px;border-radius:8px;cursor:${isTaken?'not-allowed':'pointer'};font-weight:700;font-size:.85rem;color:${isTaken?'#bbb':'var(--ink)'};font-family:inherit;text-decoration:${isTaken?'line-through':'none'}">${s}</button>`;
+      return `<button class="ss-time" data-hm="${s}" ${isTaken?"disabled":""} style="background:${isTaken?'#f4f0e8':isSel?'#fef6ef':'#fff'};border:2px solid ${isSel?'var(--coral)':'var(--line)'};padding:8px;border-radius:8px;cursor:${isTaken?'not-allowed':'pointer'};font-weight:700;font-size:.85rem;color:${isTaken?'#bbb':'var(--ink)'};font-family:inherit;text-decoration:${isTaken?'line-through':'none'}">${phtToLocal(s)}</button>`;
     }).join("");
     
     modal.querySelectorAll(".ss-time").forEach(b => {
@@ -1085,7 +1066,7 @@ window.showScheduleSelector = async function(enrollmentId){
   }
   
   function ssRefreshSummary(){
-    $("ss-r-times").textContent = ssSel.times.size ? [...ssSel.times].join(", ") : "–";
+    $("ss-r-times").textContent = ssSel.times.size ? [...ssSel.times].map(phtToLocalPlain).join(", ") : "–";
     const ok = ssSel.teacher && ssSel.startDate && ssSel.times.size > 0;
     $("ss-confirm").disabled = !ok;
     $("ss-confirm").style.opacity = ok ? "1" : ".5";
@@ -1981,6 +1962,33 @@ function expandSlots(startHM,endHM,stepMin){
 // 🌐 시간대 — 브라우저 자동 감지 (사용자의 실제 현재 위치)
 const BROWSER_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
 const TZ = () => BROWSER_TZ || PROFILE.timezone || "Asia/Seoul";
+
+// ── 온택 정규 시간표 (필리핀 UTC+8 기준 20분 슬롯) — 화면엔 학생 로컬 시간으로 변환 표시 ──
+//   slot_hm 은 항상 '필리핀 시간 HH:MM'으로 저장/전송(백엔드 계약 유지). 표시만 로컬로 변환.
+const PH_SLOTS = ["09:00","09:30","10:00","10:30","11:00","13:00","13:30","14:00","14:30","15:00","15:30","16:00","16:30","17:10","17:30","18:20","18:50","19:20","19:50"];
+const hmToMin = hm => { const [h,m]=String(hm).split(":").map(Number); return h*60+m; };
+// 필리핀 'HH:MM' 을 (현재 날짜 기준) 절대 시각으로 — 필리핀=UTC+8, DST 없음
+function phtRefUtc(hm){
+  const [h,m]=String(hm).split(":").map(Number);
+  const n=new Date();
+  return new Date(Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate(), h-8, m));
+}
+function phtToLocalPlain(hm){
+  return new Intl.DateTimeFormat('en-GB',{timeZone:TZ(),hour:'2-digit',minute:'2-digit',hour12:false}).format(phtRefUtc(hm));
+}
+// 학생 로컬 시간 + (필리핀 날짜 대비) 전날/다음날 표시
+function phtToLocal(hm){
+  const utc=phtRefUtc(hm);
+  const phDay  = Number(new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',day:'2-digit'}).format(utc));
+  const locDay = Number(new Intl.DateTimeFormat('en-CA',{timeZone:TZ(),day:'2-digit'}).format(utc));
+  let pre="";
+  if(locDay!==phDay){ const diff=locDay-phDay; pre = (diff===1 || diff<=-26) ? "다음날 " : "전날 "; }
+  return pre+phtToLocalPlain(hm);
+}
+function phSlotsInWindow(start_hm, end_hm){
+  const s=hmToMin(start_hm), e=hmToMin(end_hm);
+  return PH_SLOTS.filter(slot=>{ const t=hmToMin(slot); return t>=s && (t+20)<=e; });
+}
 let MY_BOOKINGS=[], MY_ABS={}, MY_ENROLLS=[];
 
 function fmtTime(iso){ return new Intl.DateTimeFormat('ko-KR',{timeZone:TZ(),hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(iso)); }
@@ -2162,8 +2170,11 @@ function renderWeek(weekOffset){
     return t >= monday.getTime() && t < sun.getTime();
   });
 
-  const days = [0,1,3,4].map(off=> new Date(monday.getTime() + off*86400000));
+  // 컬럼을 '실제 수업이 있는 날짜'로 구성 — 요일 하드코딩([0,1,3,4]) 제거.
+  // 기존 코드는 UTC 자정 기준이라 음수 시간대(미주 등)에서 요일이 하루 밀려 주4회가 2회만 보였음.
   const todayK = localDayKey(new Date().toISOString());
+  const dayKeys = [...new Set(weekBks.map(b=> localDayKey(b.start_at)))].sort();
+  const days = dayKeys.map(k=> new Date(k+"T12:00:00")); // 학생 로컬 정오 → 라벨/키 일관
 
   // 시간 슬롯들
   const timeSet = new Set();
@@ -2172,10 +2183,13 @@ function renderWeek(weekOffset){
 
   const grid = $(`grid-${weekOffset}`);
   if(weekBks.length===0){
+    grid.style.gridTemplateColumns = "";
     grid.innerHTML = `<div style="grid-column:1 / -1;text-align:center;color:var(--muted);padding:24px;font-size:.88rem">이번 주 수업이 없습니다.</div>`;
     return;
   }
   if(times.length===0) times = ["—"];
+  // 컬럼 수를 날짜 수에 맞게 동적 지정
+  grid.style.gridTemplateColumns = `60px repeat(${days.length}, minmax(110px,1fr))`;
 
   let html = `<div></div>`;
   days.forEach(d=>{
