@@ -7,10 +7,9 @@
 //     프론트가 승인 성공 후 기존 create-enrollment/create-reenrollment를 호출합니다.
 //
 // 배포 전 설정 (Supabase):
-//   supabase secrets set TOSS_SECRET_KEY=test_sk_xxxxxxxxxxxxxxxx
+//   대시보드: Edge Functions → Secrets → TOSS_SECRET_KEY = test_sk_xxxx
 //   (라이브 전환 시 live_sk_... 로 교체)
 // ============================================================
-import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -20,7 +19,7 @@ const CORS = {
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } });
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json({ ok: false, error: "method not allowed" }, 405);
 
