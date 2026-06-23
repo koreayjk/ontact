@@ -469,6 +469,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://js.tosspayments.com/v1/payment"></script>
 <script>
 const SUPABASE_URL="https://nhydhyolgrhsykdcqfzb.supabase.co";
 const SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5oeWRoeW9sZ3Joc3lrZGNxZnpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MTk1OTAsImV4cCI6MjA5NTk5NTU5MH0.s3qPFFN-4zMLAt-dtkOwzakCj-pkglKgbhyUR9uu4xs";
@@ -843,9 +844,27 @@ window.showReenrollmentModal = async function(currentEnrollmentId){
   // 결제 버튼
   $("re-confirm").onclick = async () => {
     if($("re-confirm").disabled) return;
+
+    // ── 토스 결제창 (키 설정 시) — 성공 복귀 후 create-reenrollment 호출 ──
+    if(TOSS_ENABLED){
+      try{
+        $("re-confirm").disabled = true; $("re-confirm").textContent = "결제창 여는 중…";
+        await startTossPayment({
+          amount: reSel.months*PRICE_PER_MONTH,
+          orderName: `온택 영어 ${reSel.months}개월 재수강`,
+          kind: "reenroll",
+          payload: { months: reSel.months, teacher_id: reSel.teacher.id, times: [...reSel.times], start_date: reSel.startDate },
+        });
+      }catch(e){
+        $("re-confirm").disabled = false; $("re-confirm").textContent = "💳 결제하고 등록하기";
+        if(!(e && e.code === "USER_CANCEL")){ $("re-msg").style.color="#d4351c"; $("re-msg").textContent="❌ "+((e&&e.message)||"결제창 오류"); }
+      }
+      return;
+    }
+
     $("re-confirm").disabled = true;
     $("re-confirm").textContent = "처리 중…";
-    
+
     try {
       const {data:{session}} = await sb.auth.getSession();
       const res = await fetch(`${SUPABASE_URL}/functions/v1/create-reenrollment`, {
@@ -1889,13 +1908,87 @@ function refreshSummary(){
 }
 
 /* 결제 버튼 — 기간만 결제 */
+// ════════════════════════════════════════════
+// 토스페이먼츠 (테스트) — 결제창 SDK / requestPayment
+//   · 키 미설정 시 TOSS_ENABLED=false → 기존(무PG) 흐름으로 폴백
+//   · 시크릿 키는 절대 여기 두지 않음 (Edge Function confirm-payment 에서만)
+// ════════════════════════════════════════════
+const TOSS_CLIENT_KEY = "test_ck_REPLACE_ME"; // ← 토스 테스트 '클라이언트 키'로 교체
+const TOSS_ENABLED = !TOSS_CLIENT_KEY.includes("REPLACE") && typeof TossPayments !== "undefined";
+
+async function startTossPayment({ amount, orderName, kind, payload }){
+  const orderId = "ontact_" + kind + "_" + Date.now() + "_" + Math.random().toString(36).slice(2,8);
+  sessionStorage.setItem("toss_pending", JSON.stringify({ orderId, amount, kind, payload }));
+  const base = location.origin + location.pathname;
+  const toss = TossPayments(TOSS_CLIENT_KEY);
+  await toss.requestPayment("카드", {
+    amount, orderId, orderName,
+    customerName: (typeof PROFILE!=="undefined" && PROFILE && PROFILE.full_name) || undefined,
+    customerEmail: (typeof PROFILE!=="undefined" && PROFILE && PROFILE.email) || undefined,
+    successUrl: base + "?toss=success",
+    failUrl: base + "?toss=fail",
+  });
+}
+
+// 결제 복귀 처리: 토스 승인(confirm-payment) → 성공 시 기존 수강 생성 함수 호출
+async function handleTossReturn(){
+  const q = new URLSearchParams(location.search);
+  const t = q.get("toss");
+  if(!t) return;
+  const clean = () => history.replaceState({}, "", location.pathname);
+  if(t === "fail"){ sessionStorage.removeItem("toss_pending"); clean(); alert("결제가 취소되었거나 실패했습니다.\n" + (q.get("message")||q.get("code")||"")); return; }
+  if(t !== "success") return;
+  const paymentKey = q.get("paymentKey"), orderId = q.get("orderId"), amount = Number(q.get("amount"));
+  let pending = null; try{ pending = JSON.parse(sessionStorage.getItem("toss_pending")||"null"); }catch(e){}
+  clean();
+  if(!paymentKey || !orderId){ return; }
+
+  const overlay = document.createElement("div");
+  overlay.style.cssText = "position:fixed;inset:0;background:rgba(255,255,255,.88);z-index:4000;display:flex;align-items:center;justify-content:center;font-family:Pretendard,sans-serif;font-weight:700;color:#12273d;font-size:1rem";
+  overlay.textContent = "💳 결제 확인 중…";
+  document.body.appendChild(overlay);
+  try{
+    const { data:{ session } } = await sb.auth.getSession();
+    if(!session){ overlay.remove(); return; }
+    const headers = { "Content-Type":"application/json", "Authorization":`Bearer ${session.access_token}`, "apikey":SUPABASE_ANON_KEY };
+    // 1) 토스 승인 (시크릿 키는 서버에서만)
+    const cr = await fetch(`${SUPABASE_URL}/functions/v1/confirm-payment`, { method:"POST", headers, body:JSON.stringify({ paymentKey, orderId, amount }) });
+    const cj = await cr.json().catch(()=>({}));
+    if(!cr.ok || !cj.ok){ overlay.remove(); alert("결제 승인 실패: " + (cj.error||cr.status)); return; }
+    // 2) 승인 성공 → 기존 함수로 수강 생성 (confirm-payment은 승인만)
+    const fn = (pending && pending.kind === "reenroll") ? "create-reenrollment" : "create-enrollment";
+    const er = await fetch(`${SUPABASE_URL}/functions/v1/${fn}`, { method:"POST", headers, body:JSON.stringify({ ...(pending?pending.payload:{}), paymentKey, orderId }) });
+    const ej = await er.json().catch(()=>({}));
+    sessionStorage.removeItem("toss_pending");
+    overlay.remove();
+    if(!er.ok || !ej.ok){ alert("결제는 승인됐지만 수강 생성에 실패했습니다. 관리자에게 문의해 주세요.\n" + (ej.error||"")); return; }
+    alert("✅ 결제가 완료되었습니다!");
+    if(typeof refreshSignupGate==="function") await refreshSignupGate();
+    if(typeof loadMyClasses==="function") loadMyClasses();
+  }catch(e){ overlay.remove(); alert("결제 처리 오류: " + e.message); }
+}
+handleTossReturn();
+
 $("payBtn").onclick=async()=>{
   const m=$("msg");
   if(!sel.months){ return; }
+
+  // ── 토스 결제창 (키 설정 시) ──
+  if(TOSS_ENABLED){
+    try{
+      $("payBtn").disabled=true; $("payBtn").textContent="결제창 여는 중…";
+      await startTossPayment({ amount: sel.months*PRICE_PER_MONTH, orderName:`온택 영어 ${sel.months}개월 수강`, kind:"enroll", payload:{ months: sel.months } });
+    }catch(e){
+      $("payBtn").disabled=false; $("payBtn").textContent="💳 결제하기";
+      if(!(e && e.code === "USER_CANCEL")){ m.style.color="#d4512c"; m.textContent="❌ "+((e&&e.message)||"결제창 오류"); }
+    }
+    return;
+  }
+
+  // ── 폴백: PG 미설정 시 기존(무결제) 흐름 ──
   $("payBtn").disabled=true;
   $("payBtn").textContent="처리 중…";
   m.style.color="var(--muted)"; m.textContent="";
-
   try{
     const{data:{session}}=await sb.auth.getSession();
     const res=await fetch(`${SUPABASE_URL}/functions/v1/create-enrollment`,{
@@ -1921,7 +2014,7 @@ $("payBtn").onclick=async()=>{
     m.innerHTML=`✅ 결제가 완료됐습니다!<br>다음 단계: 1:1 레벨테스트 예약`;
     $("payBtn").textContent="신청 완료";
     sel={teacher:null, months:1, startDate:null, times:new Set()};
-    
+
     setTimeout(async()=>{
       await refreshSignupGate();
       m.textContent = "";
