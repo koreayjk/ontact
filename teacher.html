@@ -137,6 +137,7 @@
     <button data-tab="abs" data-t="tab_abs">📝 Absences <span id="abs-badge" style="display:none;background:#c0392b;color:#fff;padding:0 6px;border-radius:999px;font-size:.7rem;margin-left:4px"></span></button>
     <button data-tab="makeup" data-t="tab_makeup">🔁 Makeup</button>
     <button data-tab="eval" data-t="tab_eval">⭐ Reviews</button>
+    <button data-tab="students" data-t="tab_students">👥 Students</button>
   </div>
 
   <!-- ─── Schedule tab ─── -->
@@ -203,6 +204,15 @@
       <div id="ev-list"><div class="empty" data-t="loading">Loading…</div></div>
     </div>
   </div>
+
+  <!-- 👥 내 학생 명부 (#8) -->
+  <div class="panel" id="p-students">
+    <div class="step">
+      <h2 data-t="st_h">My Students</h2>
+      <p class="sub" data-t="st_sub">Your enrolled students. View basic info and level test reports (written + 1:1).</p>
+      <div id="st-list"><div class="empty" data-t="loading">Loading…</div></div>
+    </div>
+  </div>
 </div>
 
 <!-- Cell detail modal -->
@@ -267,7 +277,8 @@ const $=(id)=>document.getElementById(id);
 const I18N = {
   en:{
     title:"Teacher Dashboard", logout:"Logout",
-    tab_schedule:"📅 Schedule", tab_abs:"📝 Absences", tab_makeup:"🔁 Makeup", tab_eval:"⭐ Reviews",
+    tab_schedule:"📅 Schedule", tab_abs:"📝 Absences", tab_makeup:"🔁 Makeup", tab_eval:"⭐ Reviews", tab_students:"👥 Students",
+    st_h:"My Students", st_sub:"Your enrolled students. View basic info and level test reports (written + 1:1).",
     s_today_left:"Today remaining", s_today_total:"Today total", s_week:"This week", s_students:"Students",
     this_week:"This week", next_week:"Next week", week2:"Week after next", tz_note:"Times shown in your timezone",
     loading:"Loading…", no_upcoming:"No upcoming classes.", next_in:"Next class in", next_now:"Class starting now!", next_label:"Next class",
@@ -294,7 +305,8 @@ const I18N = {
   },
   kr:{
     title:"강사 대시보드", logout:"로그아웃",
-    tab_schedule:"📅 일정", tab_abs:"📝 결석계", tab_makeup:"🔁 보강", tab_eval:"⭐ 평가",
+    tab_schedule:"📅 일정", tab_abs:"📝 결석계", tab_makeup:"🔁 보강", tab_eval:"⭐ 평가", tab_students:"👥 학생",
+    st_h:"내 학생 명부", st_sub:"내가 담당하는 학생들입니다. 기본 정보와 레벨테스트 결과지(서면+1:1)를 볼 수 있습니다.",
     s_today_left:"오늘 남은", s_today_total:"오늘 전체", s_week:"이번 주", s_students:"담당 학생",
     this_week:"이번 주", next_week:"다음 주", week2:"다다음 주", tz_note:"시간은 본인 시간대로 표시됩니다",
     loading:"불러오는 중…", no_upcoming:"예정된 수업이 없습니다.", next_in:"다음 수업까지", next_now:"지금 시작!", next_label:"다음 수업",
@@ -366,8 +378,36 @@ document.querySelectorAll(".tabs button").forEach(b=>{
     if(b.dataset.tab==="abs")      loadAbsences();
     if(b.dataset.tab==="makeup")   loadMakeups();
     if(b.dataset.tab==="eval")     loadEval();
+    if(b.dataset.tab==="students") loadStudents();
   };
 });
+
+// ── #8 내 학생 명부 ──
+async function loadStudents(){
+  const box = $("st-list"); if(!box) return;
+  box.innerHTML = `<div class="empty">${t("loading")}</div>`;
+  const { data: enrolls } = await sb.from("enrollments")
+    .select("student_id,status,months,profiles!enrollments_student_id_fkey(full_name,email,level_result,level_test_done,phone,country,timezone,age,gender)")
+    .eq("teacher_id", USER.id);
+  const seen=new Set(); const studs=[];
+  (enrolls||[]).forEach(e=>{ if(!e.student_id||seen.has(e.student_id))return; seen.add(e.student_id); studs.push(e); });
+  if(studs.length===0){ box.innerHTML = `<div class="empty">${LANG==="kr"?"담당 학생이 없습니다.":"No students yet."}</div>`; return; }
+  const esc = s => (s==null?"":String(s)).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  box.innerHTML = studs.map(e=>{
+    const p = e.profiles || {}; const name = p.full_name || p.email || "–";
+    const lv = (p.level_test_done && p.level_result)
+      ? `<span style="background:#e6f6ec;color:#2e7d32;padding:2px 9px;border-radius:6px;font-size:.78rem;font-weight:700">${esc(p.level_result)}</span>`
+      : `<span style="background:#fff3e0;color:#c98a1f;padding:2px 9px;border-radius:6px;font-size:.78rem;font-weight:700">${LANG==="kr"?"레벨 미정":"No level"}</span>`;
+    const meta = [p.email, p.phone, p.country, p.timezone].filter(Boolean).map(esc).join(" · ");
+    return `<div style="background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+      <div style="min-width:0">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><b style="font-size:1rem;color:var(--ink)">${esc(name)}</b>${lv}</div>
+        <div style="font-size:.8rem;color:var(--muted);margin-top:4px">${meta||"—"}</div>
+      </div>
+      <button onclick="openStudentLevelReport('${e.student_id}','${name.replace(/'/g,"\\'")}')" style="background:#12273d;color:#fff;border:0;padding:8px 14px;border-radius:8px;font-weight:700;cursor:pointer;font-size:.85rem;white-space:nowrap">📊 ${LANG==="kr"?"레벨테스트 결과":"Level Report"}</button>
+    </div>`;
+  }).join("");
+}
 
 async function init(){
   await loadSchedule();
@@ -932,6 +972,51 @@ gate();
 </script>
 <!-- Chat widget -->
 <script>window.sb = sb;</script>
+<!-- 📢 공지 팝업 (#6) — 로그인 후 미확인 공지 표시 + 확인기록 -->
+<script>
+(async function(){
+  try{
+    const _sb = window.sb || (typeof sb!=="undefined" ? sb : null);
+    if(!_sb) return;
+    const { data:{ user } } = await _sb.auth.getUser();
+    if(!user) return;
+    const { data: prof } = await _sb.from("profiles").select("role,full_name,email").eq("id",user.id).single();
+    if(!prof) return;
+    const role = prof.role || "student";
+    const uname = prof.full_name || prof.email || "";
+    const LANG = localStorage.getItem("ontact_lang") || "kr";
+    const T = LANG==="en" ? { head:"📢 Announcement", confirm:"I have read this" } : { head:"📢 공지사항", confirm:"확인했습니다" };
+    const { data: anns } = await _sb.from("announcements")
+      .select("id,title,body,created_at,created_by_name")
+      .eq("active", true).in("audience", ["all", role])
+      .order("created_at",{ascending:true});
+    if(!anns || anns.length===0) return;
+    const { data: myReads } = await _sb.from("announcement_reads").select("announcement_id").eq("user_id", user.id);
+    const readSet = new Set((myReads||[]).map(r=>r.announcement_id));
+    const unread = anns.filter(a=>!readSet.has(a.id));
+    if(unread.length===0) return;
+    function esc(s){ return (s==null?"":String(s)).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+    const ov = document.createElement("div");
+    ov.style.cssText = "position:fixed;inset:0;background:rgba(18,39,61,.6);z-index:3000;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px);font-family:Pretendard,sans-serif";
+    ov.innerHTML = `<div style="background:#fff;border-radius:16px;max-width:480px;width:100%;max-height:86vh;overflow-y:auto;box-shadow:0 30px 70px rgba(0,0,0,.3)">
+      <div style="background:#ef6a48;color:#fff;padding:16px 22px;border-radius:16px 16px 0 0;font-weight:800;font-size:1.05rem">${T.head}</div>
+      <div style="padding:18px 22px">
+        ${unread.map(a=>`<div style="border-bottom:1px solid #f0ece3;padding:10px 0">
+          <div style="font-weight:800;color:#12273d;font-size:1rem">${esc(a.title)}</div>
+          <div style="white-space:pre-wrap;color:#12273d;font-size:.9rem;margin-top:6px;line-height:1.55">${esc(a.body)}</div>
+          <div style="font-size:.72rem;color:#6b7785;margin-top:6px">${new Date(a.created_at).toLocaleDateString()} · ${esc(a.created_by_name||"")}</div>
+        </div>`).join("")}
+        <button id="__ann_ok" style="width:100%;margin-top:16px;background:#12273d;color:#fff;border:0;padding:13px;border-radius:10px;font-weight:800;font-size:.95rem;cursor:pointer">${T.confirm}</button>
+      </div>
+    </div>`;
+    document.body.appendChild(ov);
+    ov.querySelector("#__ann_ok").onclick = async ()=>{
+      try{ await _sb.from("announcement_reads").insert(unread.map(a=>({ announcement_id:a.id, user_id:user.id, user_name:uname, role }))); }catch(e){}
+      ov.remove();
+    };
+  }catch(e){}
+})();
+</script>
 <script>
 fetch("chat-widget.html").then(r => r.text()).then(html => {
   const temp = document.createElement("div");

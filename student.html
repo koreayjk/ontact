@@ -2355,6 +2355,51 @@ gate();
 </script>
 <!-- Chat widget -->
 <script>window.sb = sb;</script>
+<!-- 📢 공지 팝업 (#6) — 로그인 후 미확인 공지 표시 + 확인기록 -->
+<script>
+(async function(){
+  try{
+    const _sb = window.sb || (typeof sb!=="undefined" ? sb : null);
+    if(!_sb) return;
+    const { data:{ user } } = await _sb.auth.getUser();
+    if(!user) return;
+    const { data: prof } = await _sb.from("profiles").select("role,full_name,email").eq("id",user.id).single();
+    if(!prof) return;
+    const role = prof.role || "student";
+    const uname = prof.full_name || prof.email || "";
+    const LANG = localStorage.getItem("ontact_lang") || "kr";
+    const T = LANG==="en" ? { head:"📢 Announcement", confirm:"I have read this" } : { head:"📢 공지사항", confirm:"확인했습니다" };
+    const { data: anns } = await _sb.from("announcements")
+      .select("id,title,body,created_at,created_by_name")
+      .eq("active", true).in("audience", ["all", role])
+      .order("created_at",{ascending:true});
+    if(!anns || anns.length===0) return;
+    const { data: myReads } = await _sb.from("announcement_reads").select("announcement_id").eq("user_id", user.id);
+    const readSet = new Set((myReads||[]).map(r=>r.announcement_id));
+    const unread = anns.filter(a=>!readSet.has(a.id));
+    if(unread.length===0) return;
+    function esc(s){ return (s==null?"":String(s)).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+    const ov = document.createElement("div");
+    ov.style.cssText = "position:fixed;inset:0;background:rgba(18,39,61,.6);z-index:3000;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px);font-family:Pretendard,sans-serif";
+    ov.innerHTML = `<div style="background:#fff;border-radius:16px;max-width:480px;width:100%;max-height:86vh;overflow-y:auto;box-shadow:0 30px 70px rgba(0,0,0,.3)">
+      <div style="background:#ef6a48;color:#fff;padding:16px 22px;border-radius:16px 16px 0 0;font-weight:800;font-size:1.05rem">${T.head}</div>
+      <div style="padding:18px 22px">
+        ${unread.map(a=>`<div style="border-bottom:1px solid #f0ece3;padding:10px 0">
+          <div style="font-weight:800;color:#12273d;font-size:1rem">${esc(a.title)}</div>
+          <div style="white-space:pre-wrap;color:#12273d;font-size:.9rem;margin-top:6px;line-height:1.55">${esc(a.body)}</div>
+          <div style="font-size:.72rem;color:#6b7785;margin-top:6px">${new Date(a.created_at).toLocaleDateString()} · ${esc(a.created_by_name||"")}</div>
+        </div>`).join("")}
+        <button id="__ann_ok" style="width:100%;margin-top:16px;background:#12273d;color:#fff;border:0;padding:13px;border-radius:10px;font-weight:800;font-size:.95rem;cursor:pointer">${T.confirm}</button>
+      </div>
+    </div>`;
+    document.body.appendChild(ov);
+    ov.querySelector("#__ann_ok").onclick = async ()=>{
+      try{ await _sb.from("announcement_reads").insert(unread.map(a=>({ announcement_id:a.id, user_id:user.id, user_name:uname, role }))); }catch(e){}
+      ov.remove();
+    };
+  }catch(e){}
+})();
+</script>
 <script>
 fetch("chat-widget.html").then(r => r.text()).then(html => {
   const temp = document.createElement("div");

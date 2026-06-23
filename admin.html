@@ -421,7 +421,50 @@
   <!-- ============================================== -->
   <div class="panel" id="p-ops">
     <h1 class="sec-title">📅 운영 도구</h1>
-    <p class="sec-sub">월간 안내문, 단체수업 관리.</p>
+    <p class="sec-sub">공지사항, 교재, 월간 안내문, 단체수업 관리.</p>
+
+    <!-- 📢 공지하기 (#6/#7) -->
+    <div class="card" id="announce-mgmt">
+      <h2>📢 공지하기</h2>
+      <p class="sub">등록하면 매니저·강사·학생이 로그인 후 팝업으로 확인합니다. 누가 확인했는지 추적됩니다.</p>
+      <div class="form-row three">
+        <div><label>제목</label><input id="ann-title" placeholder="예: 6/24(수) 시스템 점검 안내"></div>
+        <div><label>대상</label>
+          <select id="ann-audience">
+            <option value="all">전체</option>
+            <option value="student">학생만</option>
+            <option value="teacher">강사만</option>
+            <option value="manager">매니저만</option>
+          </select>
+        </div>
+        <div><label>&nbsp;</label><button class="btn" id="ann-create" style="width:100%">📢 공지 등록</button></div>
+      </div>
+      <div class="form-row"><div style="grid-column:1/-1"><label>내용</label><textarea id="ann-body" rows="3" placeholder="공지 내용을 입력하세요"></textarea></div></div>
+      <div class="msg" id="ann-msg"></div>
+      <h3 style="font-size:1rem;margin-top:18px;margin-bottom:8px">등록된 공지</h3>
+      <div id="ann-list" style="font-size:.88rem;color:var(--muted)">불러오는 중…</div>
+    </div>
+
+    <!-- 📖 교재 관리 (#5) -->
+    <div class="card" id="textbook-mgmt">
+      <h2>📖 교재 관리</h2>
+      <p class="sub">여기서 등록한 교재가 매니저 레벨입력 화면의 <b>시작 교재</b> 드롭다운에 나타납니다.</p>
+      <div class="form-row three">
+        <div><label>교재명</label><input id="tb-title" placeholder="예: Side by Side 1"></div>
+        <div><label>레벨 (선택)</label>
+          <select id="tb-level">
+            <option value="">— 레벨 무관 —</option>
+            <option>Pre-A1</option><option>A1</option><option>A2</option>
+            <option>B1</option><option>B2</option><option>C1</option><option>C2</option>
+          </select>
+        </div>
+        <div><label>비고 (선택)</label><input id="tb-note" placeholder="예: 출판사·단원"></div>
+      </div>
+      <button class="btn" id="tb-add">교재 추가</button>
+      <div class="msg" id="tb-msg"></div>
+      <h3 style="font-size:1rem;margin-top:18px;margin-bottom:8px">등록된 교재</h3>
+      <div id="tb-list" style="font-size:.88rem;color:var(--muted)">불러오는 중…</div>
+    </div>
 
     <div class="card" id="monthly-notice">
       <h2>📅 월간 일정 안내문</h2>
@@ -560,6 +603,7 @@ document.querySelectorAll(".tabs button").forEach(b=>{
     b.classList.add("on");
     $("p-"+b.dataset.tab).classList.add("on");
     if(b.dataset.tab==="payments") loadPayments();
+    if(b.dataset.tab==="ops") loadOps();
   };
 });
 
@@ -567,6 +611,104 @@ document.querySelectorAll(".tabs button").forEach(b=>{
 document.querySelectorAll("[data-go]").forEach(el=>{
   el.onclick = ()=> document.querySelector(`[data-tab="${el.dataset.go}"]`).click();
 });
+
+// ════════════════════════════════════════════
+// 📅 운영 도구 — 공지(#6/#7) · 교재(#5)
+// ════════════════════════════════════════════
+const escA = s => (s==null?"":String(s)).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+function loadOps(){ loadAnnouncements(); loadTextbooks(); }
+
+// ── 교재 (#5) ──
+async function loadTextbooks(){
+  const box = $("tb-list"); if(!box) return;
+  const { data, error } = await sb.from("textbooks").select("*").order("sort").order("created_at",{ascending:true});
+  if(error){ box.innerHTML = `<span style="color:#d4351c">교재 테이블이 아직 없습니다. sql/features-textbooks-announcements.sql 실행 필요.</span>`; return; }
+  if(!data || data.length===0){ box.innerHTML = "등록된 교재가 없습니다."; return; }
+  box.innerHTML = data.map(t=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--paper)">
+      <div><b style="color:var(--ink)">${escA(t.title)}</b>${t.level?` <span style="background:var(--paper);padding:1px 7px;border-radius:5px;font-size:.75rem">${escA(t.level)}</span>`:""}${t.note?` <span style="color:var(--muted);font-size:.8rem">· ${escA(t.note)}</span>`:""}</div>
+      <button onclick="deleteTextbook('${t.id}')" style="background:#fff;border:1px solid var(--alert);color:var(--alert);padding:3px 10px;border-radius:6px;cursor:pointer;font-size:.8rem">삭제</button>
+    </div>`).join("");
+}
+$("tb-add").onclick = async ()=>{
+  const title = $("tb-title").value.trim();
+  if(!title){ $("tb-msg").textContent="교재명을 입력하세요."; $("tb-msg").style.color="#d4351c"; return; }
+  const { error } = await sb.from("textbooks").insert({ title, level: $("tb-level").value||null, note: $("tb-note").value.trim()||null });
+  if(error){ $("tb-msg").textContent="추가 실패: "+error.message; $("tb-msg").style.color="#d4351c"; return; }
+  $("tb-title").value=""; $("tb-note").value=""; $("tb-msg").textContent="✅ 추가됨"; $("tb-msg").style.color="var(--teal)";
+  loadTextbooks();
+};
+window.deleteTextbook = async function(id){
+  if(!confirm("이 교재를 삭제할까요?")) return;
+  await sb.from("textbooks").delete().eq("id", id);
+  loadTextbooks();
+};
+
+// ── 공지 (#6/#7) ──
+async function loadAnnouncements(){
+  const box = $("ann-list"); if(!box) return;
+  const { data: anns, error } = await sb.from("announcements").select("*").order("created_at",{ascending:false});
+  if(error){ box.innerHTML = `<span style="color:#d4351c">공지 테이블이 아직 없습니다. sql/features-textbooks-announcements.sql 실행 필요.</span>`; return; }
+  if(!anns || anns.length===0){ box.innerHTML = "등록된 공지가 없습니다."; return; }
+  // 확인기록 일괄 조회
+  const ids = anns.map(a=>a.id);
+  const { data: reads } = await sb.from("announcement_reads").select("announcement_id,user_name,role,read_at").in("announcement_id", ids);
+  const byAnn = {}; (reads||[]).forEach(r=>{ (byAnn[r.announcement_id]||(byAnn[r.announcement_id]=[])).push(r); });
+  const audKo = { all:"전체", student:"학생", teacher:"강사", manager:"매니저" };
+  box.innerHTML = anns.map(a=>{
+    const rs = byAnn[a.id] || [];
+    const readList = rs.map(r=>`${escA(r.user_name||"?")}<span style="color:var(--muted)">(${audKo[r.role]||r.role||"?"})</span>`).join(", ") || "아직 없음";
+    const dateStr = new Date(a.created_at).toLocaleString("ko-KR",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"});
+    return `<div style="border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px;background:${a.active?'#fff':'var(--paper)'}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">
+        <div style="flex:1;min-width:200px">
+          <b style="color:var(--ink)">${escA(a.title)}</b>
+          <span style="background:var(--ink);color:#fff;padding:1px 7px;border-radius:5px;font-size:.72rem;margin-left:6px">${audKo[a.audience]||a.audience}</span>
+          ${a.active?"":'<span style="background:var(--muted);color:#fff;padding:1px 7px;border-radius:5px;font-size:.72rem;margin-left:4px">비활성</span>'}
+          <div style="white-space:pre-wrap;color:var(--ink);font-size:.85rem;margin-top:6px">${escA(a.body)}</div>
+          <div style="font-size:.75rem;color:var(--muted);margin-top:6px">📅 ${dateStr} · ${escA(a.created_by_name||"")}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button onclick='shareKakao(${JSON.stringify(a.title)}, ${JSON.stringify(a.body)})' style="background:#FEE500;color:#3c1e1e;border:0;padding:5px 10px;border-radius:6px;cursor:pointer;font-size:.8rem;font-weight:700">📱 카톡 공유</button>
+          <button onclick="toggleAnnouncement('${a.id}',${a.active}) " style="background:#fff;border:1px solid var(--line);padding:5px 10px;border-radius:6px;cursor:pointer;font-size:.8rem">${a.active?"비활성":"활성"}</button>
+          <button onclick="deleteAnnouncement('${a.id}')" style="background:#fff;border:1px solid var(--alert);color:var(--alert);padding:5px 10px;border-radius:6px;cursor:pointer;font-size:.8rem">삭제</button>
+        </div>
+      </div>
+      <div style="margin-top:8px;background:var(--paper);border-radius:8px;padding:8px 10px;font-size:.8rem">
+        ✅ <b>확인 ${rs.length}명</b> · <span style="color:var(--muted)">${readList}</span>
+      </div>
+    </div>`;
+  }).join("");
+}
+$("ann-create").onclick = async ()=>{
+  const title = $("ann-title").value.trim(), body = $("ann-body").value.trim();
+  if(!title || !body){ $("ann-msg").textContent="제목과 내용을 입력하세요."; $("ann-msg").style.color="#d4351c"; return; }
+  const { error } = await sb.from("announcements").insert({
+    title, body, audience: $("ann-audience").value,
+    created_by: USER.id, created_by_name: PROFILE.full_name || PROFILE.email,
+  });
+  if(error){ $("ann-msg").textContent="등록 실패: "+error.message; $("ann-msg").style.color="#d4351c"; return; }
+  $("ann-title").value=""; $("ann-body").value=""; $("ann-msg").textContent="✅ 공지가 등록되었습니다"; $("ann-msg").style.color="var(--teal)";
+  loadAnnouncements();
+};
+window.toggleAnnouncement = async function(id, active){
+  await sb.from("announcements").update({ active: !active }).eq("id", id);
+  loadAnnouncements();
+};
+window.deleteAnnouncement = async function(id){
+  if(!confirm("이 공지를 삭제할까요? (확인기록도 함께 삭제됩니다)")) return;
+  await sb.from("announcements").delete().eq("id", id);
+  loadAnnouncements();
+};
+// 📱 카톡 반자동 공유 — Web Share(있으면 공유시트→카톡 선택), 없으면 복사
+window.shareKakao = async function(title, body){
+  const text = `[온택 공지] ${title}\n\n${body}`;
+  if(navigator.share){
+    try{ await navigator.share({ title: `[온택 공지] ${title}`, text }); return; }catch(e){ if(e.name==="AbortError") return; }
+  }
+  try{ await navigator.clipboard.writeText(text); alert("이 기기는 공유 시트를 지원하지 않아 내용을 복사했습니다. 카카오톡에 붙여넣어 보내세요."); }
+  catch(e){ prompt("아래 내용을 복사해 카카오톡으로 보내세요:", text); }
+};
 
 // 만료 임박 카드 클릭
 $("card-expiring").onclick = ()=>{

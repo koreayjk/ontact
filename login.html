@@ -161,6 +161,16 @@ $("su-btn").onclick=async()=>{
   await sb.auth.signInWithPassword({email,password:pw});
   routeIfLoggedIn();
 };
+
+// 엔터키로 제출 — 로그인(이메일·비번)·회원가입 입력란
+["li-email","li-pw"].forEach(id=>{
+  const el=$(id);
+  if(el) el.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); $("li-btn").click(); } });
+});
+["su-name","su-email","su-pw","su-age","su-phone"].forEach(id=>{
+  const el=$(id);
+  if(el) el.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); $("su-btn").click(); } });
+});
 </script>
 </body>
 </html>

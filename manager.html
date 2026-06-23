@@ -304,9 +304,16 @@
       <div id="lt-list"><div class="empty" data-t="loading">Loading…</div></div>
     </div>
 
-    <!-- 📋 레벨테스트 결과지 작성 -->
-    <div class="step" id="ltr-entry-step">
-      <h2 data-t="ltr_entry_h">📋 Level Test Result — Enter / Update</h2>
+    <!-- 📋 레벨테스트 결과지 입력 — 모달 (#3) · 리스트의 "레벨입력" 버튼으로 열림 -->
+    <div id="ltr-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1500;overflow-y:auto;padding:24px;box-sizing:border-box">
+    <div class="step" id="ltr-entry-step" style="max-width:760px;margin:0 auto;background:#fff;border-radius:14px;position:relative">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px">
+        <h2 data-t="ltr_entry_h" style="margin:0">📋 Level Test Result — Enter / Update</h2>
+        <div style="display:flex;gap:6px;align-items:center">
+          <button id="ltr-pdf-btn" type="button" style="background:#ef6a48;color:#fff;border:0;padding:7px 12px;border-radius:7px;cursor:pointer;font-weight:700;font-size:.82rem">📄 PDF</button>
+          <button id="ltr-close-btn" type="button" style="background:none;border:0;font-size:1.5rem;cursor:pointer;color:var(--muted);line-height:1;padding:0 4px">✕</button>
+        </div>
+      </div>
       <p class="sub" data-t="ltr_entry_sub">After conducting a 1:1 level test, fill in this result sheet. Students can view their results and download as PDF.</p>
       
       <!-- 학생 선택 -->
@@ -353,8 +360,10 @@
             </select>
           </div>
           <div>
-            <label data-t="ltr_textbook_l" style="display:block;margin-bottom:4px;font-size:.82rem">Recommended Textbook</label>
-            <input id="ltr-textbook" type="text" data-t-ph="ltr_textbook_ph" placeholder="e.g. Speak English Like an American" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:.88rem;box-sizing:border-box">
+            <label data-t="ltr_textbook_l" style="display:block;margin-bottom:4px;font-size:.82rem">Starting Textbook</label>
+            <select id="ltr-textbook" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:.88rem;box-sizing:border-box">
+              <option value="">— 교재 선택 —</option>
+            </select>
           </div>
         </div>
         <div>
@@ -431,6 +440,7 @@
         <span id="ltr-save-msg" style="font-size:.85rem"></span>
       </div>
     </div>
+    </div><!-- /#ltr-modal -->
   </div>
 
   <!-- 수강생 명부 -->
@@ -561,6 +571,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script>
 const SUPABASE_URL="https://nhydhyolgrhsykdcqfzb.supabase.co";
 const SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5oeWRoeW9sZ3Joc3lrZGNxZnpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MTk1OTAsImV4cCI6MjA5NTk5NTU5MH0.s3qPFFN-4zMLAt-dtkOwzakCj-pkglKgbhyUR9uu4xs";
@@ -707,7 +718,7 @@ const I18N = {
     ltr_history_h:"📚 Previous Results",
     ltr_overall_h:"🎯 Overall Assessment",
     ltr_level_l:"CEFR Level",
-    ltr_textbook_l:"Recommended Textbook",
+    ltr_textbook_l:"Starting Textbook",
     ltr_textbook_ph:"e.g. Speak English Like an American",
     ltr_level_desc_l:"Level Description (auto-filled, editable)",
     ltr_skills_h:"📊 Five Skills Assessment (1~5 points each)",
@@ -866,7 +877,7 @@ const I18N = {
     ltr_history_h:"📚 이전 결과 기록",
     ltr_overall_h:"🎯 종합 평가",
     ltr_level_l:"CEFR 레벨",
-    ltr_textbook_l:"추천 교재",
+    ltr_textbook_l:"시작 교재",
     ltr_textbook_ph:"예: Speak English Like an American",
     ltr_level_desc_l:"레벨 설명 (자동 입력, 편집 가능)",
     ltr_skills_h:"📊 5대 평가 항목 (각 1~5점)",
@@ -1782,8 +1793,10 @@ async function loadLeveltest(){
   const maxTime = Math.max(...times) + 20;
   const fmtMin = (m) => `${String(Math.floor(m/60)).padStart(2,"0")}:${String(m%60).padStart(2,"0")}`;
   
-  const bookedSlots = slots.filter(s => bkBySlot[s.id]);
-  
+  // 예약된 슬롯 — 최신순(시작시각 내림차순)으로 표시, 기록은 계속 누적
+  const bookedSlots = slots.filter(s => bkBySlot[s.id])
+    .sort((a, b) => new Date(b.start_at) - new Date(a.start_at));
+
   // ── 예약된 학생들의 서면 진단 결과 미리 조회 ──
   const bookedStudentIds = bookedSlots.map(s => bkBySlot[s.id].student_id);
   let placementByStudent = {};
@@ -1853,7 +1866,7 @@ async function loadLeveltest(){
   }
   
   box.innerHTML = html;
-  box.querySelectorAll("button[data-bk]").forEach(btn=>{ btn.onclick = ()=> openLevel(btn.dataset); });
+  box.querySelectorAll("button[data-bk]").forEach(btn=>{ btn.onclick = ()=> openLtrModal(btn.dataset.sid, btn.dataset.stu); });
   box.querySelectorAll("button[data-pt-sid]").forEach(btn=>{ 
     btn.onclick = ()=> openPlacementModal(btn.dataset["ptSid"], btn.dataset["ptName"]); 
   });
@@ -2120,7 +2133,7 @@ $("lv-submit").onclick = async ()=>{
 async function loadRoster(){
   const{data:enrollments}=await sb.from("enrollments")
     .select("id,months,student_id,teacher_id,status,profiles!enrollments_student_id_fkey(full_name,email,level_test_done,level_result),teachers(display_name)")
-    .in("status",["active","completed"]);
+    .in("status",["pending_levelcheck","pending_schedule","active","completed","paid","pending"]);
   const byStudent = {};
   (enrollments||[]).forEach(e=>{
     if(!byStudent[e.student_id]) byStudent[e.student_id]={
@@ -2993,7 +3006,7 @@ window.loadLtrResult = async function(resultId){
   
   $("ltr-date").value = data.test_date || "";
   $("ltr-level").value = data.overall_level || "";
-  $("ltr-textbook").value = data.recommended_textbook || "";
+  ensureTextbookOption(data.recommended_textbook); $("ltr-textbook").value = data.recommended_textbook || "";
   $("ltr-level-desc").value = data.level_description || "";
   
   LTR_SCORES.vocab = data.vocab_score || 0;
@@ -3115,10 +3128,101 @@ function showLtrMsg(msg, ok){
   setTimeout(() => { el.textContent = ""; }, 3000);
 }
 
-// Level Test 탭 클릭 시 학생 목록 + 별점 초기화
+// ── #3 레벨입력 모달 열기/닫기 ──
+window.openLtrModal = function(sid, name){
+  const modal = $("ltr-modal"); if(!modal) return;
+  modal.style.display = "block";
+  loadLtrTextbooks();
+  initStars();
+  const search = $("ltr-student-search"), hidden = $("ltr-student");
+  if(sid){
+    search.value = name || "";
+    hidden.value = sid;
+    hidden.dispatchEvent(new Event("change")); // 기존 1:1 결과 + 서면 결과 로드
+  }
+};
+$("ltr-close-btn") && ($("ltr-close-btn").onclick = ()=> $("ltr-modal").style.display = "none");
+$("ltr-modal") && ($("ltr-modal").onclick = (e)=>{ if(e.target.id==="ltr-modal") $("ltr-modal").style.display="none"; });
+
+// ── #3 결과지 PDF (저장된 최신 1:1 결과로 생성·다운로드) ──
+$("ltr-pdf-btn") && ($("ltr-pdf-btn").onclick = async ()=>{
+  const sid = $("ltr-student").value;
+  if(!sid){ showLtrMsg(LANG==="kr"?"학생을 먼저 선택하세요.":"Select a student first.", false); return; }
+  const { data } = await sb.from("level_test_results").select("*").eq("student_id",sid).order("test_date",{ascending:false}).limit(1);
+  const rec = data && data[0];
+  if(!rec){ showLtrMsg(LANG==="kr"?"저장된 결과가 없습니다. 먼저 저장하세요.":"No saved result — please Save first.", false); return; }
+  if(typeof html2pdf==="undefined"){ showLtrMsg("PDF 라이브러리를 불러오지 못했습니다.", false); return; }
+  const name = ($("ltr-student-search").value || "Student").trim();
+  const el = buildLtrSheet(name, rec);
+  document.body.appendChild(el);
+  const opt = { margin:8, filename:`ONTACT_LevelTest_${name}_${rec.test_date||""}.pdf`, image:{type:"jpeg",quality:.97}, html2canvas:{scale:2,useCORS:true}, jsPDF:{unit:"mm",format:"a4",orientation:"portrait"} };
+  html2pdf().set(opt).from(el).save().then(()=>el.remove()).catch(()=>el.remove());
+});
+
+// 결과지 시트 HTML (PDF 렌더용)
+function buildLtrSheet(name, d){
+  const stars = (n)=>{ n=Math.max(0,Math.min(5,Number(n)||0)); return "★".repeat(n)+"☆".repeat(5-n); };
+  const lvColor = (lv)=> (lv==="C1"||lv==="C2"||lv==="C1+") ? "#2e7d32" : lv==="B2" ? "#2c7a73" : lv==="B1" ? "#ef6a48" : lv==="A2" ? "#c98a1f" : "#6b7785";
+  const esc = s => (s==null?"":String(s)).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  const rows = [["vocab","📚 어휘 / Vocabulary"],["grammar","✏️ 문법 / Grammar"],["fluency","🗣️ 유창성 / Fluency"],["pronunciation","🔊 발음 / Pronunciation"],["interaction","🤝 상호작용 / Interaction"]]
+    .map(([k,label])=>`<tr>
+      <td style="padding:7px 8px;border-bottom:1px solid #eee;font-weight:600;white-space:nowrap">${label}</td>
+      <td style="padding:7px 8px;border-bottom:1px solid #eee;color:#c98a1f;letter-spacing:2px;white-space:nowrap">${d[k+"_score"]?stars(d[k+"_score"]):"—"}</td>
+      <td style="padding:7px 8px;border-bottom:1px solid #eee;color:#555;font-size:12px">${esc(d[k+"_note"])||""}</td>
+    </tr>`).join("");
+  const block = (label,val,color)=> val ? `<div style="margin-top:10px"><div style="font-weight:700;color:${color};font-size:13px">${label}</div><div style="white-space:pre-wrap;font-size:13px;color:#222;margin-top:3px">${esc(val)}</div></div>` : "";
+  const el = document.createElement("div");
+  el.style.cssText = "width:760px;padding:34px;background:#fff;font-family:Pretendard,sans-serif;color:#12273d;box-sizing:border-box";
+  el.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #12273d;padding-bottom:12px;margin-bottom:18px">
+      <div><div style="font-size:13px;letter-spacing:2px;color:#ef6a48;font-weight:800">ONTACT ENGLISH</div>
+        <div style="font-size:22px;font-weight:800">레벨테스트 결과지 · Level Test Report</div></div>
+      <div style="text-align:right;font-size:12px;color:#6b7785">📅 ${esc(d.test_date)||"—"}<br>${esc(d.conducted_by_name)||""}</div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;background:#f6f4ef;border-radius:12px;padding:16px 20px;margin-bottom:18px">
+      <div><div style="font-size:12px;color:#6b7785">학생 / Student</div><div style="font-size:20px;font-weight:800">${esc(name)}</div></div>
+      <div style="text-align:center"><div style="font-size:12px;color:#6b7785">CEFR</div>
+        <div style="font-size:34px;font-weight:800;color:${lvColor(d.overall_level)};line-height:1">${esc(d.overall_level)||"—"}</div></div>
+    </div>
+    ${d.level_description?`<p style="font-size:13px;color:#444;font-style:italic;margin:0 0 14px">${esc(d.level_description)}</p>`:""}
+    <div style="font-weight:800;font-size:15px;margin-bottom:6px">📊 5대 평가 / Five Skills</div>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:6px">${rows}</table>
+    ${block("✅ 강점 / Strengths", d.strengths, "#2e7d32")}
+    ${block("⚠️ 개선점 / Areas to Improve", d.weaknesses, "#d4351c")}
+    ${block("🎯 권장 사항 / Recommendations", d.recommendations, "#c98a1f")}
+    ${d.recommended_textbook?`<div style="margin-top:14px;background:#fff7e6;border:1px solid #f0d9a8;border-radius:8px;padding:10px 12px;font-size:13px">📖 <b>시작 교재 / Starting Textbook:</b> ${esc(d.recommended_textbook)}</div>`:""}
+    <div style="margin-top:24px;text-align:center;font-size:11px;color:#9aa3ad;border-top:1px solid #eee;padding-top:10px">ONTACT English · 1:1 화상영어 · 본 결과지는 1:1 회화 평가 기준입니다.</div>
+  `;
+  return el;
+}
+
+// 시작 교재 드롭다운 (#5) — 총관리자가 등록한 textbooks
+async function loadLtrTextbooks(){
+  const sel = $("ltr-textbook"); if(!sel) return;
+  const cur = sel.value;
+  const { data } = await sb.from("textbooks").select("title,level").eq("active",true).order("sort").order("title");
+  const opts = [`<option value="">${LANG==="kr"?"— 교재 선택 —":"— Select textbook —"}</option>`];
+  (data||[]).forEach(t=>{
+    const label = t.level ? `${t.title} (${t.level})` : t.title;
+    opts.push(`<option value="${escapeM(t.title).replace(/"/g,'&quot;')}">${escapeM(label)}</option>`);
+  });
+  sel.innerHTML = opts.join("");
+  if(cur){ ensureTextbookOption(cur); sel.value = cur; }
+}
+// 기존 결과의 교재명이 목록에 없으면 옵션으로 추가(하위호환)
+function ensureTextbookOption(val){
+  if(!val) return;
+  const sel = $("ltr-textbook"); if(!sel) return;
+  if(![...sel.options].some(o=>o.value===val)){
+    const o = document.createElement("option"); o.value=val; o.textContent=val; sel.appendChild(o);
+  }
+}
+
+// Level Test 탭 클릭 시 학생 목록 + 별점 + 교재 초기화
 document.querySelector('[data-tab="leveltest"]')?.addEventListener("click", () => {
   setTimeout(() => {
     loadLtrStudents();
+    loadLtrTextbooks();
     initStars();
     setupLtrStudentPicker();
   }, 100);
@@ -3128,6 +3232,51 @@ gate();
 </script>
 <!-- Chat widget -->
 <script>window.sb = sb;</script>
+<!-- 📢 공지 팝업 (#6) — 로그인 후 미확인 공지 표시 + 확인기록 -->
+<script>
+(async function(){
+  try{
+    const _sb = window.sb || (typeof sb!=="undefined" ? sb : null);
+    if(!_sb) return;
+    const { data:{ user } } = await _sb.auth.getUser();
+    if(!user) return;
+    const { data: prof } = await _sb.from("profiles").select("role,full_name,email").eq("id",user.id).single();
+    if(!prof) return;
+    const role = prof.role || "student";
+    const uname = prof.full_name || prof.email || "";
+    const LANG = localStorage.getItem("ontact_lang") || "kr";
+    const T = LANG==="en" ? { head:"📢 Announcement", confirm:"I have read this" } : { head:"📢 공지사항", confirm:"확인했습니다" };
+    const { data: anns } = await _sb.from("announcements")
+      .select("id,title,body,created_at,created_by_name")
+      .eq("active", true).in("audience", ["all", role])
+      .order("created_at",{ascending:true});
+    if(!anns || anns.length===0) return;
+    const { data: myReads } = await _sb.from("announcement_reads").select("announcement_id").eq("user_id", user.id);
+    const readSet = new Set((myReads||[]).map(r=>r.announcement_id));
+    const unread = anns.filter(a=>!readSet.has(a.id));
+    if(unread.length===0) return;
+    function esc(s){ return (s==null?"":String(s)).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+    const ov = document.createElement("div");
+    ov.style.cssText = "position:fixed;inset:0;background:rgba(18,39,61,.6);z-index:3000;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px);font-family:Pretendard,sans-serif";
+    ov.innerHTML = `<div style="background:#fff;border-radius:16px;max-width:480px;width:100%;max-height:86vh;overflow-y:auto;box-shadow:0 30px 70px rgba(0,0,0,.3)">
+      <div style="background:#ef6a48;color:#fff;padding:16px 22px;border-radius:16px 16px 0 0;font-weight:800;font-size:1.05rem">${T.head}</div>
+      <div style="padding:18px 22px">
+        ${unread.map(a=>`<div style="border-bottom:1px solid #f0ece3;padding:10px 0">
+          <div style="font-weight:800;color:#12273d;font-size:1rem">${esc(a.title)}</div>
+          <div style="white-space:pre-wrap;color:#12273d;font-size:.9rem;margin-top:6px;line-height:1.55">${esc(a.body)}</div>
+          <div style="font-size:.72rem;color:#6b7785;margin-top:6px">${new Date(a.created_at).toLocaleDateString()} · ${esc(a.created_by_name||"")}</div>
+        </div>`).join("")}
+        <button id="__ann_ok" style="width:100%;margin-top:16px;background:#12273d;color:#fff;border:0;padding:13px;border-radius:10px;font-weight:800;font-size:.95rem;cursor:pointer">${T.confirm}</button>
+      </div>
+    </div>`;
+    document.body.appendChild(ov);
+    ov.querySelector("#__ann_ok").onclick = async ()=>{
+      try{ await _sb.from("announcement_reads").insert(unread.map(a=>({ announcement_id:a.id, user_id:user.id, user_name:uname, role }))); }catch(e){}
+      ov.remove();
+    };
+  }catch(e){}
+})();
+</script>
 <script>
 fetch("chat-widget.html").then(r => r.text()).then(html => {
   const temp = document.createElement("div");
