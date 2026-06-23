@@ -897,6 +897,247 @@ window.showReenrollmentModal = async function(currentEnrollmentId){
 };
 
 
+// ════════════════════════════════════════════
+// 본 수업 강사·시간·시작일 선택 (confirm-enrollment) — 복원됨
+// ════════════════════════════════════════════
+window.showScheduleSelector = async function(enrollmentId){
+  // 강사 정보 + 시간 로드
+  await loadTeachers();
+  
+  // 본인의 1:1 레벨테스트 결과/날짜 조회 (시작일 계산용)
+  const { data: ltb } = await sb.from("leveltest_bookings")
+    .select("start_at, test_started_at")
+    .eq("student_id", USER.id)
+    .order("start_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  
+  let baseDate = new Date();
+  if(ltb && (ltb.test_started_at || ltb.start_at)){
+    baseDate = new Date(ltb.test_started_at || ltb.start_at);
+  }
+  
+  // 시작일 후보: 1:1 다음날부터 14일 (월·화·목·금만)
+  const startCandidates = [];
+  for(let i = 1; i <= 21 && startCandidates.length < 8; i++){
+    const d = new Date(baseDate.getTime() + i * 86400000);
+    const dow = d.getDay(); // 0일 1월 ... 6토
+    if([1,2,4,5].includes(dow)){
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth()+1).padStart(2,"0");
+      const dd = String(d.getDate()).padStart(2,"0");
+      const dayName = ["일","월","화","수","목","금","토"][dow];
+      startCandidates.push({
+        iso: `${yyyy}-${mm}-${dd}`,
+        label: `${parseInt(mm)}월 ${parseInt(dd)}일 (${dayName})`
+      });
+    }
+  }
+  
+  // 모달
+  const modal = document.createElement("div");
+  modal.id = "schedule-selector-modal";
+  modal.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px";
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:16px;max-width:680px;width:100%;max-height:92vh;overflow-y:auto;font-family:Pretendard,sans-serif">
+      <div style="position:sticky;top:0;background:#fff;border-bottom:1px solid var(--line);padding:16px 22px;display:flex;justify-content:space-between;align-items:center;z-index:1">
+        <h2 style="font-size:1.15rem;margin:0;color:var(--ink);font-family:'Fraunces',serif;font-weight:800">👨‍🏫 강사 · 시간 · 시작일 선택</h2>
+        <button onclick="document.getElementById('schedule-selector-modal').remove()" style="background:none;border:0;font-size:1.4rem;cursor:pointer;color:var(--muted)">✕</button>
+      </div>
+      
+      <div style="padding:22px">
+        <!-- Step 1: 강사 -->
+        <div style="margin-bottom:18px">
+          <h3 style="font-size:1rem;font-weight:700;color:var(--ink);margin:0 0 10px">1️⃣ 강사 선택</h3>
+          <div id="ss-teachers" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px"></div>
+        </div>
+        
+        <!-- Step 2: 시작일 -->
+        <div style="margin-bottom:18px">
+          <h3 style="font-size:1rem;font-weight:700;color:var(--ink);margin:0 0 6px">2️⃣ 시작일 선택</h3>
+          <p style="font-size:.82rem;color:var(--muted);margin:0 0 10px">1:1 진단 다음날부터 가능 · 월·화·목·금만 (수·토·일 제외)</p>
+          <div id="ss-startdates" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+        </div>
+        
+        <!-- Step 3: 시간대 -->
+        <div style="margin-bottom:18px">
+          <h3 style="font-size:1rem;font-weight:700;color:var(--ink);margin:0 0 6px">3️⃣ 시간대 선택</h3>
+          <p style="font-size:.82rem;color:var(--muted);margin:0 0 10px">강사를 선택하시면 가능 시간이 나타납니다</p>
+          <div id="ss-times" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:6px">
+            <div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:14px;background:var(--paper);border-radius:8px;font-size:.85rem">먼저 강사를 선택하세요</div>
+          </div>
+        </div>
+        
+        <!-- 요약 + 확정 -->
+        <div style="background:var(--paper);border-radius:10px;padding:14px 16px;margin-bottom:14px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:.88rem"><span style="color:var(--muted)">강사</span><b id="ss-r-teacher">–</b></div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:.88rem"><span style="color:var(--muted)">시작일</span><b id="ss-r-start">–</b></div>
+          <div style="display:flex;justify-content:space-between;font-size:.88rem"><span style="color:var(--muted)">시간대</span><b id="ss-r-times">–</b></div>
+        </div>
+        
+        <button id="ss-confirm" disabled style="width:100%;background:var(--ink);color:#fff;border:0;padding:14px;border-radius:12px;font-weight:800;font-size:1rem;cursor:pointer;opacity:.5">✅ 확정하기</button>
+        <div id="ss-msg" style="margin-top:10px;text-align:center;font-size:.88rem"></div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  
+  // 선택 상태
+  const ssSel = { teacher: null, startDate: null, times: new Set() };
+  
+  // 강사 카드 렌더
+  $("ss-teachers").innerHTML = TEACHERS.map(t => {
+    const h = HOURS[t.id];
+    if(!h) return ""; // 시간 미설정 강사 제외
+    const init = t.display_name.replace(/^Tr\.?\s*/,"").slice(0,1).toUpperCase();
+    return `<div class="ss-tcard" data-id="${t.id}" style="border:2px solid var(--line);border-radius:10px;padding:12px;text-align:center;cursor:pointer;transition:.15s">
+      <div style="width:42px;height:42px;border-radius:50%;background:var(--coral);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.1rem;margin:0 auto 6px">${init}</div>
+      <div style="font-weight:700;font-size:.88rem">${t.display_name}</div>
+      <div style="font-size:.72rem;color:var(--muted);margin-top:2px">🕒 ${h.start_hm}~${h.end_hm}</div>
+    </div>`;
+  }).join("") || `<div style="grid-column:1/-1;color:var(--muted);text-align:center;padding:14px">등록된 강사가 없습니다.</div>`;
+  
+  // 강사 클릭
+  modal.querySelectorAll(".ss-tcard").forEach(c => {
+    c.onclick = async () => {
+      modal.querySelectorAll(".ss-tcard").forEach(x => {
+        x.style.borderColor = "var(--line)";
+        x.style.background = "#fff";
+      });
+      c.style.borderColor = "var(--coral)";
+      c.style.background = "#fef6ef";
+      ssSel.teacher = TEACHERS.find(t => t.id === c.dataset.id);
+      ssSel.times.clear();
+      $("ss-r-teacher").textContent = ssSel.teacher.display_name;
+      await ssLoadTimes();
+      ssRefreshSummary();
+    };
+  });
+  
+  // 시작일 옵션
+  $("ss-startdates").innerHTML = startCandidates.map((d, i) => `
+    <button class="ss-date" data-iso="${d.iso}" style="background:#fff;border:2px solid var(--line);padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:700;font-size:.88rem;font-family:inherit">${d.label}</button>
+  `).join("");
+  
+  modal.querySelectorAll(".ss-date").forEach(b => {
+    b.onclick = () => {
+      modal.querySelectorAll(".ss-date").forEach(x => {
+        x.style.borderColor = "var(--line)";
+        x.style.background = "#fff";
+      });
+      b.style.borderColor = "var(--coral)";
+      b.style.background = "#fef6ef";
+      ssSel.startDate = b.dataset.iso;
+      $("ss-r-start").textContent = b.textContent;
+      ssRefreshSummary();
+    };
+  });
+  
+  async function ssLoadTimes(){
+    if(!ssSel.teacher){ return; }
+    const h = HOURS[ssSel.teacher.id];
+    if(!h){ 
+      $("ss-times").innerHTML = `<div style="grid-column:1/-1;color:var(--muted);text-align:center;padding:14px;background:var(--paper);border-radius:8px;font-size:.85rem">강사의 시간이 설정되지 않았습니다.</div>`;
+      return;
+    }
+    // 가능 시간 슬롯 생성 (20분 단위)
+    const slots = [];
+    const [sh, sm] = h.start_hm.split(":").map(Number);
+    const [eh, em] = h.end_hm.split(":").map(Number);
+    let cur = sh * 60 + sm;
+    const end = eh * 60 + em;
+    while(cur + 20 <= end){
+      const hh = String(Math.floor(cur/60)).padStart(2,"0");
+      const mi = String(cur%60).padStart(2,"0");
+      slots.push(`${hh}:${mi}`);
+      cur += 20;
+    }
+    
+    // 이미 다른 학생이 신청한 시간 제외
+    const { data: taken } = await sb.from("enrollments")
+      .select("slot_hm")
+      .eq("teacher_id", ssSel.teacher.id)
+      .in("status", ["active"]);
+    const takenSet = new Set((taken||[]).map(t => t.slot_hm));
+    
+    $("ss-times").innerHTML = slots.map(s => {
+      const isTaken = takenSet.has(s);
+      const isSel = ssSel.times.has(s);
+      return `<button class="ss-time" data-hm="${s}" ${isTaken?"disabled":""} style="background:${isTaken?'#f4f0e8':isSel?'#fef6ef':'#fff'};border:2px solid ${isSel?'var(--coral)':'var(--line)'};padding:8px;border-radius:8px;cursor:${isTaken?'not-allowed':'pointer'};font-weight:700;font-size:.85rem;color:${isTaken?'#bbb':'var(--ink)'};font-family:inherit;text-decoration:${isTaken?'line-through':'none'}">${s}</button>`;
+    }).join("");
+    
+    modal.querySelectorAll(".ss-time").forEach(b => {
+      if(b.disabled) return;
+      b.onclick = () => {
+        const hm = b.dataset.hm;
+        if(ssSel.times.has(hm)){
+          ssSel.times.delete(hm);
+          b.style.borderColor = "var(--line)";
+          b.style.background = "#fff";
+        } else {
+          ssSel.times.add(hm);
+          b.style.borderColor = "var(--coral)";
+          b.style.background = "#fef6ef";
+        }
+        ssRefreshSummary();
+      };
+    });
+  }
+  
+  function ssRefreshSummary(){
+    $("ss-r-times").textContent = ssSel.times.size ? [...ssSel.times].join(", ") : "–";
+    const ok = ssSel.teacher && ssSel.startDate && ssSel.times.size > 0;
+    $("ss-confirm").disabled = !ok;
+    $("ss-confirm").style.opacity = ok ? "1" : ".5";
+  }
+  
+  $("ss-confirm").onclick = async () => {
+    if($("ss-confirm").disabled) return;
+    $("ss-confirm").disabled = true;
+    $("ss-confirm").textContent = "처리 중…";
+    
+    try {
+      const {data:{session}} = await sb.auth.getSession();
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/confirm-enrollment`, {
+        method: "POST",
+        headers: {
+          "Content-Type":"application/json",
+          "Authorization":`Bearer ${session.access_token}`,
+          "apikey": SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({
+          enrollment_id: enrollmentId,
+          teacher_id: ssSel.teacher.id,
+          times: [...ssSel.times],
+          start_date: ssSel.startDate,
+        })
+      });
+      const result = await res.json();
+      if(!res.ok || !result.ok){
+        $("ss-msg").style.color = "#d4351c";
+        $("ss-msg").textContent = "❌ " + (result.error || "처리 실패");
+        $("ss-confirm").disabled = false;
+        $("ss-confirm").textContent = "✅ 확정하기";
+        return;
+      }
+      $("ss-msg").style.color = "var(--teal)";
+      $("ss-msg").innerHTML = `✅ 수업 일정이 확정되었습니다! (${result.bookings}회)`;
+      $("ss-confirm").textContent = "확정 완료";
+      setTimeout(async () => {
+        document.getElementById("schedule-selector-modal").remove();
+        await refreshSignupGate();
+        document.querySelector('[data-tab="myclass"]').click();
+      }, 1500);
+    } catch (err) {
+      $("ss-msg").style.color = "#d4351c";
+      $("ss-msg").textContent = "❌ 오류: " + err.message;
+      $("ss-confirm").disabled = false;
+      $("ss-confirm").textContent = "✅ 확정하기";
+    }
+  };
+};
+
+
 window.openProfileModal = function(){
   const modal = $("profile-modal");
   
