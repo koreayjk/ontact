@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zoom Setup Guide · ONTACT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,700;9..144,900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+  :root{
+    --ink:#12273d; --ink2:#1d3a5a; --coral:#ef6a48; --coral-deep:#d4512c;
+    --muted:#5d6b7a; --line:#e3ddd0; --cream:#fbf3ee; --teal:#2c7a73;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:Pretendard,-apple-system,sans-serif;color:var(--ink);background:#f6f4ef;line-height:1.65;-webkit-font-smoothing:antialiased}
+  a{color:var(--coral-deep)}
+  .wrap{max-width:780px;margin:0 auto;padding:0 18px}
+
+  header{background:var(--ink);color:#fff;padding:13px 0;position:sticky;top:0;z-index:10}
+  header .wrap{display:flex;align-items:center;justify-content:space-between}
+  .logo{display:flex;align-items:center;gap:.5em;font-family:'Fraunces',serif;font-weight:900;font-size:1.15rem;color:#fff}
+  .logo .dot{width:9px;height:9px;border-radius:50%;background:var(--coral)}
+  .back{color:rgba(255,255,255,.85);font-size:.85rem;text-decoration:none}
+  .back:hover{color:#fff}
+
+  .cover{background:linear-gradient(135deg,var(--ink) 0%,var(--ink2) 100%);color:#fff;border-radius:16px;padding:30px 26px;margin:24px 0 18px}
+  .cover .badge{display:inline-block;background:var(--coral);color:#fff;font-size:.66rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;padding:5px 12px;border-radius:999px;margin-bottom:14px}
+  .cover h1{font-family:'Fraunces',serif;font-size:1.85rem;font-weight:900;line-height:1.15;margin-bottom:10px}
+  .cover p{color:rgba(255,255,255,.88);margin:0 0 16px}
+  .dl{display:inline-flex;align-items:center;gap:.5em;background:#fff;color:var(--ink);font-weight:800;font-size:.9rem;padding:.7em 1.3em;border-radius:999px;text-decoration:none}
+  .dl:hover{background:var(--cream)}
+
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px 22px;margin-bottom:16px}
+  .card h2{font-size:1.15rem;font-weight:800;margin-bottom:8px}
+  .card h2 .em{color:var(--coral-deep)}
+  p{margin:0 0 10px}
+  strong{font-weight:700}
+  .muted{color:var(--muted)}
+  ul{margin:6px 0 6px 20px}
+  li{margin:5px 0}
+  code{background:#f1ece3;border-radius:5px;padding:2px 7px;font-family:Consolas,monospace;font-size:.85em;color:var(--coral-deep)}
+  .path{font-weight:700;color:var(--ink)}
+
+  .keys{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0}
+  .keys .k{flex:1;min-width:140px;border:1.5px solid var(--line);border-radius:10px;padding:12px;text-align:center}
+  .keys .k .n{display:inline-block;width:24px;height:24px;line-height:24px;border-radius:50%;background:var(--coral);color:#fff;font-weight:800;font-size:.8rem;margin-bottom:6px}
+  .keys .k b{display:block}
+
+  ol.steps{list-style:none;counter-reset:s;margin:0}
+  ol.steps>li{counter-increment:s;position:relative;padding:0 0 18px 48px}
+  ol.steps>li::before{content:counter(s);position:absolute;left:0;top:-2px;width:32px;height:32px;background:var(--ink);color:#fff;border-radius:50%;font-weight:800;display:flex;align-items:center;justify-content:center}
+  ol.steps>li::after{content:"";position:absolute;left:15px;top:32px;bottom:0;width:2px;background:var(--line)}
+  ol.steps>li:last-child::after{display:none}
+  ol.steps h3{font-size:1rem;font-weight:700;margin-bottom:3px}
+
+  .tip{background:#eef6f4;border-left:4px solid var(--teal);border-radius:0 8px 8px 0;padding:10px 14px;margin:8px 0;font-size:.92rem}
+  .warn{background:#fdf0ec;border-left:4px solid var(--coral);border-radius:0 8px 8px 0;padding:10px 14px;margin:8px 0;font-size:.92rem}
+
+  table{width:100%;border-collapse:collapse;margin:8px 0;font-size:.92rem}
+  th,td{border:1px solid var(--line);padding:8px 11px;text-align:left;vertical-align:top}
+  th{background:var(--cream);font-weight:700}
+
+  .faq h3{color:var(--coral-deep);font-size:1rem;margin:14px 0 3px}
+  footer{text-align:center;color:var(--muted);font-size:.82rem;padding:10px 0 40px}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <a href="teacher.html" class="logo"><span class="dot"></span>ONTACT<small style="font-weight:600;font-size:.6rem;letter-spacing:.2em;opacity:.7"> TEACHER</small></a>
+    <a href="teacher.html" class="back">← Back to dashboard</a>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="cover">
+    <span class="badge">Teacher Setup Guide</span>
+    <h1>How to Create &amp; Send Your Zoom Keys</h1>
+    <p>Connect your own Zoom account to ONTACT so your class meetings are created automatically. It only takes about 5–10 minutes. 🎥</p>
+    <a class="dl" href="ONTACT-Zoom-Setup-Guide.pdf" target="_blank">⬇ Download PDF version</a>
+  </div>
+
+  <div class="card">
+    <h2>Why are we asking for this?</h2>
+    <p style="margin:0">To run your classes smoothly, ONTACT creates each Zoom meeting <strong>for you, automatically</strong> — using <strong>your own Zoom account</strong>. To allow this safely, Zoom gives you <strong>3 keys</strong>. You create them once, send them to us, and you never have to make a meeting link by hand again.</p>
+  </div>
+
+  <div class="card">
+    <h2>The 3 keys you will send us</h2>
+    <p class="muted" style="font-size:.9rem">You will find all three on the same screen inside Zoom.</p>
+    <div class="keys">
+      <div class="k"><span class="n">1</span><b>Account ID</b></div>
+      <div class="k"><span class="n">2</span><b>Client ID</b></div>
+      <div class="k"><span class="n">3</span><b>Client Secret</b></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Before you begin</h2>
+    <ul>
+      <li>You need your own <strong>Zoom account</strong> and must be able to sign in to it.</li>
+      <li>You should be the <strong>Owner / Admin</strong> of that account (your normal personal account is fine — you own it).</li>
+      <li><strong>Recommended:</strong> a <strong>Licensed / Pro</strong> plan, so classes aren't cut off by the 40-minute limit of free accounts.</li>
+      <li>Use a <strong>computer</strong> (not the phone app) — this is done on the Zoom website.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>Step-by-step <span class="em">instructions</span></h2>
+    <ol class="steps">
+      <li><h3>Open the Zoom App Marketplace &amp; sign in</h3><p>Go to <a href="https://marketplace.zoom.us" target="_blank">marketplace.zoom.us</a> and click <span class="path">Sign In</span> (top-right) with your Zoom email &amp; password.</p></li>
+      <li><h3>Start building a new app</h3><p>Top-right, click <span class="path">Develop</span> → <span class="path">Build App</span>.</p></li>
+      <li><h3>Choose “Server-to-Server OAuth”</h3><p>Find the card named <span class="path">Server-to-Server OAuth</span> and click <span class="path">Create</span>.</p><div class="warn"><strong>Important:</strong> Pick <strong>Server-to-Server OAuth</strong> — not “OAuth”, “SDK”, or “Webhook”. Other types won't work.</div></li>
+      <li><h3>Give your app a name</h3><p>Type a simple name like <code>ONTACT Class</code> and click <span class="path">Create</span>.</p></li>
+      <li><h3>Copy your 3 keys 🔑</h3><p>You're now on the <span class="path">App Credentials</span> page — all 3 keys are here:</p>
+        <table>
+          <tr><th>On the Zoom screen</th><th>What to do</th></tr>
+          <tr><td><strong>Account ID</strong></td><td>Click <em>Copy</em>.</td></tr>
+          <tr><td><strong>Client ID</strong></td><td>Click <em>Copy</em>.</td></tr>
+          <tr><td><strong>Client Secret</strong></td><td>Click the eye icon to reveal, then <em>Copy</em>. Keep it private.</td></tr>
+        </table>
+        <div class="tip"><strong>Tip:</strong> You can return to this page anytime to copy the keys again.</div>
+      </li>
+      <li><h3>Fill in the basic information</h3><p>Click <span class="path">Continue</span>, then enter Company Name (you can use <code>ONTACT</code>), your Name and Email. Click <span class="path">Continue</span>.</p></li>
+      <li><h3>Add the required permissions (Scopes)</h3><p>On <span class="path">Scopes</span>, click <span class="path">Add Scopes</span> and add:</p>
+        <ul>
+          <li>Search <code>meeting</code> → <strong>“View and manage all user meetings”</strong> <span class="muted">(meeting:write:admin)</span></li>
+          <li>Search <code>user</code> → <strong>“View users”</strong> <span class="muted">(user:read:admin)</span></li>
+        </ul>
+        <p class="muted" style="font-size:.88rem">If you only see longer “granular” names, just add the ones about <em>creating/managing meetings</em> and <em>viewing users</em>. Then <span class="path">Continue</span>.</p>
+      </li>
+      <li><h3>Activate your app</h3><p>Go to <span class="path">Activation</span> → <span class="path">Activate your app</span>. You should see a green “Activated” ✅.</p></li>
+      <li><h3>Send the 3 keys to ONTACT</h3><p>Copy your <strong>Account ID</strong>, <strong>Client ID</strong>, and <strong>Client Secret</strong> and send them back using the format below. We'll connect them for you.</p></li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <h2>Please copy, fill in, and send this back</h2>
+    <table>
+      <tr><th style="width:40%">Item</th><th>Your value</th></tr>
+      <tr><td>Your name</td><td>&nbsp;</td></tr>
+      <tr><td>Your Zoom login email</td><td>&nbsp;</td></tr>
+      <tr><td><strong>1. Account ID</strong></td><td>&nbsp;</td></tr>
+      <tr><td><strong>2. Client ID</strong></td><td>&nbsp;</td></tr>
+      <tr><td><strong>3. Client Secret</strong></td><td>&nbsp;</td></tr>
+      <tr><td>Your Zoom plan</td><td>☐ Free / Basic &nbsp;&nbsp; ☐ Licensed / Pro</td></tr>
+    </table>
+    <div class="warn" style="margin-top:10px"><strong>Keep your keys safe 🔒</strong> Your <strong>Client Secret</strong> is like a password. Send it only to ONTACT through our official channel. If it's ever exposed, return to App Credentials and click <em>Regenerate</em>, then send us the new one.</div>
+  </div>
+
+  <div class="card faq">
+    <h2>Frequently asked questions</h2>
+    <h3>Do I have to pay anything?</h3>
+    <p>No. Creating this app is completely free. (A paid Zoom plan is only recommended so classes aren't limited to 40 minutes.)</p>
+    <h3>Is this safe? Can ONTACT see my Zoom password?</h3>
+    <p>Yes, it's safe. You're <strong>not</strong> giving us your password. These keys only let our system create class meetings on your account, and you can turn it off anytime by deleting the app.</p>
+    <h3>I can't find “Develop” or “Build App”.</h3>
+    <p>Make sure you're signed in on a computer browser (not the phone app). Still stuck? Send us a screenshot and we'll help.</p>
+    <h3>I missed copying the Client Secret. Is it gone?</h3>
+    <p>No — go to <span class="path">Develop → Manage</span>, open your app, and the <span class="path">App Credentials</span> page shows all three keys again.</p>
+    <h3>Will this change my own personal Zoom meetings?</h3>
+    <p>No. Your normal Zoom account, meetings, and settings stay exactly the same.</p>
+  </div>
+
+  <footer>Thank you for setting this up — it helps every class start on time. 💛<br>Questions? Contact ONTACT anytime. · <strong>ONTACT English</strong></footer>
+</div>
+</body>
+</html>

@@ -142,6 +142,14 @@
 
   <!-- ─── Schedule tab ─── -->
   <div class="panel on" id="p-schedule">
+    <a href="zoom-setup.html" id="zoom-guide-banner" style="display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,#12273d,#1d3a5a);color:#fff;text-decoration:none;border-radius:12px;padding:13px 16px;margin-bottom:14px;box-shadow:0 8px 24px -14px rgba(18,39,61,.6)">
+      <span style="font-size:1.4rem">🎥</span>
+      <span style="flex:1;line-height:1.4">
+        <b style="display:block;font-size:.95rem">Set up your Zoom for classes</b>
+        <span style="font-size:.82rem;opacity:.88">Please create &amp; send us your 3 Zoom keys — tap for the step-by-step guide.</span>
+      </span>
+      <span style="background:#ef6a48;color:#fff;font-weight:700;font-size:.82rem;padding:.5em 1em;border-radius:999px;white-space:nowrap">Open guide →</span>
+    </a>
     <div id="hero" class="hero empty"><span data-t="loading">Loading…</span></div>
 
     <div class="stats">
@@ -212,6 +220,20 @@
       <p class="sub" data-t="st_sub">Your enrolled students. View basic info and level test reports (written + 1:1).</p>
       <div id="st-list"><div class="empty" data-t="loading">Loading…</div></div>
     </div>
+  </div>
+</div>
+
+<!-- First-login: Zoom setup notice -->
+<div id="zoom-intro-modal" class="modal">
+  <div class="modal-box" style="max-width:440px;text-align:center">
+    <div style="font-size:2.4rem;margin-bottom:6px">🎥</div>
+    <h3 style="font-size:1.2rem">Welcome! One quick setup</h3>
+    <p class="meta" style="margin-bottom:14px">To run your classes, ONTACT needs to connect your own Zoom. Please create <b>3 Zoom keys</b> and send them to us — it takes about 5–10 minutes.</p>
+    <div class="modal-btns" style="justify-content:center">
+      <button class="btn-ghost" id="zoom-intro-later">Later</button>
+      <a class="btn" href="zoom-setup.html" style="text-decoration:none">📄 Open the guide</a>
+    </div>
+    <p style="font-size:.75rem;color:var(--muted);margin-top:12px">You can reopen this anytime from the banner on your dashboard.</p>
   </div>
 </div>
 
@@ -366,8 +388,21 @@ async function gate(){
   $("my-tz").textContent = BROWSER_TZ + " " + t("tz_auto");
   applyLang();
   init();
+  maybeShowZoomIntro();
 }
 $("logout").onclick=async(e)=>{ e.preventDefault(); await sb.auth.signOut(); location.href="login.html"; };
+
+// ── First-login Zoom setup popup (shows once per teacher) ──
+function maybeShowZoomIntro(){
+  const key = "ontact_zoom_intro_seen_" + (USER?.id || "");
+  if(localStorage.getItem(key)) return;
+  const m = $("zoom-intro-modal"); if(!m) return;
+  m.classList.add("on");
+  const close = ()=>{ m.classList.remove("on"); localStorage.setItem(key,"1"); };
+  $("zoom-intro-later").onclick = close;
+  m.querySelector("a.btn").addEventListener("click", ()=> localStorage.setItem(key,"1"));
+  m.addEventListener("click", e=>{ if(e.target===m) close(); });
+}
 
 document.querySelectorAll(".tabs button").forEach(b=>{
   b.onclick=()=>{
