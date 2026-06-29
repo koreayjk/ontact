@@ -52,7 +52,7 @@ create or replace function public.create_inquiry(
   p_name text, p_phone text, p_password text,
   p_title text, p_body text, p_is_secret boolean
 ) returns uuid
-language plpgsql security definer set search_path = public as $$
+language plpgsql security definer set search_path = public, extensions as $$
 declare new_id uuid;
 begin
   if coalesce(length(trim(p_name)),0)  = 0 then raise exception '이름을 입력해 주세요.'; end if;
@@ -98,7 +98,7 @@ returns table(
   id uuid, name text, title text, body text, is_secret boolean,
   answer text, answered_at timestamptz, status text, created_at timestamptz
 )
-language plpgsql security definer set search_path = public as $$
+language plpgsql security definer set search_path = public, extensions as $$
 declare r public.inquiries;
 begin
   select * into r from public.inquiries where id = p_id;
@@ -120,3 +120,6 @@ grant execute on function public.view_inquiry(uuid,text) to anon, authenticated;
 
 -- 참고: 총관리자 답변은 admin.html 에서 인증된 admin 세션으로
 --       update public.inquiries set answer=..., status='answered' ... 로 처리됩니다.
+
+-- ── PostgREST 스키마 캐시 새로고침 (RPC 404 방지) ──────────
+notify pgrst, 'reload schema';
