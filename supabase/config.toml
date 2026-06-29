@@ -1,0 +1,12 @@
+# Supabase 프로젝트 설정
+# Edge Functions 의 JWT 검증 설정.
+#   admin-delete-user : 함수 내부에서 직접 관리자(admin) 검증을 하므로
+#                       게이트웨이 JWT 검증은 끔(=CORS 프리플라이트 통과).
+#   confirm-payment   : 토스 결제 승인용. 프론트에서 호출되므로 동일하게 끔.
+# ※ 대시보드로 배포할 때는 각 함수의 "Verify JWT" 토글을 직접 꺼주세요.
+
+[functions.admin-delete-user]
+verify_jwt = false
+
+[functions.confirm-payment]
+verify_jwt = false
