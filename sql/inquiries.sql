@@ -101,7 +101,7 @@ returns table(
 language plpgsql security definer set search_path = public, extensions as $$
 declare r public.inquiries;
 begin
-  select * into r from public.inquiries where id = p_id;
+  select * into r from public.inquiries i where i.id = p_id;
   if not found then raise exception '글을 찾을 수 없습니다.'; end if;
 
   if r.is_secret then
