@@ -172,6 +172,7 @@
   <button data-tab="people">👥 사람 관리</button>
   <button data-tab="payments">💰 결제</button>
   <button data-tab="ops">📅 운영 도구</button>
+  <button data-tab="inquiries">💬 수강문의 <span id="inq-badge" style="display:none;background:#c0392b;color:#fff;padding:0 6px;border-radius:999px;font-size:.7rem;margin-left:2px"></span></button>
 </div>
 
 <div class="wrap">
@@ -520,6 +521,25 @@
     </div>
   </div>
 
+  <!-- ============================================== -->
+  <!-- 💬 수강문의 -->
+  <!-- ============================================== -->
+  <div class="panel" id="p-inquiries">
+    <div class="card">
+      <h2>💬 수강문의</h2>
+      <p class="sub">비회원이 남긴 문의를 확인하고 답변합니다. (비밀글도 관리자에게는 전체 표시됩니다)</p>
+      <div id="inq-list" style="margin-top:8px">불러오는 중…</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- 수강문의 답변 모달 -->
+<div id="inq-modal" style="display:none;position:fixed;inset:0;background:rgba(18,39,61,.6);z-index:990;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)" onclick="if(event.target===this)this.style.display='none'">
+  <div style="background:#fff;border-radius:16px;max-width:560px;width:100%;max-height:90vh;overflow:auto;padding:24px;box-shadow:0 30px 70px rgba(0,0,0,.3)">
+    <button onclick="document.getElementById('inq-modal').style.display='none'" style="float:right;border:none;background:none;font-size:1.5rem;cursor:pointer;color:var(--muted)">×</button>
+    <div id="inq-detail"></div>
+  </div>
 </div>
 
 <!-- LOGIN GATE -->
@@ -590,6 +610,7 @@ let EXPIRING_LIST=[], OVERDUE_LIST=[], NOSHOW_LIST=[];
   $("who").textContent = `${p.full_name||user.email} · 🌐 ${BROWSER_TZ}`;
   $("logout").onclick = async e=>{ e.preventDefault(); await sb.auth.signOut(); location.href="login.html"; };
   loadAll();
+  refreshInquiryBadge();
   // 기본 월 셋팅
   const now = new Date();
   $("mn-month").value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
@@ -604,6 +625,7 @@ document.querySelectorAll(".tabs button").forEach(b=>{
     $("p-"+b.dataset.tab).classList.add("on");
     if(b.dataset.tab==="payments") loadPayments();
     if(b.dataset.tab==="ops") loadOps();
+    if(b.dataset.tab==="inquiries") loadInquiries();
   };
 });
 
@@ -617,6 +639,87 @@ document.querySelectorAll("[data-go]").forEach(el=>{
 // ════════════════════════════════════════════
 const escA = s => (s==null?"":String(s)).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 function loadOps(){ loadAnnouncements(); loadTextbooks(); }
+
+// ════════════════════════════════════════════
+// 💬 수강문의 — 목록 / 답변 (총관리자)
+// ════════════════════════════════════════════
+let INQUIRIES=[];
+const inqDate=d=>{const x=new Date(d);return `${x.getFullYear()}.${String(x.getMonth()+1).padStart(2,"0")}.${String(x.getDate()).padStart(2,"0")} ${String(x.getHours()).padStart(2,"0")}:${String(x.getMinutes()).padStart(2,"0")}`;};
+
+async function refreshInquiryBadge(){
+  const{count}=await sb.from("inquiries").select("id",{count:"exact",head:true}).eq("status","pending");
+  const b=$("inq-badge");
+  if(b){ if(count>0){ b.textContent=count; b.style.display="inline-block"; } else b.style.display="none"; }
+}
+
+async function loadInquiries(){
+  const box=$("inq-list");
+  box.innerHTML="불러오는 중…";
+  const{data,error}=await sb.from("inquiries")
+    .select("id,name,phone,title,body,is_secret,answer,answered_at,status,created_at")
+    .order("created_at",{ascending:false});
+  if(error){ box.innerHTML=`<div style="color:#d4512c">불러오기 실패: ${escA(error.message)}</div>`; return; }
+  INQUIRIES=data||[];
+  if(INQUIRIES.length===0){ box.innerHTML=`<div style="color:var(--muted);padding:20px;text-align:center">등록된 문의가 없습니다.</div>`; return; }
+  box.innerHTML=INQUIRIES.map(r=>{
+    const answered = r.answer && r.answer.length>0;
+    const badge = answered
+      ? `<span style="background:#e6f6ec;color:#2e7d32;font-size:.72rem;font-weight:700;padding:.2em .6em;border-radius:999px">답변완료</span>`
+      : `<span style="background:#fdeee9;color:#d4512c;font-size:.72rem;font-weight:700;padding:.2em .6em;border-radius:999px">답변대기</span>`;
+    return `<div class="inq-row" data-id="${r.id}" style="display:flex;align-items:center;gap:10px;padding:12px 6px;border-bottom:1px solid var(--line);cursor:pointer">
+      <span style="flex:1;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.is_secret?'🔒 ':''}${escA(r.title)}</span>
+      ${badge}
+      <span style="font-size:.85rem;color:var(--muted);white-space:nowrap">${escA(r.name)}${r.phone?' · '+escA(r.phone):''}</span>
+      <span style="font-size:.8rem;color:var(--muted);white-space:nowrap">${inqDate(r.created_at)}</span>
+    </div>`;
+  }).join("");
+  box.querySelectorAll(".inq-row").forEach(el=>el.onclick=()=>openInquiry(el.dataset.id));
+}
+
+function openInquiry(id){
+  const r=INQUIRIES.find(x=>x.id===id); if(!r) return;
+  const answered = r.answer && r.answer.length>0;
+  $("inq-detail").innerHTML=`
+    <h2 style="font-size:1.2rem;margin-bottom:4px">${r.is_secret?'🔒 ':''}${escA(r.title)}</h2>
+    <div style="font-size:.85rem;color:var(--muted);border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:14px">
+      ${escA(r.name)}${r.phone?' · '+escA(r.phone):''} · ${inqDate(r.created_at)}
+      ${r.is_secret?' · <b style="color:var(--coral)">비밀글</b>':''}
+    </div>
+    <div style="white-space:pre-wrap;font-size:.95rem;line-height:1.7;margin-bottom:18px">${escA(r.body)||'<span style="color:var(--muted)">(내용 없음)</span>'}</div>
+    <label style="display:block;font-size:.8rem;font-weight:700;color:var(--muted);margin-bottom:6px">답변 ${answered?`<span style="color:#2e7d32">(작성됨 · ${r.answered_at?inqDate(r.answered_at):''})</span>`:''}</label>
+    <textarea id="inq-answer" rows="5" style="width:100%;padding:.8em 1em;border:1.5px solid var(--line);border-radius:10px;font-family:inherit;font-size:.95rem;resize:vertical">${escA(r.answer||'')}</textarea>
+    <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+      <button class="btn" id="inq-save" style="flex:1">${answered?'답변 수정':'답변 등록'}</button>
+      ${answered?`<button class="btn" id="inq-unanswer" style="background:#fff;color:var(--ink);border:1.5px solid var(--line)">답변대기로</button>`:''}
+      <button class="btn" id="inq-delete" style="background:#fff;color:#d4512c;border:1.5px solid #f0c5ba">삭제</button>
+    </div>
+    <div class="msg" id="inq-msg" style="font-size:.85rem;margin-top:10px;min-height:1em"></div>`;
+  $("inq-modal").style.display="flex";
+
+  $("inq-save").onclick=async()=>{
+    const ans=$("inq-answer").value.trim();
+    const m=$("inq-msg");
+    if(!ans){ m.style.color="#d4512c"; m.textContent="답변 내용을 입력하세요."; return; }
+    $("inq-save").disabled=true; m.style.color="var(--muted)"; m.textContent="저장 중…";
+    const{error}=await sb.from("inquiries").update({answer:ans,status:"answered",answered_at:new Date().toISOString(),answered_by:USER.id}).eq("id",id);
+    $("inq-save").disabled=false;
+    if(error){ m.style.color="#d4512c"; m.textContent="저장 실패: "+error.message; return; }
+    m.style.color="#2e7d32"; m.textContent="✅ 저장되었습니다.";
+    setTimeout(()=>{ $("inq-modal").style.display="none"; loadInquiries(); refreshInquiryBadge(); },600);
+  };
+  const ua=$("inq-unanswer");
+  if(ua) ua.onclick=async()=>{
+    const{error}=await sb.from("inquiries").update({answer:null,status:"pending",answered_at:null}).eq("id",id);
+    if(error){ $("inq-msg").style.color="#d4512c"; $("inq-msg").textContent="실패: "+error.message; return; }
+    $("inq-modal").style.display="none"; loadInquiries(); refreshInquiryBadge();
+  };
+  $("inq-delete").onclick=async()=>{
+    if(!confirm("이 문의를 삭제할까요? 되돌릴 수 없습니다.")) return;
+    const{error}=await sb.from("inquiries").delete().eq("id",id);
+    if(error){ $("inq-msg").style.color="#d4512c"; $("inq-msg").textContent="삭제 실패: "+error.message; return; }
+    $("inq-modal").style.display="none"; loadInquiries(); refreshInquiryBadge();
+  };
+}
 
 // ── 교재 (#5) ──
 async function loadTextbooks(){
