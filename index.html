@@ -238,83 +238,103 @@
 
   /* 무료 서면 진단 CTA — 큰 박스 */
   .pt-cta-big{
-    background:linear-gradient(135deg,#fff7e6 0%,#ffe4b5 60%,#ffd699 100%);
-    border:3px dashed var(--coral);
-    border-radius:24px;
-    padding:50px 32px;
-    text-align:center;
-    margin:0 auto;
-    max-width:760px;
-    box-shadow:0 20px 60px -20px rgba(239,106,72,.3);
     position:relative;
     overflow:hidden;
+    text-align:center;
+    margin:0 auto;
+    max-width:800px;
+    padding:60px 44px;
+    border-radius:28px;
+    border:1px solid var(--line);
+    background:
+      radial-gradient(130% 130% at 0% 0%, rgba(239,106,72,.07), transparent 46%),
+      radial-gradient(130% 130% at 100% 100%, rgba(230,173,69,.10), transparent 48%),
+      #ffffff;
+    box-shadow:0 34px 80px -38px rgba(18,39,61,.30), 0 2px 8px rgba(18,39,61,.04);
   }
   .pt-cta-big::before{
     content:"100% 무료";
     position:absolute;
-    top:18px;
-    right:-40px;
-    background:var(--coral);
+    top:22px;
+    right:22px;
+    background:linear-gradient(135deg,var(--coral),var(--coral-deep));
     color:#fff;
-    padding:6px 50px;
-    transform:rotate(45deg);
-    font-size:.78rem;
+    padding:.5em 1.05em;
+    border-radius:999px;
+    font-size:.7rem;
     font-weight:800;
-    letter-spacing:.05em;
+    letter-spacing:.08em;
+    box-shadow:0 10px 22px -10px rgba(212,81,44,.7);
   }
-  .pt-cta-big .icon{font-size:3rem;margin-bottom:12px}
+  .pt-cta-big .icon{
+    font-size:2rem;
+    width:76px;height:76px;
+    margin:0 auto 20px;
+    display:flex;align-items:center;justify-content:center;
+    background:linear-gradient(135deg,#ffffff,#fdeee7);
+    border:1px solid var(--line);
+    border-radius:22px;
+    box-shadow:0 14px 30px -14px rgba(239,106,72,.4);
+  }
   .pt-cta-big h2{
     font-family:var(--serif);
-    font-size:clamp(1.6rem,3vw,2.2rem);
+    font-size:clamp(1.7rem,3vw,2.35rem);
     color:var(--ink);
-    margin-bottom:10px;
+    margin-bottom:12px;
     font-weight:800;
+    letter-spacing:-.01em;
   }
   .pt-cta-big h2 em{color:var(--coral);font-style:italic}
   .pt-cta-big p{
     color:var(--muted);
-    font-size:1.05rem;
-    margin-bottom:20px;
-    line-height:1.6;
+    font-size:1.04rem;
+    margin-bottom:8px;
+    line-height:1.7;
   }
   .pt-cta-big .stats-row{
     display:flex;
-    justify-content:center;
-    gap:32px;
-    margin:20px 0;
-    flex-wrap:wrap;
+    width:fit-content;
+    margin:28px auto 30px;
+    border:1px solid var(--line);
+    border-radius:18px;
+    background:var(--paper);
+    overflow:hidden;
   }
-  .pt-cta-big .stat{text-align:center}
+  .pt-cta-big .stat{text-align:center;padding:16px 30px}
+  .pt-cta-big .stat + .stat{border-left:1px solid var(--line)}
   .pt-cta-big .stat .n{
     font-family:var(--serif);
-    font-size:1.8rem;
-    font-weight:800;
-    color:var(--coral);
+    font-size:1.95rem;
+    font-weight:900;
     line-height:1;
+    color:var(--coral);
+    background:linear-gradient(135deg,var(--coral),var(--gold));
+    -webkit-background-clip:text;background-clip:text;
+    -webkit-text-fill-color:transparent;
   }
-  .pt-cta-big .stat .l{font-size:.82rem;color:var(--muted);margin-top:4px}
+  .pt-cta-big .stat .l{font-size:.8rem;color:var(--muted);margin-top:6px}
   .pt-cta-big .btn-big{
-    background:var(--coral);
+    background:linear-gradient(135deg,var(--coral),var(--coral-deep));
     color:#fff;
     text-decoration:none;
-    padding:18px 40px;
-    border-radius:14px;
+    padding:17px 44px;
+    border-radius:999px;
     font-weight:800;
-    font-size:1.1rem;
+    font-size:1.08rem;
     display:inline-block;
-    box-shadow:0 12px 30px -10px rgba(239,106,72,.6);
-    margin-top:8px;
-    animation:pt-cta-pulse 1.8s ease-in-out infinite;
+    box-shadow:0 18px 38px -16px rgba(212,81,44,.7);
+    transition:transform .25s, box-shadow .25s;
   }
-  .pt-cta-big .btn-big:hover{background:#d85a3a;transform:translateY(-2px)}
-  @keyframes pt-cta-pulse{
-    0%,100%{box-shadow:0 12px 30px -10px rgba(239,106,72,.6),0 0 0 0 rgba(239,106,72,.4)}
-    50%{box-shadow:0 12px 30px -10px rgba(239,106,72,.6),0 0 0 18px rgba(239,106,72,0)}
-  }
+  .pt-cta-big .btn-big:hover{transform:translateY(-3px);box-shadow:0 26px 50px -18px rgba(212,81,44,.75)}
   .pt-cta-big .sub-note{
     font-size:.85rem;
     color:var(--muted);
-    margin-top:14px;
+    margin-top:16px;
+  }
+  @media(max-width:560px){
+    .pt-cta-big{padding:42px 22px}
+    .pt-cta-big .stats-row{width:100%}
+    .pt-cta-big .stat{flex:1;padding:14px 8px}
   }
 
   /* 무료 서면 진단 CTA — 가운데 좁은 띠 */
