@@ -638,6 +638,7 @@ document.querySelectorAll("[data-go]").forEach(el=>{
 // 📅 운영 도구 — 공지(#6/#7) · 교재(#5)
 // ════════════════════════════════════════════
 const escA = s => (s==null?"":String(s)).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const avA  = s => escA(s).replace(/"/g,"&quot;");
 function loadOps(){ loadAnnouncements(); loadTextbooks(); }
 
 // ════════════════════════════════════════════
@@ -1246,9 +1247,94 @@ async function togglePersonDetail(tr, personId){
          <button onclick="changeUserRole('${personId}','${(m.full_name||m.email||"").replace(/'/g,"\\'")}')" style="background:var(--ink);color:#fff;border:0;padding:6px 14px;border-radius:6px;font-weight:700;cursor:pointer;font-size:.85rem">역할 변경</button>
        </div>`;
 
-  detailRow.innerHTML = `<td colspan="7">${roleChangeHtml}${content}</td>`;
+  // ── ✏️ 개인정보 수정 (이메일 제외) ──
+  const genderOpts = [["","—"],["male","남"],["female","여"],["other","기타"]]
+    .map(([v,l])=>`<option value="${v}"${m.gender===v?" selected":""}>${l}</option>`).join("");
+  const editInfoHtml = `
+    <div style="background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:14px;margin-bottom:14px">
+      <h3 style="font-size:.95rem;margin-bottom:10px">✏️ 개인정보 수정</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div><label style="font-size:.78rem;color:var(--muted)">이름</label><input id="ef-name-${personId}" value="${avA(m.full_name||"")}"></div>
+        <div><label style="font-size:.78rem;color:var(--muted)">이메일 (변경 불가)</label><input value="${avA(m.email||"")}" disabled style="background:#efece6;color:var(--muted)"></div>
+        <div><label style="font-size:.78rem;color:var(--muted)">휴대폰</label><input id="ef-phone-${personId}" value="${avA(m.phone||"")}" inputmode="numeric"></div>
+        <div><label style="font-size:.78rem;color:var(--muted)">나이</label><input id="ef-age-${personId}" type="number" min="1" max="120" value="${avA(m.age||"")}"></div>
+        <div><label style="font-size:.78rem;color:var(--muted)">성별</label><select id="ef-gender-${personId}">${genderOpts}</select></div>
+        <div><label style="font-size:.78rem;color:var(--muted)">국가</label><input id="ef-country-${personId}" value="${avA(m.country||"")}"></div>
+        <div style="grid-column:1 / -1"><label style="font-size:.78rem;color:var(--muted)">시간대(Timezone)</label><input id="ef-tz-${personId}" value="${avA(m.timezone||"")}" placeholder="Asia/Seoul"></div>
+      </div>
+      <button class="btn" style="margin-top:10px" onclick="savePersonInfo('${personId}')">정보 저장</button>
+      <span id="ef-msg-${personId}" style="margin-left:10px;font-size:.85rem"></span>
+    </div>`;
+
+  // ── ⚠️ 회원 탈퇴 (본인 제외) ──
+  const dangerZoneHtml = isSelf ? "" : `
+    <div style="background:#fff5f3;border:1px solid #f0c5ba;border-radius:8px;padding:14px;margin-top:16px">
+      <h3 style="font-size:.95rem;margin-bottom:6px;color:#d4351c">⚠️ 회원 탈퇴</h3>
+      <p style="font-size:.83rem;color:var(--muted);margin-bottom:10px">계정과 관련 데이터가 영구 삭제됩니다. <b>결제(수강)가 진행 중인 회원은 탈퇴할 수 없습니다.</b></p>
+      <button onclick="deletePersonAccount('${personId}','${(m.full_name||m.email||"").replace(/'/g,"\\'")}')" style="background:#fff;border:1.5px solid #d4351c;color:#d4351c;padding:.5em 1.1em;border-radius:8px;font-weight:700;cursor:pointer">회원 탈퇴 처리</button>
+      <span id="del-msg-${personId}" style="margin-left:10px;font-size:.85rem"></span>
+    </div>`;
+
+  detailRow.innerHTML = `<td colspan="7">${roleChangeHtml}${editInfoHtml}${content}${dangerZoneHtml}</td>`;
   tr.parentNode.insertBefore(detailRow, tr.nextSibling);
 }
+
+// ── 개인정보 저장 ──
+window.savePersonInfo = async function(pid){
+  const g = id => document.getElementById(id);
+  const ageVal = g("ef-age-"+pid).value;
+  const payload = {
+    full_name: g("ef-name-"+pid).value.trim() || null,
+    phone:     g("ef-phone-"+pid).value.trim() || null,
+    age:       ageVal ? parseInt(ageVal,10) : null,
+    gender:    g("ef-gender-"+pid).value || null,
+    country:   g("ef-country-"+pid).value.trim() || null,
+    timezone:  g("ef-tz-"+pid).value.trim() || null,
+  };
+  const msg = g("ef-msg-"+pid);
+  if(!payload.full_name){ msg.style.color="#d4351c"; msg.textContent="이름은 비울 수 없습니다."; return; }
+  msg.style.color="var(--muted)"; msg.textContent="저장 중…";
+  const { error } = await sb.from("profiles").update(payload).eq("id", pid);
+  if(error){ msg.style.color="#d4351c"; msg.textContent="저장 실패: "+error.message; return; }
+  const p = PEOPLE.find(x=>x.id===pid); if(p) Object.assign(p, payload);
+  msg.style.color="#2e7d32"; msg.textContent="✅ 저장되었습니다.";
+  setTimeout(()=>loadPeople(), 800);
+};
+
+// ── 회원 탈퇴 ──
+window.deletePersonAccount = async function(pid, name){
+  const msg = document.getElementById("del-msg-"+pid);
+  // 1) 사전 차단: 결제(수강) 진행 중
+  const { data: act } = await sb.from("enrollments").select("id").eq("student_id",pid).eq("status","active").limit(1);
+  if(act && act.length){
+    alert("결제(수강)가 진행 중인 회원은 탈퇴할 수 없습니다.\n수강 종료 또는 환불 처리 후 진행해 주세요.");
+    return;
+  }
+  if(!confirm(`${name} 회원을 탈퇴 처리할까요?\n계정과 관련 데이터가 영구 삭제되며 되돌릴 수 없습니다.`)) return;
+  if(!confirm("정말 삭제하시겠습니까? 이 작업은 취소할 수 없습니다.")) return;
+
+  msg.style.color="var(--muted)"; msg.textContent="처리 중…";
+  const { data:{ session } } = await sb.auth.getSession();
+  let res, j;
+  try{
+    res = await fetch(`${SB_URL}/functions/v1/admin-delete-user`, {
+      method:"POST",
+      headers:{ "Content-Type":"application/json", "Authorization":`Bearer ${session?.access_token}`, "apikey":SB_KEY },
+      body: JSON.stringify({ user_id: pid }),
+    });
+    j = await res.json().catch(()=>({}));
+  }catch(e){ msg.style.color="#d4351c"; msg.textContent="네트워크 오류: "+e.message; return; }
+
+  if(!res.ok || !j.ok){
+    if(res.status===409 || j.blocked){ alert(j.error || "결제(수강) 진행 중으로 탈퇴할 수 없습니다."); msg.textContent=""; return; }
+    if(res.status===404){ msg.style.color="#d4351c"; msg.textContent="탈퇴 기능(admin-delete-user)이 아직 배포되지 않았습니다."; return; }
+    msg.style.color="#d4351c"; msg.textContent = j.error || "탈퇴 실패";
+    return;
+  }
+  alert(`✅ ${name} 회원이 탈퇴 처리되었습니다.`);
+  EXPANDED_ROW = null;
+  await loadPeople();
+};
 
 // 역할 변경 함수
 window.changeUserRole = async function(personId, personName){
