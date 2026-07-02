@@ -759,6 +759,16 @@
   .tmodal-tags span{background:var(--paper);color:var(--ink);font-size:.82rem;font-weight:600;padding:.35em .85em;border-radius:999px;border:1px solid var(--line)}
   .tmodal-cta{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
   .tmodal-cta a{flex:1;min-width:140px;text-align:center}
+  .tmodal-sec{margin-top:18px;text-align:left}
+  .tmodal-sec h4{font-size:.74rem;font-weight:800;letter-spacing:.07em;color:var(--coral);text-transform:uppercase;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+  .tmodal-sec ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+  .tmodal-sec li{font-size:.9rem;color:var(--ink2);line-height:1.55;padding-left:14px;position:relative}
+  .tmodal-sec li::before{content:"·";position:absolute;left:2px;color:var(--coral);font-weight:800}
+  .tmodal-langs{display:flex;gap:6px;flex-wrap:wrap}
+  .tmodal-langs span{background:var(--cream);border:1px solid var(--line);border-radius:999px;padding:.25em .85em;font-size:.82rem;font-weight:600}
+  .tmodal-exp{display:grid;gap:13px}
+  .tmodal-exp .xh{font-weight:700;font-size:.9rem;color:var(--ink)}
+  .tmodal-exp .xp-period{font-size:.78rem;color:var(--muted);margin:1px 0 5px}
 </style>
 
 <div id="tmodal" class="tmodal" onclick="if(event.target===this)this.classList.remove('on')">
@@ -773,6 +783,7 @@
         <iframe id="tm-video" src="" allow="autoplay; fullscreen" allowfullscreen></iframe>
       </div>
       <p id="tm-bio" style="color:var(--ink);font-size:.95rem;line-height:1.7"></p>
+      <div id="tm-details"></div>
       <div class="tmodal-cta">
         <a href="login.html" class="btn btn-primary">수강신청</a>
       </div>
@@ -792,25 +803,88 @@
   const MAIN_TEACHERS = [
     { id:"t-nikka", display_name:"NIKKA", specialties:"ESL 전문 · 회화·문법", photo_url:"", rating:5.0, badge:null,
       tags:["회화","문법","대학 강사 경력","석사 과정"],
-      bio:"학생 중심의 몰입형 수업으로 영어 소통 능력을 키워 드립니다. 교육학 석사 과정 중이며 대학 강사 경험을 바탕으로 자신감 있는 영어를 만들어 드립니다." },
+      bio:"학생 중심의 몰입형 수업으로 영어 소통 능력을 키워 드립니다. 교육학 석사 과정 중이며 대학 강사 경험을 바탕으로 자신감 있는 영어를 만들어 드립니다.",
+      languages:["English","Filipino"],
+      education:["Master of Arts in Education, Major in English (2023~현재, 36학점)","Bachelor of Secondary Education, Major in English"],
+      certifications:["Teaching, Learning and Assessment Strategies Seminar Workshop"],
+      feedback:["명확한 설명과 든든한 학습 지원","자신감과 적극적인 참여를 이끌어냄","인내심 있고 전문적이며 헌신적인 교육자","긍정적이고 생산적인 학습 환경 조성"],
+      experience:[
+        {title:"Batangas State University ARASOF-Nasugbu — Lecturer", period:"2022 ~ 현재", items:[]},
+        {title:"ACCP Jeremiah Learning Center — 초·중등 교사", period:"2021 ~ 2022", items:[]},
+        {title:"Nasugbu Christian Faith Academy, Inc. — 중등 교사", period:"2018 ~ 2019", items:[]},
+        {title:"English Conversation Class — English Instructor (파트타임)", period:"", items:[]},
+      ] },
     { id:"t-precious", display_name:"PRECIOUS", specialties:"ESL 11년 경력 · 키즈~성인", photo_url:"", rating:5.0, badge:null,
       tags:["11년 경력","키즈","성인","기초~중급"],
-      bio:"11년간 다양한 연령과 레벨의 학습자를 지도한 ESL 전문 강사입니다. 소통 능력과 자신감을 키우고 영어에 대한 흥미를 심어 드립니다." },
+      bio:"11년간 다양한 연령과 레벨의 학습자를 지도한 ESL 전문 강사입니다. 소통 능력과 자신감을 키우고 영어에 대한 흥미를 심어 드립니다.",
+      languages:["English","Filipino"],
+      education:["Dentistry DMD (Doctor of Dental Medicine), De Ocampo Memorial College"],
+      certifications:["English Proficiency Certificate"],
+      feedback:["학습 진행 상황을 세심하게 모니터링·지원","목표 지향적이고 체계적인 수업 설계","학습자와 신뢰 관계 형성","비판적 사고·문제 해결력 향상"],
+      experience:[
+        {title:"God's Dream Mission (International Mission Overseas) — Ontact English Class (온라인)", period:"2021.1 ~ 현재", items:["중급 (키즈·성인)","기초~초급 (키즈·성인)"]},
+        {title:"Glo Edu International Academy — English Tutor", period:"2017.7 ~ 2021.2", items:[]},
+        {title:"Jollikiddie Montessori Learning Center — 유치부 교사", period:"2015 ~ 2018", items:[]},
+        {title:"Silang Tutors Organization (STO) — English Tutor", period:"2011 ~ 2015", items:[]},
+        {title:"Lalaan Central School — 대체 교사", period:"2009 ~ 2010", items:[]},
+      ] },
     { id:"t-mel", display_name:"MEL", specialties:"ESL 7년 경력 · 회화 유창성", photo_url:"", rating:5.0, badge:null,
       tags:["7년 경력","회화","유창성","키즈·성인"],
-      bio:"7년 경력의 ESL 강사로 학생의 자신감과 말하기 유창성 향상에 집중합니다. 명확한 설명과 안정적인 수업 운영이 강점입니다." },
+      bio:"7년 경력의 ESL 강사로 학생의 자신감과 말하기 유창성 향상에 집중합니다. 명확한 설명과 안정적인 수업 운영이 강점입니다.",
+      languages:["English","Filipino"],
+      education:["Bachelor of Technical Teacher Education, Wardiere University"],
+      certifications:["English Proficiency Certificate","8th Young Educators' Congress","Green Skills Training Development Services"],
+      feedback:["명확하고 자신감 있는 수업 전달","학생 수준에 맞춘 교수법 적용","시의적절하고 건설적인 피드백 제공","우수한 수업 관리 능력"],
+      experience:[
+        {title:"God's Dream Mission (International Mission Overseas) — Ontact English Class (온라인)", period:"2021.1 ~ 현재", items:["ESL 교사","중급 (키즈·성인)","기초~초급 (키즈·성인)"]},
+        {title:"English Conversation Class — English Instructor", period:"2018 ~ 2020", items:["중급 (키즈·성인)","기초~초급 (키즈·성인)"]},
+      ] },
     { id:"t-rose", display_name:"ROSE", specialties:"ESL 8년 경력 · 회화·스토리텔링", photo_url:"", rating:5.0, badge:null,
       tags:["8년 경력","회화","Junior TOEFL","스토리텔링"],
-      bio:"8년 경력의 ESL 강사입니다. 토론과 실생활 예시, 스토리텔링·창의 활동으로 즐겁게 몰입하는 수업을 만듭니다." },
+      bio:"8년 경력의 ESL 강사입니다. 토론과 실생활 예시, 스토리텔링·창의 활동으로 즐겁게 몰입하는 수업을 만듭니다.",
+      languages:["English","Filipino"],
+      education:["BS in Mass Communication, Universidad De Manila"],
+      certifications:["English Proficiency Certificate"],
+      feedback:["활기차고 몰입감 있는 수업","탄탄한 전공 지식","명확하고 효과적인 의사소통","지지적인 수업 분위기","학습자 니즈에 맞춘 수업","적극적인 참여 유도"],
+      experience:[
+        {title:"God's Dream Mission (International Mission Overseas) — Ontact English Class (온라인)", period:"2021.1 ~ 현재", items:["Junior TOEFL","중급 (키즈·성인)","기초~초급 (키즈·성인)"]},
+        {title:"Two Commandments School (SOT)", period:"2018 ~ 2020", items:["PACES monitor","supervisor","유치부 교사"]},
+        {title:"English Conversation Class — English Instructor (대면)", period:"", items:[]},
+      ] },
     { id:"t-gladys", display_name:"GLADYS", specialties:"ESL 5년 경력 · 재미있는 회화", photo_url:"", rating:5.0, badge:null,
       tags:["5년 경력","회화","키즈","Junior TOEFL"],
-      bio:"5년 경력의 ESL 강사입니다. 게임과 실전 대화로 지루하지 않게, 매일 영어를 쓰는 자신감을 키워 드립니다." },
+      bio:"5년 경력의 ESL 강사입니다. 게임과 실전 대화로 지루하지 않게, 매일 영어를 쓰는 자신감을 키워 드립니다.",
+      languages:["English","Filipino"],
+      education:["Office Management, National College of Science and Technology"],
+      certifications:["English Proficiency Certificate"],
+      feedback:["몰입감 있고 학생 중심의 수업","개념을 명확하고 효과적으로 전달","긍정적이고 포용적인 학습 환경 조성","성장을 돕는 건설적 피드백","다양한 학습 니즈에 맞춘 교수법"],
+      experience:[
+        {title:"God's Dream Mission (International Mission Overseas) — Ontact English Class (온라인)", period:"2021.1 ~ 현재", items:["Junior TOEFL","중급 (키즈·성인)","기초~초급 (키즈·성인)"]},
+      ] },
     { id:"t-nhanie", display_name:"NHANIE", specialties:"ESL 강사 · 커리큘럼 설계", photo_url:"", rating:5.0, badge:null,
       tags:["커리큘럼 설계","회화","키즈","온라인 전문"],
-      bio:"학생 중심 수업으로 영어 소통 능력을 키워 드립니다. 온라인 ESL 강의와 커리큘럼 설계·팀 관리 경험을 갖춘 강사입니다." },
+      bio:"학생 중심 수업으로 영어 소통 능력을 키워 드립니다. 온라인 ESL 강의와 커리큘럼 설계·팀 관리 경험을 갖춘 강사입니다.",
+      languages:["English","Filipino"],
+      education:["IT & Practical Nursing (2년 과정, TESDA Program, 재학)"],
+      certifications:["English Proficiency Certificate"],
+      feedback:["명확한 설명과 든든한 학습 지원","자신감과 적극적 참여 촉진","인내심 있고 전문적이며 헌신적인 교육자","긍정적이고 생산적인 학습 분위기 조성"],
+      experience:[
+        {title:"God's Dream Mission — Online ESL Instructor & Manager", period:"2021 ~ 2026", items:["온라인 수업 전체 커리큘럼·교수 시스템 구축","수업 발전을 위한 기획·아이디어 제안","팀 업무 분장 총괄","문서·자료 관리"]},
+        {title:"God's Dream Mission — ESL Instructor (대면)", period:"2018 ~ 2021", items:["기초~중급 학습자 지도"]},
+        {title:"St. Stephen's High School — Teacher Aid / Tutor", period:"", items:["유치부 수업·활동 보조","유치·유아 학생 튜터"]},
+      ] },
     { id:"t-shaina", display_name:"SHAINA", specialties:"ESL 강사 · 회화·스피킹", photo_url:"", rating:5.0, badge:null,
       tags:["회화","스피킹","중·고등","자신감"],
-      bio:"학습자의 영어 실력과 자신감 향상에 집중하는 ESL 강사입니다. 효과적이고 몰입감 있는 수업으로 말하기 능력을 키워 드립니다." },
+      bio:"학습자의 영어 실력과 자신감 향상에 집중하는 ESL 강사입니다. 효과적이고 몰입감 있는 수업으로 말하기 능력을 키워 드립니다.",
+      languages:["English","Filipino"],
+      education:["Master of Arts in Education (대학원 과정)","Bachelor of Secondary Education"],
+      certifications:["Seminar on Enhancement of Public Speaking Skills"],
+      feedback:["적극적인 학습·참여 유도","영어 자신감 향상","지지적이고 인내심 있으며 격려하는 교육","높은 수업 몰입도"],
+      experience:[
+        {title:"BJMP Senior High School — 교사", period:"2023 ~ 2026.1", items:[]},
+        {title:"IMHOP — ESL (온라인) 교사", period:"2022 ~ 현재", items:[]},
+        {title:"Batangas State University ARASOF-Nasugbu 부속학교 — 수학 교생 실습", period:"2021 ~ 2022", items:[]},
+      ] },
   ];
 
   async function loadTeachers() {
@@ -849,6 +923,23 @@
     document.getElementById("tm-role").textContent = (t.specialties || "원어민 1:1 화상 영어") + (t.badge ? ` · ${t.badge} 강사` : "");
     document.getElementById("tm-tags").innerHTML = (t.tags || []).map(x => `<span>${x}</span>`).join("");
     document.getElementById("tm-bio").textContent = t.bio || "";
+
+    // 이력서 상세 (언어·학력·자격·강점·경력)
+    const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    const secList = (title, arr) => (arr && arr.length)
+      ? `<div class="tmodal-sec"><h4>${title}</h4><ul>${arr.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>` : "";
+    let d = "";
+    if (t.languages && t.languages.length)
+      d += `<div class="tmodal-sec"><h4>사용 언어</h4><div class="tmodal-langs">${t.languages.map(l=>`<span>${esc(l)}</span>`).join("")}</div></div>`;
+    d += secList("학력", t.education);
+    d += secList("자격 · 수료", t.certifications);
+    d += secList("강점", t.feedback);
+    if (t.experience && t.experience.length)
+      d += `<div class="tmodal-sec"><h4>주요 경력</h4><div class="tmodal-exp">${t.experience.map(x=>
+        `<div class="xp"><div class="xh">${esc(x.title)}</div>${x.period?`<div class="xp-period">${esc(x.period)}</div>`:""}${(x.items&&x.items.length)?`<ul>${x.items.map(i=>`<li>${esc(i)}</li>`).join("")}</ul>`:""}</div>`
+      ).join("")}</div></div>`;
+    document.getElementById("tm-details").innerHTML = d;
+
     const vw = document.getElementById("tm-video-wrap");
     const vf = document.getElementById("tm-video");
     if (t.video_url) {
