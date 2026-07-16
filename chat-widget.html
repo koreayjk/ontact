@@ -790,11 +790,14 @@
       .order("created_at", { ascending: true })
       .limit(200);
     _messages = data || [];
-    renderMessages();
+    renderMessages(true);   // 대화 열 때는 항상 최신(맨 아래)으로
   }
 
-  function renderMessages(){
+  function renderMessages(forceBottom){
     const el = document.getElementById("chat-messages");
+    // 렌더 전 스크롤 상태 저장 (사용자가 위로 올려 읽는 중이면 아래로 튕기지 않도록)
+    const prevTop = el.scrollTop;
+    const nearBottom = (el.scrollHeight - prevTop - el.clientHeight) < 60;
     let html = "";
     let lastDate = "";
     _messages.forEach(m => {
@@ -817,7 +820,9 @@
     });
     if(!html) html = `<div class="empty" style="margin:auto;color:#6b7785">${T.noMessages}</div>`;
     el.innerHTML = html;
-    el.scrollTop = el.scrollHeight;
+    // 맨 아래에 있었거나(=최신 확인 중) 강제 지정 시에만 맨 아래로, 아니면 읽던 위치 유지
+    if(forceBottom || nearBottom) el.scrollTop = el.scrollHeight;
+    else el.scrollTop = prevTop;
   }
 
   window.sendChatMessage = async function(){
@@ -927,7 +932,7 @@
         if(_activeConvId === m.conversation_id){
           if(_messages.some(existing => existing.id === m.id)) return;
           _messages.push(m);
-          renderMessages();
+          renderMessages(isMine);   // 내가 보낸 것만 맨 아래로, 상대 메시지는 읽던 위치 유지
           if(!isMine) markAsRead(m.conversation_id);
         } else {
           await loadConversations();
