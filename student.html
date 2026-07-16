@@ -1883,7 +1883,7 @@ async function refreshSignupGate(){
 
 async function loadTeachers(){
   const{data:teachers}=await sb.from("teachers").select("id,display_name,specialties,is_active").eq("is_active",true).order("display_name");
-  const{data:hours}=await sb.from("teacher_hours").select("teacher_id,start_hm:start_time,end_hm:end_time");
+  const{data:hours}=await sb.from("teacher_hours").select("teacher_id,start_hm,end_hm");
   HOURS={}; (hours||[]).forEach(h=>HOURS[h.teacher_id]=h);
   TEACHERS=teachers||[];
 }

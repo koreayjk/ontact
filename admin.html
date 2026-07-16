@@ -1688,7 +1688,7 @@ function emsg(t,ok){$("edit-msg").textContent=t;$("edit-msg").style.color=ok?"#2
 $("hr-btn").onclick=async()=>{
   const tid=$("hr-teacher").value, from=$("hr-from").value, to=$("hr-to").value;
   if(!tid||!from||!to){$("hr-msg").textContent="강사·시작·종료를 입력하세요.";$("hr-msg").style.color="#d4512c";return;}
-  const{error}=await sb.from("teacher_hours").upsert({teacher_id:tid,start_time:from,end_time:to,is_active:true},{onConflict:"teacher_id"});
+  const{error}=await sb.from("teacher_hours").upsert({teacher_id:tid,start_hm:from,end_hm:to},{onConflict:"teacher_id"});
   $("hr-msg").textContent=error?"저장 실패: "+error.message:"✅ 저장됐습니다.";
   $("hr-msg").style.color=error?"#d4512c":"#2c7a73";
 };
