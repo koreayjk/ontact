@@ -350,11 +350,16 @@
         <p class="sub">강사의 <b>가능 시간</b>을 <b>필리핀 시간(PHT)</b> 기준으로 입력하세요. 학생에게는 자동으로 한국 시간으로 변환되어 표시됩니다.</p>
         <div class="form-row three">
           <div><label>강사</label><select id="hr-teacher"></select></div>
-          <div><label>시작</label><input id="hr-from" type="time" value="19:00"></div>
-          <div><label>종료</label><input id="hr-to" type="time" value="21:00"></div>
+          <div><label>시작 (필리핀)</label><input id="hr-from" type="time" value="09:00"></div>
+          <div><label>종료 (필리핀)</label><input id="hr-to" type="time" value="20:10"></div>
         </div>
+        <div id="hr-kst" style="font-size:.82rem;color:var(--teal);margin:2px 0 8px"></div>
         <button class="btn" id="hr-btn">시간 범위 저장</button>
         <div class="msg" id="hr-msg"></div>
+        <div style="margin-top:14px">
+          <div style="font-size:.85rem;font-weight:700;color:var(--muted);margin-bottom:6px">📋 강사별 현재 세팅 (클릭하면 편집)</div>
+          <div id="hr-list"></div>
+        </div>
       </div>
 
       <div class="card">
@@ -1509,6 +1514,7 @@ async function loadTeachers(){
   $("zk-teacher").innerHTML = opts;
   $("gc-teacher").innerHTML = opts;
   $("tn-teacher").innerHTML = `<option value="">— 강사 선택 —</option>` + opts;
+  if(typeof renderHoursList === "function") renderHoursList();
 }
 
 // ──────── TEACHER COACHING NOTES ────────
@@ -1685,13 +1691,64 @@ $("edit-btn").onclick=async()=>{
 function emsg(t,ok){$("edit-msg").textContent=t;$("edit-msg").style.color=ok?"#2c7a73":"#d4512c";}
 
 // ──────── TEACHER HOURS ────────
+// 필리핀(PHT, UTC+8) HH:MM → 한국(KST, UTC+9) HH:MM (+1시간)
+function phtToKst(hm){
+  if(!hm) return "";
+  const [h,m]=String(hm).split(":").map(Number);
+  const k=(h+1)%24;
+  return String(k).padStart(2,"0")+":"+String(m).padStart(2,"0");
+}
+function updateHrKst(){
+  const f=$("hr-from").value, t=$("hr-to").value;
+  $("hr-kst").textContent = (f&&t) ? `→ 학생에게는 한국시간 ${phtToKst(f)} ~ ${phtToKst(t)} 로 표시됩니다` : "";
+}
+$("hr-from").addEventListener("input", updateHrKst);
+$("hr-to").addEventListener("input", updateHrKst);
+
+// 강사 선택 시 현재 저장값 자동 채움
+$("hr-teacher").addEventListener("change", async()=>{
+  const tid=$("hr-teacher").value; if(!tid) return;
+  const{data}=await sb.from("teacher_hours").select("start_hm,end_hm").eq("teacher_id",tid).maybeSingle();
+  if(data){ $("hr-from").value=data.start_hm||""; $("hr-to").value=data.end_hm||""; }
+  updateHrKst();
+});
+
 $("hr-btn").onclick=async()=>{
   const tid=$("hr-teacher").value, from=$("hr-from").value, to=$("hr-to").value;
   if(!tid||!from||!to){$("hr-msg").textContent="강사·시작·종료를 입력하세요.";$("hr-msg").style.color="#d4512c";return;}
   const{error}=await sb.from("teacher_hours").upsert({teacher_id:tid,start_hm:from,end_hm:to},{onConflict:"teacher_id"});
   $("hr-msg").textContent=error?"저장 실패: "+error.message:"✅ 저장됐습니다.";
   $("hr-msg").style.color=error?"#d4512c":"#2c7a73";
+  if(!error) renderHoursList();
 };
+
+// 강사 클릭 편집(폼에 채우고 스크롤)
+window.editHours = function(tid, from, to){
+  $("hr-teacher").value=tid;
+  $("hr-from").value=from||""; $("hr-to").value=to||"";
+  updateHrKst();
+  document.getElementById("hr-teacher").scrollIntoView({behavior:"smooth",block:"center"});
+};
+
+// 강사별 현재 세팅 목록
+async function renderHoursList(){
+  const box=$("hr-list"); if(!box) return;
+  const{data:hours}=await sb.from("teacher_hours").select("teacher_id,start_hm,end_hm");
+  const hMap={}; (hours||[]).forEach(h=>hMap[h.teacher_id]=h);
+  const rows=(TEACHERS||[]).map(t=>{
+    const h=hMap[t.id];
+    const set = h && h.start_hm && h.end_hm;
+    const info = set
+      ? `<span style="color:var(--ink)">필리핀 ${h.start_hm}~${h.end_hm}</span> <span style="color:var(--teal)">· 한국 ${phtToKst(h.start_hm)}~${phtToKst(h.end_hm)}</span>`
+      : `<span style="color:#d4512c">미설정</span>`;
+    const f=set?h.start_hm:"", to=set?h.end_hm:"";
+    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 12px;border-bottom:1px solid var(--paper);font-size:.85rem">
+      <div><b>${(t.display_name||"").replace(/</g,"&lt;")}</b> · ${info}</div>
+      <button onclick="editHours('${t.id}','${f}','${to}')" style="background:#fff;border:1px solid var(--line);border-radius:6px;padding:3px 10px;cursor:pointer;font-size:.8rem;white-space:nowrap">✏️ 편집</button>
+    </div>`;
+  }).join("");
+  box.innerHTML = rows || `<div style="color:var(--muted);font-size:.85rem;padding:8px">강사가 없습니다.</div>`;
+}
 
 // ──────── ZOOM KEYS ────────
 $("zk-btn").onclick=async()=>{
