@@ -791,7 +791,8 @@ window.showReenrollmentModal = async function(currentEnrollmentId){
       .eq("status", "active")
       .neq("student_id", USER.id);
     const takenSet = new Set((taken||[]).map(t => t.slot_hm));
-    
+    await addBlockedSlots(takenSet, reSel.teacher.id);
+
     $("re-times").innerHTML = slots.map(s => {
       const isTaken = takenSet.has(s);
       const isSel = reSel.times.has(s);
@@ -1059,7 +1060,8 @@ window.showScheduleSelector = async function(enrollmentId){
       .eq("teacher_id", ssSel.teacher.id)
       .in("status", ["active"]);
     const takenSet = new Set((taken||[]).map(t => t.slot_hm));
-    
+    await addBlockedSlots(takenSet, ssSel.teacher.id);
+
     $("ss-times").innerHTML = slots.map(s => {
       const isTaken = takenSet.has(s);
       const isSel = ssSel.times.has(s);
@@ -2085,6 +2087,14 @@ function phtToLocal(hm){
 function phSlotsInWindow(start_hm, end_hm){
   const s=hmToMin(start_hm), e=hmToMin(end_hm);
   return PH_SLOTS.filter(slot=>{ const t=hmToMin(slot); return t>=s && (t+20)<=e; });
+}
+// 관리자가 차단(블록)한 슬롯을 예약불가 집합에 추가 (해당 강사 + 전체강사=teacher_id null)
+async function addBlockedSlots(takenSet, teacherId){
+  try{
+    const { data } = await sb.from("blocked_slots").select("slot_hm")
+      .or(`teacher_id.eq.${teacherId},teacher_id.is.null`);
+    (data||[]).forEach(b => takenSet.add(b.slot_hm));
+  }catch(_){}
 }
 let MY_BOOKINGS=[], MY_ABS={}, MY_ENROLLS=[];
 

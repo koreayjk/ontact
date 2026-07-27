@@ -363,6 +363,15 @@
       </div>
 
       <div class="card">
+        <h2>🚫 수업 차단 (블록)</h2>
+        <p class="sub">특정 강사의 시간대, 또는 <b>전체 강사(단체수업 시간)</b>를 예약 불가로 막습니다. <b>매주 반복</b>. 필리핀 시간 기준(학생에겐 한국시간 표시).</p>
+        <div class="form-row"><div><label>대상</label><select id="bl-teacher"></select></div></div>
+        <div style="font-size:.82rem;color:var(--muted);margin:8px 0 4px">시간을 클릭하면 즉시 <b>차단/해제</b>됩니다. <span style="color:#d4351c;font-weight:700">빨강=차단됨</span></div>
+        <div id="bl-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px"></div>
+        <div class="msg" id="bl-msg"></div>
+      </div>
+
+      <div class="card">
         <h2>🎥 강사 줌 키 등록</h2>
         <p class="sub">강사 본인 줌으로 수업 진행 시 입력. 안 넣으면 공용 줌 사용.</p>
         <div class="form-row">
@@ -1514,8 +1523,16 @@ async function loadTeachers(){
   $("zk-teacher").innerHTML = opts;
   $("gc-teacher").innerHTML = opts;
   $("tn-teacher").innerHTML = `<option value="">— 강사 선택 —</option>` + opts;
+  if($("bl-teacher")){
+    $("bl-teacher").innerHTML = `<option value="">🌐 전체 강사 (단체수업 시간)</option>` + opts;
+  }
   if(typeof renderHoursList === "function") renderHoursList();
+  if(typeof renderBlockGrid === "function") renderBlockGrid();
 }
+document.addEventListener("DOMContentLoaded", ()=>{
+  const bt=document.getElementById("bl-teacher");
+  if(bt) bt.addEventListener("change", ()=>{ if(typeof renderBlockGrid==="function") renderBlockGrid(); });
+});
 
 // ──────── TEACHER COACHING NOTES ────────
 $("tn-teacher").addEventListener("change", refreshTeacherNotes);
@@ -1728,6 +1745,42 @@ window.editHours = function(tid, from, to){
   $("hr-from").value=from||""; $("hr-to").value=to||"";
   updateHrKst();
   document.getElementById("hr-teacher").scrollIntoView({behavior:"smooth",block:"center"});
+};
+
+// ──────── 수업 차단(블록) ────────
+const PH_SLOTS = ["09:00","09:30","10:00","10:30","11:00","13:00","13:30","14:00","14:30","15:00","15:30","16:00","16:30","17:10","17:30","18:20","18:50","19:20","19:50"];
+function blTargetVal(){ return $("bl-teacher") ? $("bl-teacher").value : ""; }
+async function renderBlockGrid(){
+  const grid=$("bl-grid"); if(!grid) return;
+  const val=blTargetVal();  // "" = 전체강사(null), 아니면 teacher_id
+  let q=sb.from("blocked_slots").select("slot_hm");
+  q = val ? q.eq("teacher_id", val) : q.is("teacher_id", null);
+  const{data:blocks}=await q;
+  const blocked=new Set((blocks||[]).map(b=>b.slot_hm));
+  grid.innerHTML = PH_SLOTS.map(s=>{
+    const on=blocked.has(s);
+    return `<button type="button" onclick="toggleBlock('${s}')"
+      style="padding:8px 6px;border-radius:8px;cursor:pointer;font-weight:700;font-size:.82rem;font-family:inherit;line-height:1.25;
+      border:2px solid ${on?'#d4351c':'var(--line)'};background:${on?'#fdecea':'#fff'};color:${on?'#d4351c':'var(--ink)'}">
+      ${on?'🚫 ':''}필리핀 ${s}<br><span style="font-size:.72rem;color:${on?'#d4351c':'var(--muted)'}">한국 ${phtToKst(s)}</span></button>`;
+  }).join("");
+}
+window.toggleBlock = async function(slot_hm){
+  const val=blTargetVal();
+  const msg=$("bl-msg"); msg.style.color="var(--muted)"; msg.textContent="처리 중…";
+  // 현재 차단 여부 확인
+  let sel=sb.from("blocked_slots").select("id");
+  sel = val ? sel.eq("teacher_id", val) : sel.is("teacher_id", null);
+  const{data:ex}=await sel.eq("slot_hm", slot_hm).limit(1);
+  let error;
+  if(ex && ex.length){
+    ({error}=await sb.from("blocked_slots").delete().eq("id", ex[0].id));
+  } else {
+    ({error}=await sb.from("blocked_slots").insert({ teacher_id: val||null, slot_hm }));
+  }
+  if(error){ msg.style.color="#d4351c"; msg.textContent="실패: "+error.message; return; }
+  msg.style.color="#2c7a73"; msg.textContent="✅ 적용됐습니다.";
+  renderBlockGrid();
 };
 
 // 강사별 현재 세팅 목록
