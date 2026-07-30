@@ -372,6 +372,13 @@
       </div>
 
       <div class="card">
+        <h2>🕘 학생 수업 시간 변경</h2>
+        <p class="sub">이미 수강 중인 학생의 <b>수업 시간</b>을 변경합니다(요일은 유지). 앞으로의 수업이 새 시간으로 자동 이동됩니다. 필리핀 시간 기준.</p>
+        <div class="form-row"><div><label>학생</label><select id="rs-student"><option value="">— 학생 선택 —</option></select></div></div>
+        <div id="rs-enroll" style="margin-top:8px"></div>
+      </div>
+
+      <div class="card">
         <h2>🎥 강사 줌 키 등록</h2>
         <p class="sub">강사 본인 줌으로 수업 진행 시 입력. 안 넣으면 공용 줌 사용.</p>
         <div class="form-row">
@@ -1036,7 +1043,10 @@ async function loadPeople(){
   PEOPLE=data||[];
   renderPeople();
   // 강사 추가 폼의 회원 선택
-  $("add-member").innerHTML = PEOPLE.filter(m=>m.role==="student").map(m=>`<option value="${m.id}">${m.full_name||m.email}</option>`).join("") || `<option value="">(학생 없음)</option>`;
+  const studentOpts = PEOPLE.filter(m=>m.role==="student").map(m=>`<option value="${m.id}">${m.full_name||m.email}</option>`).join("");
+  $("add-member").innerHTML = studentOpts || `<option value="">(학생 없음)</option>`;
+  // 학생 수업 시간 변경 폼의 학생 선택
+  if($("rs-student")) $("rs-student").innerHTML = `<option value="">— 학생 선택 —</option>` + studentOpts;
 }
 function renderPeople(){
   const q = $("people-search").value.trim().toLowerCase();
@@ -1532,6 +1542,8 @@ async function loadTeachers(){
 document.addEventListener("DOMContentLoaded", ()=>{
   const bt=document.getElementById("bl-teacher");
   if(bt) bt.addEventListener("change", ()=>{ if(typeof renderBlockGrid==="function") renderBlockGrid(); });
+  const rs=document.getElementById("rs-student");
+  if(rs) rs.addEventListener("change", ()=>{ if(typeof loadRsEnrollments==="function") loadRsEnrollments(); });
 });
 
 // ──────── TEACHER COACHING NOTES ────────
@@ -1781,6 +1793,56 @@ window.toggleBlock = async function(slot_hm){
   if(error){ msg.style.color="#d4351c"; msg.textContent="실패: "+error.message; return; }
   msg.style.color="#2c7a73"; msg.textContent="✅ 적용됐습니다.";
   renderBlockGrid();
+};
+
+// ──────── 학생 수업 시간 변경 ────────
+function rsSlotOptions(sel){
+  return PH_SLOTS.map(s=>`<option value="${s}"${s===sel?' selected':''}>필리핀 ${s} · 한국 ${phtToKst(s)}</option>`).join("");
+}
+// booking start_at(UTC ISO)의 '필리핀 날짜'에 새 slot_hm(필리핀 시간)을 적용한 UTC ISO
+function shiftToSlotUtc(startAtISO, newHm){
+  const d=new Date(startAtISO);
+  const ph=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).format(d);
+  const [Y,Mo,Da]=ph.split('-').map(Number);
+  const [h,m]=newHm.split(':').map(Number);
+  return new Date(Date.UTC(Y,Mo-1,Da,h-8,m)).toISOString(); // 필리핀=UTC+8
+}
+async function loadRsEnrollments(){
+  const box=$("rs-enroll"); if(!box) return;
+  const sid=$("rs-student").value;
+  if(!sid){ box.innerHTML=""; return; }
+  const{data:enrolls}=await sb.from("enrollments")
+    .select("id,slot_hm,months,start_date,status,teacher_id,teachers(display_name)")
+    .eq("student_id",sid).eq("status","active").order("start_date",{ascending:false});
+  if(!enrolls || !enrolls.length){ box.innerHTML=`<div style="color:var(--muted);font-size:.85rem;padding:6px">활성 수강이 없습니다.</div>`; return; }
+  const tOpts=(cur)=>`<option value="">강사 유지</option>`+(TEACHERS||[]).map(t=>`<option value="${t.id}"${t.id===cur?' selected':''}>${(t.display_name||"").replace(/</g,"&lt;")}</option>`).join("");
+  box.innerHTML=enrolls.map(e=>`
+    <div style="border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:10px">
+      <div style="font-size:.85rem;margin-bottom:8px"><b>${(e.teachers?.display_name||"—")}</b> · 현재 필리핀 ${e.slot_hm||"—"} <span style="color:var(--teal)">(한국 ${e.slot_hm?phtToKst(e.slot_hm):"—"})</span> · ${e.months}개월</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+        <div><label style="font-size:.75rem;color:var(--muted)">새 시간</label><br><select id="rs-hm-${e.id}">${rsSlotOptions(e.slot_hm)}</select></div>
+        <div><label style="font-size:.75rem;color:var(--muted)">강사 변경(선택)</label><br><select id="rs-tid-${e.id}">${tOpts(e.teacher_id)}</select></div>
+        <button class="btn" style="margin:0" onclick="changeEnrollTime('${e.id}')">변경 적용</button>
+      </div>
+      <div class="msg" id="rs-msg-${e.id}"></div>
+    </div>`).join("");
+}
+window.changeEnrollTime = async function(enrollId){
+  const newHm=$("rs-hm-"+enrollId).value;
+  const newTid=$("rs-tid-"+enrollId).value; // "" = 강사 유지
+  const msg=$("rs-msg-"+enrollId); msg.style.color="var(--muted)"; msg.textContent="변경 중…";
+  const upd={ slot_hm:newHm }; if(newTid) upd.teacher_id=newTid;
+  const{error:e1}=await sb.from("enrollments").update(upd).eq("id",enrollId);
+  if(e1){ msg.style.color="#d4351c"; msg.textContent="실패(수강): "+e1.message; return; }
+  const nowIso=new Date().toISOString();
+  const{data:bks}=await sb.from("bookings").select("id,start_at").eq("enrollment_id",enrollId).eq("is_cancelled",false).gte("start_at",nowIso);
+  let moved=0;
+  for(const b of (bks||[])){
+    const nb={ start_at: shiftToSlotUtc(b.start_at,newHm) }; if(newTid) nb.teacher_id=newTid;
+    const{error:e2}=await sb.from("bookings").update(nb).eq("id",b.id);
+    if(!e2) moved++;
+  }
+  msg.style.color="#2c7a73"; msg.textContent=`✅ 변경 완료 · 앞으로의 수업 ${moved}개가 새 시간으로 이동됨`;
 };
 
 // 강사별 현재 세팅 목록
