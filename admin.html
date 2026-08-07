@@ -379,8 +379,18 @@
       </div>
 
       <div class="card">
-        <h2>🎥 강사 줌 키 등록</h2>
-        <p class="sub">강사 본인 줌으로 수업 진행 시 입력. 안 넣으면 공용 줌 사용.</p>
+        <h2>🎥 강사 줌 회의실 링크 <span style="color:var(--teal);font-size:.8rem">(간편·권장)</span></h2>
+        <p class="sub">강사의 <b>개인 회의실 링크(PMI)</b> 하나만 넣으면 됩니다. 이 링크로 수업·레벨테스트가 열리고, 강사는 본인 방이라 <b>항상 호스트</b>입니다. (아래 OAuth 키는 없어도 됩니다.)</p>
+        <div class="form-row"><div><label>강사/매니저</label><select id="zl-teacher"></select></div></div>
+        <div class="form-row"><div><label>개인 회의실 링크</label><input id="zl-url" placeholder="https://us05web.zoom.us/j/1234567890?pwd=..."></div></div>
+        <button class="btn" id="zl-btn">회의실 링크 저장</button>
+        <div class="msg" id="zl-msg"></div>
+        <div id="zl-list" style="margin-top:12px"></div>
+      </div>
+
+      <div class="card">
+        <h2>🎥 강사 줌 키 등록 <span style="color:var(--muted);font-size:.8rem">(고급·선택)</span></h2>
+        <p class="sub">위 회의실 링크를 쓰면 <b>이건 안 넣어도 됩니다.</b> (자동 회의 생성을 원할 때만 OAuth 3키 입력)</p>
         <div class="form-row">
           <div><label>강사</label><select id="zk-teacher"></select></div>
           <div><label>Account ID</label><input id="zk-acc"></div>
@@ -1536,8 +1546,10 @@ async function loadTeachers(){
   if($("bl-teacher")){
     $("bl-teacher").innerHTML = `<option value="">🌐 전체 강사 (단체수업 시간)</option>` + opts;
   }
+  if($("zl-teacher")) $("zl-teacher").innerHTML = `<option value="">— 선택 —</option>` + opts;
   if(typeof renderHoursList === "function") renderHoursList();
   if(typeof renderBlockGrid === "function") renderBlockGrid();
+  if(typeof renderZlList === "function") renderZlList();
 }
 document.addEventListener("DOMContentLoaded", ()=>{
   const bt=document.getElementById("bl-teacher");
@@ -1794,6 +1806,34 @@ window.toggleBlock = async function(slot_hm){
   msg.style.color="#2c7a73"; msg.textContent="✅ 적용됐습니다.";
   renderBlockGrid();
 };
+
+// ──────── 강사 개인 회의실 링크(PMI) ────────
+$("zl-teacher") && $("zl-teacher").addEventListener("change", async()=>{
+  const tid=$("zl-teacher").value; if(!tid){ $("zl-url").value=""; return; }
+  const{data}=await sb.from("teacher_zoom").select("pmi_url").eq("teacher_id",tid).maybeSingle();
+  $("zl-url").value = data?.pmi_url || "";
+});
+$("zl-btn") && ($("zl-btn").onclick=async()=>{
+  const tid=$("zl-teacher").value, url=$("zl-url").value.trim();
+  const msg=$("zl-msg");
+  if(!tid){ msg.style.color="#d4512c"; msg.textContent="강사를 선택하세요."; return; }
+  const{error}=await sb.from("teacher_zoom").upsert({teacher_id:tid, pmi_url:url||null},{onConflict:"teacher_id"});
+  if(error){ msg.style.color="#d4512c"; msg.textContent="저장 실패: "+error.message; return; }
+  msg.style.color="#2c7a73"; msg.textContent="✅ 저장됐습니다.";
+  renderZlList();
+});
+async function renderZlList(){
+  const box=$("zl-list"); if(!box) return;
+  const{data:rows}=await sb.from("teacher_zoom").select("teacher_id,pmi_url");
+  const map={}; (rows||[]).forEach(r=>map[r.teacher_id]=r.pmi_url);
+  box.innerHTML = (TEACHERS||[]).map(t=>{
+    const u=map[t.id];
+    return `<div style="display:flex;justify-content:space-between;gap:10px;padding:6px 10px;border-bottom:1px solid var(--paper);font-size:.83rem">
+      <b>${(t.display_name||"").replace(/</g,"&lt;")}</b>
+      <span style="color:${u?'var(--teal)':'#d4512c'};max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${u?"✅ 링크 있음":"미설정"}</span>
+    </div>`;
+  }).join("") || `<div style="color:var(--muted);font-size:.85rem">강사가 없습니다.</div>`;
+}
 
 // ──────── 학생 수업 시간 변경 ────────
 function rsSlotOptions(sel){

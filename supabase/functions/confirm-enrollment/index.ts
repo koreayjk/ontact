@@ -123,14 +123,15 @@ serve(async (req) => {
     if (existingZoom && existingZoom.zoom_join_url) {
       stz = existingZoom;
     } else {
-      // ★ 강사 개인 줌키(teacher_zoom) — 올바른 컬럼명 사용
       const { data: tz } = await admin.from("teacher_zoom")
-        .select("zoom_account_id, zoom_client_id, zoom_client_secret")
+        .select("pmi_url, zoom_account_id, zoom_client_id, zoom_client_secret")
         .eq("teacher_id", teacher_id).maybeSingle();
 
-      // 1) 강사 개인 줌으로 먼저 생성, 2) 실패/부재 시 공용(env)으로 폴백
+      // 1) 강사 개인 회의실 링크(PMI)가 있으면 그 링크 사용(강사=host)
+      // 2) 없으면 OAuth 키로 자동 생성, 3) 그것도 없/실패면 공용(env) 폴백
       let z = null;
-      if (tz) z = await createZoom(tz.zoom_account_id, tz.zoom_client_id, tz.zoom_client_secret);
+      if (tz?.pmi_url) z = { id: null, join: tz.pmi_url, start: tz.pmi_url };
+      if (!z && tz) z = await createZoom(tz.zoom_account_id, tz.zoom_client_id, tz.zoom_client_secret);
       if (!z) z = await createZoom(
         Deno.env.get("ZOOM_ACCOUNT_ID"),
         Deno.env.get("ZOOM_CLIENT_ID"),

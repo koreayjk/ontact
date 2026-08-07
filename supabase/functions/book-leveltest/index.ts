@@ -73,15 +73,16 @@ serve(async (req) => {
     if (sErr || !slot) return json({ error: "슬롯을 찾을 수 없습니다." }, 400);
     if (slot.status !== "open") return json({ error: "이미 예약된 슬롯입니다." }, 409);
 
-    // 1) 매니저 본인 줌 키(teacher_zoom)로 먼저 시도
+    // 1) 매니저 개인 회의실 링크(PMI) 우선 → 없으면 OAuth 키로 생성
     let z = null;
     if (slot.manager_id) {
       const { data: mz } = await admin
         .from("teacher_zoom")
-        .select("zoom_account_id, zoom_client_id, zoom_client_secret")
+        .select("pmi_url, zoom_account_id, zoom_client_id, zoom_client_secret")
         .eq("teacher_id", slot.manager_id)
         .maybeSingle();
-      if (mz) z = await createZoom(mz.zoom_account_id, mz.zoom_client_id, mz.zoom_client_secret, slot);
+      if (mz?.pmi_url) z = { id: null, join: mz.pmi_url, start: mz.pmi_url };
+      if (!z && mz) z = await createZoom(mz.zoom_account_id, mz.zoom_client_id, mz.zoom_client_secret, slot);
     }
     // 2) 실패/부재 시 공용(env) 줌으로 폴백
     if (!z) {
