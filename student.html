@@ -708,7 +708,7 @@ window.showReenrollmentModal = async function(currentEnrollmentId){
   
   // 기간 옵션
   function renderReMonths(){
-    $("re-months").innerHTML = [1,2,3,4,5,6].map(m => `
+    $("re-months").innerHTML = [1,2,3].map(m => `
       <div class="opt ${reSel.months===m?'sel':''}" data-m="${m}" style="border:2px solid ${reSel.months===m?'var(--coral)':'var(--line)'};border-radius:10px;padding:12px;text-align:center;cursor:pointer;background:${reSel.months===m?'#fef6ef':'#fff'};font-weight:700">
         ${m}개월<span style="display:block;font-size:.75rem;color:var(--muted);font-weight:500;margin-top:2px">₩${(m*PRICE_PER_MONTH).toLocaleString()}</span>
       </div>
@@ -1892,7 +1892,7 @@ async function loadTeachers(){
 
 /* 기간 옵션 */
 function renderMonths(){
-  $("months").innerHTML=[1,2,3,4,5,6].map(m=>`
+  $("months").innerHTML=[1,2,3].map(m=>`
     <div class="opt ${sel.months===m?"sel":""}" data-m="${m}">
       ${m}개월<span class="sm">₩${(m*PRICE_PER_MONTH).toLocaleString()}</span>
     </div>`).join("");
