@@ -1915,7 +1915,7 @@ function refreshSummary(){
 //   · 키 미설정 시 TOSS_ENABLED=false → 기존(무PG) 흐름으로 폴백
 //   · 시크릿 키는 절대 여기 두지 않음 (Edge Function confirm-payment 에서만)
 // ════════════════════════════════════════════
-const TOSS_CLIENT_KEY = "test_ck_REPLACE_ME"; // ← 토스 테스트 '클라이언트 키'로 교체
+const TOSS_CLIENT_KEY = "test_ck_PBal2vxj81JbZYbdmeJR35RQgOAN"; // 토스 테스트 클라이언트 키(API 개별 연동). 라이브 전환 시 live_ck_ 로 교체
 const TOSS_ENABLED = !TOSS_CLIENT_KEY.includes("REPLACE") && typeof TossPayments !== "undefined";
 
 async function startTossPayment({ amount, orderName, kind, payload }){
