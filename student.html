@@ -614,7 +614,10 @@ window.showReenrollmentModal = async function(currentEnrollmentId){
   const dayAfterLast = new Date(lastDate);
   dayAfterLast.setDate(dayAfterLast.getDate() + 1);
   dayAfterLast.setHours(0, 0, 0, 0);
-  
+  // 마지막 수업이 과거면 오늘 이후로 보정 (지난 날짜가 시작일로 뜨는 것 방지)
+  const _todayMid = new Date(); _todayMid.setHours(0, 0, 0, 0);
+  if(dayAfterLast < _todayMid) dayAfterLast.setTime(_todayMid.getTime());
+
   const startCandidates = [];
   for(let i = 0; i <= 7; i++){
     const d = new Date(dayAfterLast.getTime() + i * 86400000);
@@ -925,7 +928,9 @@ window.showScheduleSelector = async function(enrollmentId){
   
   let baseDate = new Date();
   if(ltb && (ltb.test_started_at || ltb.start_at)){
-    baseDate = new Date(ltb.test_started_at || ltb.start_at);
+    const ltDate = new Date(ltb.test_started_at || ltb.start_at);
+    // 진단일이 미래면 그 기준, 과거(지난 진단)면 오늘 기준 — 지난 날짜가 시작일로 뜨는 것 방지
+    if(ltDate > baseDate) baseDate = ltDate;
   }
   
   // 시작일 후보: 1:1 다음날부터 14일 (월·화·목·금만)
