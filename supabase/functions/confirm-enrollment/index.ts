@@ -189,7 +189,9 @@ serve(async (req) => {
         const dd = String(d.getUTCDate()).padStart(2, "0");
         const hh = String(h).padStart(2, "0");
         const mi = String(m).padStart(2, "0");
-        const iso = new Date(`${yy}-${mm}-${dd}T${hh}:${mi}:00+09:00`).toISOString();
+        // slot_hm 은 필리핀 시간(PHT, UTC+8) — 반드시 +08:00 으로 태그해야 함.
+        // (+09:00 으로 하면 수업이 1시간 일찍 잡힘)
+        const iso = new Date(`${yy}-${mm}-${dd}T${hh}:${mi}:00+08:00`).toISOString();
 
         rows.push({
           enrollment_id: currentEnr.id,
