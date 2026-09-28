@@ -1991,7 +1991,8 @@ $("payBtn").onclick=async()=>{
       await startTossPayment({ amount: sel.months*PRICE_PER_MONTH, orderName:`온택 영어 ${sel.months}개월 수강`, kind:"enroll", payload:{ months: sel.months } });
     }catch(e){
       $("payBtn").disabled=false; $("payBtn").textContent="💳 결제하기";
-      if(!(e && e.code === "USER_CANCEL")){ m.style.color="#d4512c"; m.textContent="❌ "+((e&&e.message)||"결제창 오류"); }
+      console.error("Toss requestPayment error:", e);
+      if(!(e && e.code === "USER_CANCEL")){ m.style.color="#d4512c"; m.textContent="❌ "+((e&&e.message)||"결제창 오류")+((e&&e.code)?` [${e.code}]`:""); }
     }
     return;
   }
