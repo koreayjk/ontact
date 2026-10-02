@@ -1923,6 +1923,12 @@ function refreshSummary(){
 const TOSS_CLIENT_KEY = "test_ck_PBal2vxj81JbZYbdmeJR35RQgOAN"; // 토스 테스트 클라이언트 키(API 개별 연동). 라이브 전환 시 live_ck_ 로 교체
 const TOSS_ENABLED = !TOSS_CLIENT_KEY.includes("REPLACE") && typeof TossPayments !== "undefined";
 
+// 카카오톡·네이버·인스타 등 '앱 내부 브라우저' 감지 — 토스 결제창이 깨지는 주원인
+function isInAppBrowser(){
+  const ua = (navigator.userAgent || "").toLowerCase();
+  return /kakaotalk|naver|line\/|instagram|fban|fbav|fb_iab|daumapps|everytimeapp|snapchat|wechat|micromessenger/.test(ua);
+}
+
 async function startTossPayment({ amount, orderName, kind, payload }){
   const orderId = "ontact_" + kind + "_" + Date.now() + "_" + Math.random().toString(36).slice(2,8);
   sessionStorage.setItem("toss_pending", JSON.stringify({ orderId, amount, kind, payload }));
@@ -1992,7 +1998,14 @@ $("payBtn").onclick=async()=>{
     }catch(e){
       $("payBtn").disabled=false; $("payBtn").textContent="💳 결제하기";
       console.error("Toss requestPayment error:", e);
-      if(!(e && e.code === "USER_CANCEL")){ m.style.color="#d4512c"; m.textContent="❌ "+((e&&e.message)||"결제창 오류")+((e&&e.code)?` [${e.code}]`:""); }
+      if(!(e && e.code === "USER_CANCEL")){
+        m.style.color="#d4512c";
+        if(isInAppBrowser()){
+          m.innerHTML="❌ 카카오톡·인스타·네이버 등 <b>앱 안의 브라우저에서는 결제가 되지 않습니다.</b><br>우측 상단 메뉴(⋯)에서 <b>‘다른 브라우저로 열기’</b> 또는 <b>크롬·사파리</b>로 <b>onrenew.kr</b>에 직접 접속해 다시 시도해 주세요.";
+        } else {
+          m.textContent="❌ "+((e&&e.message)||"결제창 오류")+((e&&e.code)?` [${e.code}]`:"");
+        }
+      }
     }
     return;
   }
