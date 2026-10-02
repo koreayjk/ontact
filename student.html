@@ -1936,15 +1936,23 @@ async function startTossPayment({ amount, orderName, kind, payload }){
   // 토스 SDK v2 (결제창 / requestPayment)
   const toss = TossPayments(TOSS_CLIENT_KEY);
   const payment = toss.payment({ customerKey: TossPayments.ANONYMOUS }); // 일회성 결제
-  await payment.requestPayment({
+
+  // 계정 이름/이메일이 토스 규격에 안 맞으면 결제창이 UNKNOWN으로 실패 → 안전하게 정제(없으면 생략)
+  let _nm = (typeof PROFILE!=="undefined" && PROFILE && PROFILE.full_name) ? String(PROFILE.full_name).trim() : "";
+  _nm = _nm.replace(/[^가-힣A-Za-z0-9 ._-]/g, "").trim().slice(0, 40);
+  let _em = (typeof PROFILE!=="undefined" && PROFILE && PROFILE.email) ? String(PROFILE.email).trim() : "";
+  const _emOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(_em) && _em.length <= 100;
+
+  const _req = {
     method: "CARD",
     amount: { currency: "KRW", value: amount },
     orderId, orderName,
     successUrl: base + "?toss=success",
     failUrl: base + "?toss=fail",
-    customerName: (typeof PROFILE!=="undefined" && PROFILE && PROFILE.full_name) || undefined,
-    customerEmail: (typeof PROFILE!=="undefined" && PROFILE && PROFILE.email) || undefined,
-  });
+  };
+  if (_nm) _req.customerName = _nm;
+  if (_emOk) _req.customerEmail = _em;
+  await payment.requestPayment(_req);
 }
 
 // 결제 복귀 처리: 토스 승인(confirm-payment) → 성공 시 기존 수강 생성 함수 호출
